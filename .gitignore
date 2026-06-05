@@ -1,0 +1,22 @@
+# 密钥
+.env
+
+# 产物（走 gh-pages 分支，main 不包含）
+/output/
+
+# 日志
+/logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
