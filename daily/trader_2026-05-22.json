@@ -1,0 +1,63 @@
+{
+  "date": "2026-05-22",
+  "timing": {
+    "date": "2026-05-22",
+    "temperature": 22.0,
+    "phase": "下跌",
+    "index_direction": "下跌",
+    "allow_trade": true,
+    "recommended_position": 0.2,
+    "position_min": 0.1,
+    "position_max": 0.3,
+    "message": "市场处于下跌阶段，适宜观望",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-05-21",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 695,
+          "total_down_num": 4773,
+          "total_flat_num": 33,
+          "total_stop_num": 18,
+          "limit_up_num": 36,
+          "limit_down_num": 65
+        },
+        "trading_volume": {
+          "trade_balance": 3481604664065.0,
+          "trade_balance_display": "3.48万亿元",
+          "increment_trade_balance": 527890181841.0,
+          "increment_trade_balance_display": "5278.9亿元",
+          "increment_trade_balance_rate": "17.87%"
+        }
+      }
+    }
+  },
+  "scan": {
+    "date": "2026-05-22",
+    "candidate_count": 28,
+    "hits": {
+      "钱坤寻龙": [],
+      "主升狙击": [],
+      "回调狙击": [],
+      "向上缺口": [
+        {
+          "code": "002371",
+          "name": "北方华创",
+          "model": "向上缺口",
+          "label": "顺势·短线",
+          "entry": "T+1 开盘附近（今收 662.99）",
+          "reasons": [
+            "跳空高开 0.1%（缺口 656.00→656.80）",
+            "缺口未回补（今低 656.70 > 昨收 656.00）",
+            "盘中最高涨幅 10.0%",
+            "下影线 0.02%"
+          ],
+          "note": "收盘涨幅 1.1% | 缺口支撑: 656.00"
+        }
+      ],
+      "中线狙击": []
+    },
+    "total_hits": 1,
+    "summary": "扫描28只 | 向上缺口 1只"
+  }
+}

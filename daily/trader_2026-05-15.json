@@ -1,0 +1,15 @@
+{
+  "date": "2026-05-15",
+  "timing": {
+    "date": "2026-05-15",
+    "temperature": 55.0,
+    "phase": "冲刺",
+    "index_direction": "上涨",
+    "allow_trade": true,
+    "recommended_position": 0.65,
+    "position_min": 0.5,
+    "position_max": 0.8,
+    "message": "市场处于冲刺阶段，适宜加仓买入 [dry-run]",
+    "raw": {}
+  }
+}
