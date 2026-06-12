@@ -37,18 +37,28 @@ TRACKER_EXIT=$?
 echo "[tracker] 信号跟踪完成 (exit=$TRACKER_EXIT)"
 _heartbeat tracker "$([ $TRACKER_EXIT -eq 0 ] && echo done || echo failed)" $TRACKER_EXIT
 
-# 2.5 同步契约文件到 gh-pages（3 文件桥：alpha_latest + event_narrative + upstream_signals）
+# 2.5 同步契约文件到 gh-pages
+# alpha_latest + event_narrative_latest → ~/交易员/data/（daily.py 产出）
+# upstream_signals.jsonl → cycleradar-trader/data/（标准信号总线格式，含 report_agent/ma_signals/rotation/commodity）
+CYCLERADAR_DATA="/Users/scott/aichat-workspace/products/cycleradar-trader/data"
 echo "[contracts] 同步契约文件..."
 git checkout gh-pages
 mkdir -p contracts
-for f in alpha_latest.json event_narrative_latest.json upstream_signals.jsonl; do
+for f in alpha_latest.json event_narrative_latest.json; do
   if [ -f "data/$f" ]; then
     cp "data/$f" "contracts/"
-    echo "  ✓ contracts/$f"
+    echo "  ✓ contracts/$f (from ~/交易员/data/)"
   else
     echo "  ✗ data/$f 不存在，跳过"
   fi
 done
+# upstream_signals.jsonl 来自 cycleradar-trader/data/（标准信号格式）
+if [ -f "$CYCLERADAR_DATA/upstream_signals.jsonl" ]; then
+  cp "$CYCLERADAR_DATA/upstream_signals.jsonl" "contracts/"
+  echo "  ✓ contracts/upstream_signals.jsonl (from cycleradar-trader/data/)"
+else
+  echo "  ✗ cycleradar-trader/data/upstream_signals.jsonl 不存在，跳过"
+fi
 
 # 3. 提交产物到 gh-pages 并推送
 echo "[git] 更新 gh-pages 分支..."
