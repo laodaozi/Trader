@@ -1,0 +1,684 @@
+{
+  "source": "cycleradar daily.py _write_trader_contract",
+  "date": "2026-06-12",
+  "generated_at": "2026-06-12T10:00:00",
+  "events": [
+    {
+      "rank": 1,
+      "title": "美伊局势缓解 + 美股芯片暴涨8%，A股科技成长共振反弹",
+      "source": "新闻-财联社 / 微信-陆家嘴财经早餐",
+      "event_time": {
+        "occurred_at": "2026-06-12",
+        "certainty": "occurred",
+        "decay_days": 0
+      },
+      "interpretation": "美伊协议有望签署，地缘风险溢价大幅收缩，费城半导体指数单日涨7.91%，纳指创一年多最佳单日表现；A股创业板高开近3%，中际旭创等算力硬件领涨，意味着海外情绪传导已实际发生；但事件为rank=1头条，主力标的短期可能已price in，需警惕高开低走风险。",
+      "sector_impact": [
+        {
+          "sector": "半导体",
+          "direction": "利好",
+          "logic": "费城半导体指数涨7.91%直接传导，A股半导体情绪联动"
+        },
+        {
+          "sector": "电子",
+          "direction": "利好",
+          "logic": "算力硬件、光模块等创业板科技方向领涨，情绪共振"
+        },
+        {
+          "sector": "计算机",
+          "direction": "利好",
+          "logic": "AI软硬件共振，国内算力需求逻辑不变"
+        },
+        {
+          "sector": "通信",
+          "direction": "利好",
+          "logic": "通信设备/光模块受益海外科技反弹传导"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "300666",
+          "name": "江丰电子",
+          "logic": "半导体靶材龙头，半导体景气回升直接受益，微信重点关注标的"
+        },
+        {
+          "code": "002409",
+          "name": "雅克科技",
+          "logic": "半导体材料，受益半导体板块共振"
+        },
+        {
+          "code": "600703",
+          "name": "三安光电",
+          "logic": "化合物半导体，受益海外芯片板块带动"
+        }
+      ],
+      "commodity_impact": []
+    },
+    {
+      "rank": 2,
+      "title": "指数变盘关键节点：4258点多空抉择，新三样老三样板块切换",
+      "source": "微信-指数变盘判断（高关注）",
+      "event_time": {
+        "occurred_at": "2026-06-12",
+        "certainty": "ongoing",
+        "decay_days": 0
+      },
+      "interpretation": "市场围绕4258点形成多空分歧：向上突破则进入新一轮上行，向下则调整超23天、空仓等待；微信信源将半导体、电子元器件、创业板列为「老三样」持续跟踪，将证券、酿酒、中证1000列为「新三样」潜在黑马；半导体高低点下移需重点关注，有色金属作为半导体参考标的；指数当前处于变盘关键窗口，择时意义大于选股。",
+      "sector_impact": [
+        {
+          "sector": "半导体",
+          "direction": "中性",
+          "logic": "高低点下移趋势需确认方向，是老三样核心观察指标"
+        },
+        {
+          "sector": "电子",
+          "direction": "中性",
+          "logic": "老三样之一，变盘前后均为核心配置方向"
+        },
+        {
+          "sector": "证券",
+          "direction": "利好",
+          "logic": "新三样之一，微信信源标注为下轮黑马，指数上行则券商率先受益"
+        },
+        {
+          "sector": "食品饮料行业",
+          "direction": "中性",
+          "logic": "酿酒为新三样之一，大盘突破后防御与进攻兼顾"
+        },
+        {
+          "sector": "有色金属",
+          "direction": "中性",
+          "logic": "作为半导体参考标的，两者走势相关性强"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "300666",
+          "name": "江丰电子",
+          "logic": "半导体老三样核心标的，变盘向上首选"
+        },
+        {
+          "code": "002407",
+          "name": "多氟多",
+          "logic": "有色金属/半导体材料参考标的，两大主线交叉"
+        },
+        {
+          "code": "002428",
+          "name": "云南锗业",
+          "logic": "有色金属半导体参考标的，锗是半导体关键材料"
+        }
+      ],
+      "commodity_impact": [
+        {
+          "commodity": "铜",
+          "direction": "利多",
+          "logic": "有色金属作为半导体参考标的，铜价走强强化有色信号"
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "title": "电气设备超跌反弹机会，低仓位防守策略伺机低吸",
+      "source": "微信-在下杜牛牛（confidence=medium）",
+      "event_time": {
+        "occurred_at": "2026-06-12",
+        "certainty": "ongoing",
+        "decay_days": 0
+      },
+      "interpretation": "市场回撤无新高突破，信源建议采用低仓位防守策略、积累资金伺机低吸电气设备超跌标的；电网设备本期新晋轮动TOP2，资金开始回流，与电气设备反弹逻辑共振；但当前市场处于退潮期，超跌反弹浮盈有限，需严格止损。",
+      "sector_impact": [
+        {
+          "sector": "电网设备",
+          "direction": "利好",
+          "logic": "超跌后技术性反弹，低吸机会窗口打开"
+        },
+        {
+          "sector": "电网设备",
+          "direction": "利好",
+          "logic": "本期新晋轮动TOP2，资金开始流入，与电气设备共振"
+        },
+        {
+          "sector": "电力设备",
+          "direction": "利好",
+          "logic": "轮动数据新晋TOP10，产业链资金回流"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "600089",
+          "name": "特变电工",
+          "logic": "电网设备龙头，超跌反弹首选，资金评分45有改善空间"
+        },
+        {
+          "code": "600667",
+          "name": "太极实业",
+          "logic": "电气设备方向，微信提及个股，低吸候选"
+        }
+      ],
+      "commodity_impact": []
+    },
+    {
+      "rank": 4,
+      "title": "SpaceX上市引爆商业航天，A股航天板块联动爆发",
+      "source": "新闻-陆家嘴财经早餐 / 微信摘要",
+      "event_time": {
+        "occurred_at": "2026-06-12",
+        "certainty": "occurred",
+        "decay_days": 0
+      },
+      "interpretation": "SpaceX以135美元/股定价今日正式挂牌，美股太空股集体大涨，同日长征五号成功发射通信卫星；A股商业航天板块获双重催化，卫星制造、火箭、军民融合产业链标的情绪高涨，国防军工今日跻身涨幅TOP3行业。",
+      "sector_impact": [
+        {
+          "sector": "国防军工",
+          "direction": "利好",
+          "logic": "SpaceX上市+长征五号发射双催化，商业航天是国防军工核心子赛道，今日涨幅TOP1"
+        },
+        {
+          "sector": "通信",
+          "direction": "利好",
+          "logic": "卫星通信是商业航天核心应用场景，卫星互联网受益"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "688146",
+          "name": "中船特气",
+          "logic": "航天特种气体配套供应商，商业航天景气受益"
+        },
+        {
+          "code": "600667",
+          "name": "太极实业",
+          "logic": "军工电子/航天配套，商业航天行情中的军工子标的"
+        }
+      ],
+      "commodity_impact": []
+    },
+    {
+      "rank": 5,
+      "title": "特种气体/半导体材料板块连板爆发，小金属供应链受关注",
+      "source": "北极星-热度TOP10个股 / 轮动数据",
+      "event_time": {
+        "occurred_at": "2026-06-12",
+        "certainty": "occurred",
+        "decay_days": 0
+      },
+      "interpretation": "和远气体7天5板、康强电子3天3板、金钼股份2天2板，昊华科技、多氟多、江丰电子、中船特气等均在热度TOP10；特种气体（航天/半导体用气）、钼基材料、靶材等小金属/半导体材料形成联动，IT服务今日新晋轮动第1，背后是半导体+算力产业链集体爆发。",
+      "sector_impact": [
+        {
+          "sector": "小金属",
+          "direction": "利好",
+          "logic": "钼、锗、钨等稀有金属受半导体国产化+商业航天双轮驱动，金钼股份连板"
+        },
+        {
+          "sector": "电子化学品",
+          "direction": "利好",
+          "logic": "多氟多、雅克科技等半导体材料跟随半导体景气上行"
+        },
+        {
+          "sector": "半导体",
+          "direction": "利好",
+          "logic": "江丰电子等靶材标的，IT服务新晋TOP1印证半导体资金回流"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "601958",
+          "name": "金钼股份",
+          "logic": "钼产品龙头，2天2板，半导体+航天需求双轮驱动"
+        },
+        {
+          "code": "600378",
+          "name": "XD昊华科",
+          "logic": "特种气体龙头，航天+半导体气体配套，热度TOP1"
+        },
+        {
+          "code": "002407",
+          "name": "多氟多",
+          "logic": "含氟材料/锂电材料，半导体电子化学品方向，热度TOP3"
+        },
+        {
+          "code": "002428",
+          "name": "云南锗业",
+          "logic": "锗是半导体/航天核心材料，国产替代逻辑强"
+        },
+        {
+          "code": "002971",
+          "name": "和远气体",
+          "logic": "7天5板超强龙头，特种气体配套半导体与航天"
+        },
+        {
+          "code": "002409",
+          "name": "雅克科技",
+          "logic": "半导体前驱体材料，电子化学品核心标的"
+        }
+      ],
+      "commodity_impact": [
+        {
+          "commodity": "白银",
+          "direction": "利多",
+          "logic": "电子/半导体材料需求上行，白银工业需求随之强化"
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "title": "原油大跌4%+全球经济增速下调，石化能源板块承压",
+      "source": "新闻-财联社 / 新闻-世界银行报告",
+      "event_time": {
+        "occurred_at": "2026-06-12",
+        "certainty": "occurred",
+        "decay_days": 0
+      },
+      "interpretation": "美伊缓和使WTI原油跌破86美元至4月以来最低，同时世界银行预警中东冲突长期影响，将全球GDP增速预期下调至2.6%；原油大跌对石油石化直接利空，但苯乙烯因全球装置停工+中国出口创历史新高形成局部结构性机会。",
+      "sector_impact": [
+        {
+          "sector": "石油石化",
+          "direction": "利空",
+          "logic": "WTI原油单日跌逾4%，油气开采利润直接压缩"
+        },
+        {
+          "sector": "基础化工",
+          "direction": "中性",
+          "logic": "苯乙烯全球开工率降至57%，中国出口创历史新高，中国化工企业受益局部供给收缩"
+        },
+        {
+          "sector": "煤炭采选",
+          "direction": "利空",
+          "logic": "大宗能源普跌背景下，煤炭估值受压"
+        }
+      ],
+      "stock_impact": [],
+      "commodity_impact": [
+        {
+          "commodity": "原油",
+          "direction": "利空",
+          "logic": "美伊协议缓解供给压力，原油跌至阶段低位"
+        },
+        {
+          "commodity": "黄金",
+          "direction": "利多",
+          "logic": "美元走弱+避险情绪初步缓解但黄金仍受低利率支撑，收复4200美元"
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "title": "国务院部署科技强国战略，半导体/IT服务/高端制造政策催化",
+      "source": "新闻-国务院常务会议",
+      "event_time": {
+        "occurred_at": "2026-06-12",
+        "certainty": "occurred",
+        "decay_days": 0
+      },
+      "interpretation": "国务院要求高效组织实施国家重大科技任务，强化国家战略科技力量协同攻关；政策方向直接指向半导体国产化、AI算力、高端制造等板块，与当日轮动数据IT服务新晋第1名形成政策+资金双重确认，对板块中期走势构成支撑。",
+      "sector_impact": [
+        {
+          "sector": "半导体",
+          "direction": "利好",
+          "logic": "重大科技任务核心方向，国产替代政策加速"
+        },
+        {
+          "sector": "计算机",
+          "direction": "利好",
+          "logic": "AI/算力是科技强国核心议题，IT服务新晋轮动TOP1"
+        },
+        {
+          "sector": "电新行业",
+          "direction": "利好",
+          "logic": "新能源技术是战略科技力量重要方向，轮动新晋TOP8"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "300666",
+          "name": "江丰电子",
+          "logic": "半导体国产材料，政策催化叠加景气共振"
+        },
+        {
+          "code": "002407",
+          "name": "多氟多",
+          "logic": "含氟半导体材料，国产化战略受益标的"
+        }
+      ],
+      "commodity_impact": []
+    },
+    {
+      "rank": 8,
+      "title": "贵金属黄金白银大幅反弹，铜价走强，有色金属板块共振",
+      "source": "新闻-商品异动 / 宏观数据",
+      "event_time": {
+        "occurred_at": "2026-06-12",
+        "certainty": "occurred",
+        "decay_days": 0
+      },
+      "interpretation": "现货黄金大涨3.5%收复4200美元，白银飙升6.3%，铜价5日+1.22%维持强势；美债收益率下行10BP+美元走弱共同驱动贵金属上行；但黄金5日累计-3.2%，本次反弹或为超跌修复；铜价稳中有升对电网设备传导利好延续。",
+      "sector_impact": [
+        {
+          "sector": "贵金属",
+          "direction": "利好",
+          "logic": "黄金+3.5%、白银+6.3%，贵金属股直接受益"
+        },
+        {
+          "sector": "工业金属",
+          "direction": "利好",
+          "logic": "铜价5日走强，工业金属景气度维持"
+        },
+        {
+          "sector": "电网设备",
+          "direction": "利好",
+          "logic": "铜价强势支撑电网设备成本与订单逻辑，IC相关性+0.58验证"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "603799",
+          "name": "华友钴业",
+          "logic": "有色金属/能源金属，铜钴价格上行直接受益"
+        },
+        {
+          "code": "002466",
+          "name": "天齐锂业",
+          "logic": "能源金属，轮动新晋能源金属板块，受益贵金属+工业金属共振"
+        }
+      ],
+      "commodity_impact": [
+        {
+          "commodity": "黄金",
+          "direction": "利多",
+          "logic": "美元走弱+利率下行，黄金修复性反弹"
+        },
+        {
+          "commodity": "白银",
+          "direction": "利多",
+          "logic": "工业+贵金属双属性，单日涨6.3%动能强劲"
+        },
+        {
+          "commodity": "铜",
+          "direction": "利多",
+          "logic": "5日走势偏强，电网投资加速传导"
+        }
+      ]
+    }
+  ],
+  "alpha_signals": [
+    {
+      "signal_id": "ALPHA-20260612-001",
+      "stock": {
+        "code": "300666",
+        "name": "江丰电子"
+      },
+      "direction": "long",
+      "entry_price": 293.65,
+      "target_price": 340.0,
+      "stop_loss": 272.0,
+      "confidence": "medium",
+      "time_window": "1m",
+      "event_source": "微信-指数变盘判断（老三样核心）+ 新闻-美股芯片暴涨8%",
+      "thesis": "半导体靶材龙头，「老三样」核心标的，海外芯片暴涨+国内政策双催化，半导体材料国产化逻辑持续兑现",
+      "sector_context": "半导体 · 轮动新晋TOP6，IT服务/半导体资金回流 · factor_status=initial",
+      "enhanced_nx": {
+        "grade": {
+          "grade": "neutral",
+          "label": "无信号",
+          "L1": false,
+          "L2": true,
+          "L3": false,
+          "decision": "观望，等待NX信号触发",
+          "confidence": 0,
+          "volume_quality": "ok"
+        },
+        "ref_prices": {
+          "entry_ref": null,
+          "stop_loss": null,
+          "target_1": null,
+          "target_2": null,
+          "atr": 23.16,
+          "atr_pct": 7.89,
+          "risk_reward": null,
+          "ma20": 213.09
+        },
+        "summary": "NX=超买(上行) | 无信号 | 观望，等待NX信号触发",
+        "confirmed_count": 1
+      }
+    },
+    {
+      "signal_id": "ALPHA-20260612-002",
+      "stock": {
+        "code": "601958",
+        "name": "金钼股份"
+      },
+      "direction": "long",
+      "entry_price": 25.52,
+      "target_price": 30.5,
+      "stop_loss": 23.2,
+      "confidence": "medium",
+      "time_window": "2w",
+      "event_source": "北极星热度TOP2（2天2板）+ 微信-有色金属半导体参考标的",
+      "thesis": "钼产品稀缺龙头，2天2板动能强劲，半导体+航天特种材料双轮驱动，连板效应下资金持续涌入",
+      "sector_context": "小金属 · 热度TOP2连板标的，微信提及有色金属为半导体参考标的 · factor_status=initial",
+      "enhanced_nx": {
+        "grade": {
+          "grade": "neutral",
+          "label": "无信号",
+          "L1": false,
+          "L2": false,
+          "L3": false,
+          "decision": "观望，等待NX信号触发",
+          "confidence": 0,
+          "volume_quality": "ok"
+        },
+        "ref_prices": {
+          "entry_ref": null,
+          "stop_loss": null,
+          "target_1": null,
+          "target_2": null,
+          "atr": 1.94,
+          "atr_pct": 7.6,
+          "risk_reward": null,
+          "ma20": 22.7
+        },
+        "summary": "NX=偏强(上行) | 无信号 | 观望，等待NX信号触发",
+        "confirmed_count": 0
+      }
+    },
+    {
+      "signal_id": "ALPHA-20260612-003",
+      "stock": {
+        "code": "600089",
+        "name": "特变电工"
+      },
+      "direction": "long",
+      "entry_price": 22.98,
+      "target_price": 26.5,
+      "stop_loss": 21.2,
+      "confidence": "medium",
+      "time_window": "1m",
+      "event_source": "微信-电气设备超跌反弹（杜牛牛 confidence=medium）+ 轮动-电网设备新晋TOP2",
+      "thesis": "电网设备龙头超跌反弹，轮动数据新晋TOP2+铜价强势双重支撑，低仓位低吸策略下风险收益比优",
+      "sector_context": "电网设备 · 本期新晋轮动TOP2，资金初步流入 · factor_status=initial",
+      "enhanced_nx": {
+        "grade": {
+          "grade": "等",
+          "label": "等待",
+          "L1": true,
+          "L2": false,
+          "L3": false,
+          "decision": "NX买点出现但均线和量能均不支持，建议加入观察列表等二次确认",
+          "confidence": 30,
+          "volume_quality": "ok"
+        },
+        "ref_prices": {
+          "entry_ref": null,
+          "stop_loss": null,
+          "target_1": null,
+          "target_2": null,
+          "atr": 0.88,
+          "atr_pct": 3.85,
+          "risk_reward": null,
+          "ma20": 25.43
+        },
+        "summary": "NX=超卖(上攻) | 等待 | NX买点出现但均线和量能均不支持，建议加入观察列表等二次确认",
+        "confirmed_count": 1
+      }
+    },
+    {
+      "signal_id": "ALPHA-20260612-004",
+      "stock": {
+        "code": "002407",
+        "name": "多氟多"
+      },
+      "direction": "long",
+      "entry_price": 38.27,
+      "target_price": 45.0,
+      "stop_loss": 35.0,
+      "confidence": "low",
+      "time_window": "1m",
+      "event_source": "微信-指数变盘（有色半导体参考标的）+ 北极星热度TOP3",
+      "thesis": "含氟半导体材料+能源金属双属性，有色金属作为半导体参考标的，电子化学品景气回升下的逻辑共振标的",
+      "sector_context": "电子化学品/能源金属 · 热度TOP3，微信提及 · factor_status=unconfirmed，价格为估算",
+      "enhanced_nx": {
+        "grade": {
+          "grade": "neutral",
+          "label": "无信号",
+          "L1": false,
+          "L2": false,
+          "L3": false,
+          "decision": "观望，等待NX信号触发",
+          "confidence": 0,
+          "volume_quality": "ok"
+        },
+        "ref_prices": {
+          "entry_ref": null,
+          "stop_loss": null,
+          "target_1": null,
+          "target_2": null,
+          "atr": 2.36,
+          "atr_pct": 6.17,
+          "risk_reward": null,
+          "ma20": 36.18
+        },
+        "summary": "NX=超买(上行) | 无信号 | 观望，等待NX信号触发",
+        "confirmed_count": 0
+      }
+    }
+  ],
+  "sector_outlook": [
+    {
+      "sector": "半导体",
+      "direction": "看多",
+      "confidence": "medium",
+      "event_driver": "费城半导体指数单日涨7.91%传导+国务院科技强国政策+A股创业板高开3%，老三样核心赛道",
+      "factor_status": "initial",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "512480",
+        "name": "半导体ETF"
+      },
+      "commodity_link": "铜价走强（+1.22%，5日）间接支撑半导体设备需求"
+    },
+    {
+      "sector": "国防军工",
+      "direction": "看多",
+      "confidence": "medium",
+      "event_driver": "SpaceX上市+长征五号发射，商业航天双催化，今日涨幅TOP3行业",
+      "factor_status": "initial",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "512660",
+        "name": "军工ETF"
+      },
+      "commodity_link": "特种气体需求（航天用气）间接利多"
+    },
+    {
+      "sector": "电网设备",
+      "direction": "看多",
+      "confidence": "medium",
+      "event_driver": "本期轮动新晋TOP2，微信电气设备超跌反弹逻辑，铜价5日走强支撑",
+      "factor_status": "initial",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "159611",
+        "name": "电力ETF"
+      },
+      "commodity_link": "铜价走强 → 电网设备订单景气"
+    },
+    {
+      "sector": "小金属",
+      "direction": "看多",
+      "confidence": "medium",
+      "event_driver": "金钼股份2天2板、云南锗业、章源钨业连续活跃，半导体+航天特种材料需求双驱动",
+      "factor_status": "initial",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "512480",
+        "name": "半导体ETF"
+      },
+      "commodity_link": "钼、锗、钨价格上行"
+    },
+    {
+      "sector": "贵金属",
+      "direction": "看多",
+      "confidence": "medium",
+      "event_driver": "黄金+3.5%收复4200美元，白银+6.3%，美债收益率下行10BP+美元走弱共振",
+      "factor_status": "initial",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "518880",
+        "name": "黄金ETF"
+      },
+      "commodity_link": "黄金现货强势反弹，白银超强动能"
+    },
+    {
+      "sector": "证券",
+      "direction": "看多",
+      "confidence": "low",
+      "event_driver": "微信-新三样之一，下轮黑马，指数一旦突破4258点则率先受益",
+      "factor_status": "unconfirmed",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "512070",
+        "name": "非银金融ETF"
+      },
+      "commodity_link": "无"
+    },
+    {
+      "sector": "石油石化",
+      "direction": "看空",
+      "confidence": "medium",
+      "event_driver": "WTI原油单日跌逾4%至4月新低，美伊缓和供给压力释放",
+      "factor_status": "confirmed",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "159611",
+        "name": "电力ETF"
+      },
+      "commodity_link": "原油下跌 → 石油石化利润收缩"
+    },
+    {
+      "sector": "房地产",
+      "direction": "看空",
+      "confidence": "high",
+      "event_driver": "轮动数据退出TOP10（跌至第49名），资金全面撤离",
+      "factor_status": "confirmed",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "159611",
+        "name": "电力ETF"
+      },
+      "commodity_link": "无"
+    }
+  ],
+  "global_conclusion": {
+    "market_regime": "均衡",
+    "confidence": 52,
+    "action": "持仓",
+    "key_thesis": "美伊缓和+芯片暴涨驱动A股科技情绪共振，半导体/国防军工/电网设备三线轮动格局确立，但指数4258点变盘关键压力未突破、上期信号胜率仅23.9%，宜轻仓防守、精选低吸超跌质地标的",
+    "risk_warnings": [
+      "美伊协议尚未正式签署，伊朗否认最终结论，地缘风险存在反复可能导致情绪逆转",
+      "上期1周信号胜率仅23.9%，本期信号置信度整体下调，严格执行止损",
+      "指数4258点若无法有效突破，向下调整超23天的概率增加，超跌反弹空间有限",
+      "美债收益率下行、美元走弱若逆转，贵金属和科技股双双承压",
+      "大量新晋轮动标的系同日切换，资金持续性尚未验证，防止追高"
+    ]
+  }
+}
