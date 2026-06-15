@@ -2,59 +2,44 @@
   "date": "2026-06-15",
   "timing": {
     "date": "2026-06-15",
-    "temperature": 79.6,
-    "phase": "冲刺",
+    "temperature": 83.6,
+    "phase": "即将见顶",
     "index_direction": "上涨",
     "allow_trade": true,
-    "recommended_position": 0.65,
-    "position_min": 0.5,
+    "recommended_position": 0.7,
+    "position_min": 0.6,
     "position_max": 0.8,
-    "message": "市场处于冲刺阶段，适宜加仓买入",
+    "message": "市场处于即将见顶阶段，适宜逢高减仓",
     "raw": {
       "snapshot": {
         "trade_date": "2026-06-15",
-        "trade_status": "TRADE",
+        "trade_status": "ENDTR",
         "up_down_num": {
-          "total_up_num": 3550,
-          "total_down_num": 1823,
-          "total_flat_num": 135,
-          "total_stop_num": 18,
-          "limit_up_num": 153,
-          "limit_down_num": 11
+          "total_up_num": 3906,
+          "total_down_num": 1475,
+          "total_flat_num": 127,
+          "total_stop_num": 20,
+          "limit_up_num": 160,
+          "limit_down_num": 10
         },
         "trading_volume": {
-          "trade_balance": 2695275718983.0,
-          "trade_balance_display": "2.7万亿元",
-          "increment_trade_balance": -130222042187.0,
-          "increment_trade_balance_display": "-1302.22亿元",
-          "increment_trade_balance_rate": "-4.61%"
+          "trade_balance": 3031198678412.0,
+          "trade_balance_display": "3.03万亿元",
+          "increment_trade_balance": -183751066914.0,
+          "increment_trade_balance_display": "-1837.51亿元",
+          "increment_trade_balance_rate": "-5.72%"
         }
       }
     }
   },
   "scan": {
     "date": "2026-06-15",
-    "candidate_count": 18,
+    "candidate_count": 17,
     "hits": {
       "钱坤寻龙": [],
       "主升狙击": [],
       "回调狙击": [],
-      "向上缺口": [
-        {
-          "code": "600309",
-          "name": "万华化学",
-          "model": "向上缺口",
-          "label": "顺势·短线",
-          "entry": "T+1 开盘附近（今收 73.32）",
-          "reasons": [
-            "跳空高开 2.6%（缺口 71.67→73.52）",
-            "缺口未回补（今低 72.13 > 昨收 71.67）",
-            "盘中最高涨幅 6.7%",
-            "下影线 1.62%"
-          ],
-          "note": "收盘涨幅 2.3% | 缺口支撑: 71.67"
-        }
-      ],
+      "向上缺口": [],
       "中线狙击": [],
       "波段雄鹰": [],
       "弱转强": [],
@@ -63,7 +48,7 @@
       "高位整理": [],
       "均线共振": []
     },
-    "total_hits": 1,
-    "summary": "扫描18只 | 向上缺口 1只"
+    "total_hits": 0,
+    "summary": "扫描17只 | 无命中"
   }
 }
