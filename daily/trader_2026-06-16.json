@@ -1,0 +1,54 @@
+{
+  "date": "2026-06-16",
+  "timing": {
+    "date": "2026-06-16",
+    "temperature": 70.3,
+    "phase": "冲刺",
+    "index_direction": "上涨",
+    "allow_trade": true,
+    "recommended_position": 0.65,
+    "position_min": 0.5,
+    "position_max": 0.8,
+    "message": "市场处于冲刺阶段，适宜加仓买入",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-06-16",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 2730,
+          "total_down_num": 2677,
+          "total_flat_num": 106,
+          "total_stop_num": 15,
+          "limit_up_num": 138,
+          "limit_down_num": 11
+        },
+        "trading_volume": {
+          "trade_balance": 3064695847463.0,
+          "trade_balance_display": "3.06万亿元",
+          "increment_trade_balance": 33497169051.0,
+          "increment_trade_balance_display": "334.97亿元",
+          "increment_trade_balance_rate": "1.11%"
+        }
+      }
+    }
+  },
+  "scan": {
+    "date": "2026-06-16",
+    "candidate_count": 17,
+    "hits": {
+      "钱坤寻龙": [],
+      "主升狙击": [],
+      "回调狙击": [],
+      "向上缺口": [],
+      "中线狙击": [],
+      "波段雄鹰": [],
+      "弱转强": [],
+      "缩量地板": [],
+      "涨停回踩": [],
+      "高位整理": [],
+      "均线共振": []
+    },
+    "total_hits": 0,
+    "summary": "扫描17只 | 无命中"
+  }
+}
