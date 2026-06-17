@@ -1,0 +1,27 @@
+{
+  "timing": {
+    "date": "2026-05-17",
+    "temperature": 55.0,
+    "phase": "冲刺",
+    "index_direction": "上涨",
+    "allow_trade": true,
+    "recommended_position": 0.65,
+    "position_min": 0.5,
+    "position_max": 0.8,
+    "message": "市场处于冲刺阶段，适宜加仓买入 [dry-run]",
+    "raw": {}
+  },
+  "health": {
+    "account_state": "良性",
+    "daily_pnl": 1710.0,
+    "daily_pnl_pct": 0.09,
+    "total_cost": 85500.0,
+    "total_market": 87210.00000000001,
+    "stop_loss_alerts": [],
+    "overweight_alert": false,
+    "consecutive_loss_days": 0,
+    "position_ratio": 0.043,
+    "messages": []
+  },
+  "date": "2026-05-17"
+}

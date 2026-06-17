@@ -1,0 +1,19 @@
+{
+  "date": "2026-06-16",
+  "timing": {
+    "date": "2026-06-16",
+    "temperature": 55.0,
+    "phase": "冲刺",
+    "index_direction": "上涨",
+    "allow_trade": true,
+    "recommended_position": 0.65,
+    "position_min": 0.5,
+    "position_max": 0.8,
+    "haoyun_position": 0.65,
+    "haoyun_flags": [
+      "✅ 无触发条件，维持原仓位 65% (dry-run)"
+    ],
+    "message": "市场处于冲刺阶段，适宜加仓买入 [dry-run]",
+    "raw": {}
+  }
+}

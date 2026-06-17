@@ -1,0 +1,84 @@
+{
+  "date": "2026-06-04",
+  "timing": {
+    "date": "2026-06-04",
+    "temperature": 51.3,
+    "phase": "回调",
+    "index_direction": "下跌",
+    "allow_trade": true,
+    "recommended_position": 0.4,
+    "position_min": 0.3,
+    "position_max": 0.5,
+    "message": "市场处于回调阶段，适宜分批减仓",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-06-03",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 1713,
+          "total_down_num": 3727,
+          "total_flat_num": 71,
+          "total_stop_num": 13,
+          "limit_up_num": 81,
+          "limit_down_num": 27
+        },
+        "trading_volume": {
+          "trade_balance": 3130278580018.0,
+          "trade_balance_display": "3.13万亿元",
+          "increment_trade_balance": 337286478132.0,
+          "increment_trade_balance_display": "3372.86亿元",
+          "increment_trade_balance_rate": "12.08%"
+        }
+      }
+    }
+  },
+  "scan": {
+    "date": "2026-06-04",
+    "candidate_count": 27,
+    "hits": {
+      "钱坤寻龙": [],
+      "主升狙击": [],
+      "回调狙击": [],
+      "向上缺口": [],
+      "中线狙击": [
+        {
+          "code": "002008",
+          "name": "大族激光",
+          "model": "中线狙击",
+          "label": "低吸·中线",
+          "entry": "T+1 开盘或之后回调低点（今收 130.60）",
+          "reasons": [
+            "MA60趋势向上 +55.8%（30日）",
+            "收盘 130.60 > MA60 96.19",
+            "昨日在MA5下方，今日站上MA5 130.07",
+            "放量 1.5x 前日"
+          ],
+          "note": "需人工核查：PE<100、净利润增长、近3月无减持/解禁"
+        }
+      ],
+      "波段雄鹰": [],
+      "弱转强": [],
+      "缩量地板": [],
+      "涨停回踩": [
+        {
+          "code": "002008",
+          "name": "大族激光",
+          "model": "涨停回踩",
+          "label": "短线·二次启动",
+          "entry": "今收 130.60 附近，确认MA5支撑后介入",
+          "reasons": [
+            "近15日换手涨停（涨停日收盘: 147.93）",
+            "已回调 11.7%，回踩MA5 130.07",
+            "今日下影线 2.4%，支撑有效",
+            "涨幅 2.8%，止跌企稳"
+          ],
+          "note": "止损参考 MA5下方3%: 126.17"
+        }
+      ],
+      "高位整理": [],
+      "均线共振": []
+    },
+    "total_hits": 2,
+    "summary": "扫描27只 | 中线狙击 1只、涨停回踩 1只"
+  }
+}

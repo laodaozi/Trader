@@ -1,0 +1,46 @@
+{
+  "date": "2026-06-17",
+  "timing": {
+    "date": "2026-06-17",
+    "temperature": 57.3,
+    "phase": "冲刺",
+    "index_direction": "上涨",
+    "allow_trade": true,
+    "recommended_position": 0.65,
+    "position_min": 0.5,
+    "position_max": 0.8,
+    "message": "市场处于冲刺阶段，适宜加仓买入",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-06-17",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 1723,
+          "total_down_num": 3734,
+          "total_flat_num": 52,
+          "total_stop_num": 19,
+          "limit_up_num": 96,
+          "limit_down_num": 18
+        },
+        "trading_volume": {
+          "trade_balance": 3091764174328.0,
+          "trade_balance_display": "3.09万亿元",
+          "increment_trade_balance": 27068326865.0,
+          "increment_trade_balance_display": "270.68亿元",
+          "increment_trade_balance_rate": "0.88%"
+        }
+      }
+    },
+    "haoyun_position": 0.65,
+    "haoyun_flags": [
+      "✅ 无触发条件，维持原仓位 65%"
+    ]
+  },
+  "scan": {
+    "date": "2026-06-17",
+    "candidate_count": 17,
+    "hits": {},
+    "total_hits": 0,
+    "summary": "扫描17只 | 无命中"
+  }
+}

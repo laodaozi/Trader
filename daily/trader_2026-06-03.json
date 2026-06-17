@@ -1,0 +1,84 @@
+{
+  "date": "2026-06-03",
+  "timing": {
+    "date": "2026-06-03",
+    "temperature": 55.5,
+    "phase": "回调",
+    "index_direction": "下跌",
+    "allow_trade": true,
+    "recommended_position": 0.4,
+    "position_min": 0.3,
+    "position_max": 0.5,
+    "message": "市场处于回调阶段，适宜分批减仓",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-06-02",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 1543,
+          "total_down_num": 3876,
+          "total_flat_num": 88,
+          "total_stop_num": 18,
+          "limit_up_num": 96,
+          "limit_down_num": 18
+        },
+        "trading_volume": {
+          "trade_balance": 2792992101886.0,
+          "trade_balance_display": "2.79万亿元",
+          "increment_trade_balance": -84495859603.0,
+          "increment_trade_balance_display": "-844.96亿元",
+          "increment_trade_balance_rate": "-2.94%"
+        }
+      }
+    }
+  },
+  "scan": {
+    "date": "2026-06-03",
+    "candidate_count": 26,
+    "hits": {
+      "钱坤寻龙": [],
+      "主升狙击": [],
+      "回调狙击": [],
+      "向上缺口": [],
+      "中线狙击": [],
+      "波段雄鹰": [],
+      "弱转强": [],
+      "缩量地板": [],
+      "涨停回踩": [
+        {
+          "code": "002008",
+          "name": "大族激光",
+          "model": "涨停回踩",
+          "label": "短线·二次启动",
+          "entry": "今收 127.00 附近，确认MA5支撑后介入",
+          "reasons": [
+            "近15日换手涨停（涨停日收盘: 147.93）",
+            "已回调 14.1%，回踩MA5 130.21",
+            "今日下影线 1.4%，支撑有效",
+            "涨幅 1.7%，止跌企稳"
+          ],
+          "note": "止损参考 MA5下方3%: 126.30"
+        }
+      ],
+      "高位整理": [],
+      "均线共振": [
+        {
+          "code": "601088",
+          "name": "中国神华",
+          "model": "均线共振",
+          "label": "趋势初启·共振",
+          "entry": "今收 48.24 或回踩MA10 46.22 附近",
+          "reasons": [
+            "MA547.28 > MA1046.22 > MA2045.93（完整多头）",
+            "三线密集聚拢（MA5-MA20差距仅2.9%）",
+            "近8日内MA5金叉MA10，趋势刚启动",
+            "量能温和放大 1.3x"
+          ],
+          "note": "止损参考MA20: 45.93"
+        }
+      ]
+    },
+    "total_hits": 2,
+    "summary": "扫描26只 | 涨停回踩 1只、均线共振 1只"
+  }
+}

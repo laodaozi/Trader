@@ -1,0 +1,63 @@
+{
+  "date": "2026-05-20",
+  "timing": {
+    "date": "2026-05-20",
+    "temperature": 80.2,
+    "phase": "即将见顶",
+    "index_direction": "上涨",
+    "allow_trade": true,
+    "recommended_position": 0.7,
+    "position_min": 0.6,
+    "position_max": 0.8,
+    "message": "市场处于即将见顶阶段，适宜逢高减仓",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-05-19",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 3608,
+          "total_down_num": 1774,
+          "total_flat_num": 112,
+          "total_stop_num": 25,
+          "limit_up_num": 122,
+          "limit_down_num": 26
+        },
+        "trading_volume": {
+          "trade_balance": 2886558405637.0,
+          "trade_balance_display": "2.89万亿元",
+          "increment_trade_balance": -7421687570.0,
+          "increment_trade_balance_display": "-74.22亿元",
+          "increment_trade_balance_rate": "-0.26%"
+        }
+      }
+    }
+  },
+  "scan": {
+    "date": "2026-05-20",
+    "candidate_count": 28,
+    "hits": {
+      "钱坤寻龙": [],
+      "主升狙击": [],
+      "回调狙击": [],
+      "向上缺口": [],
+      "中线狙击": [
+        {
+          "code": "600900",
+          "name": "长江电力",
+          "model": "中线狙击",
+          "label": "低吸·中线",
+          "entry": "T+1 开盘或之后回调低点（今收 27.25）",
+          "reasons": [
+            "MA60趋势向上 +0.6%（30日）",
+            "收盘 27.25 > MA60 26.86",
+            "昨日在MA5下方，今日站上MA5 27.02",
+            "放量 1.9x 前日"
+          ],
+          "note": "需人工核查：PE<100、净利润增长、近3月无减持/解禁"
+        }
+      ]
+    },
+    "total_hits": 1,
+    "summary": "扫描28只 | 中线狙击 1只"
+  }
+}

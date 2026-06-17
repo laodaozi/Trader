@@ -1,0 +1,84 @@
+{
+  "date": "2026-06-08",
+  "timing": {
+    "date": "2026-06-08",
+    "temperature": 20.4,
+    "phase": "下跌",
+    "index_direction": "下跌",
+    "allow_trade": true,
+    "recommended_position": 0.2,
+    "position_min": 0.1,
+    "position_max": 0.3,
+    "message": "市场处于下跌阶段，适宜观望",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-06-08",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 899,
+          "total_down_num": 4591,
+          "total_flat_num": 25,
+          "total_stop_num": 11,
+          "limit_up_num": 64,
+          "limit_down_num": 51
+        },
+        "trading_volume": {
+          "trade_balance": 2792738110832.0,
+          "trade_balance_display": "2.79万亿元",
+          "increment_trade_balance": -276453811895.0,
+          "increment_trade_balance_display": "-2764.54亿元",
+          "increment_trade_balance_rate": "-9.01%"
+        }
+      }
+    }
+  },
+  "scan": {
+    "date": "2026-06-08",
+    "candidate_count": 25,
+    "hits": {
+      "钱坤寻龙": [],
+      "主升狙击": [],
+      "回调狙击": [],
+      "向上缺口": [],
+      "中线狙击": [
+        {
+          "code": "601088",
+          "name": "中国神华",
+          "model": "中线狙击",
+          "label": "低吸·中线",
+          "entry": "T+1 开盘或之后回调低点（今收 50.76）",
+          "reasons": [
+            "MA60趋势向上 +4.6%（30日）",
+            "收盘 50.76 > MA60 47.01",
+            "昨日在MA5下方，今日站上MA5 49.08",
+            "放量 1.5x 前日"
+          ],
+          "note": "需人工核查：PE<100、净利润增长、近3月无减持/解禁"
+        }
+      ],
+      "波段雄鹰": [],
+      "弱转强": [],
+      "缩量地板": [],
+      "涨停回踩": [],
+      "高位整理": [],
+      "均线共振": [
+        {
+          "code": "601398",
+          "name": "工商银行",
+          "model": "均线共振",
+          "label": "趋势初启·共振",
+          "entry": "今收 7.50 或回踩MA10 7.26 附近",
+          "reasons": [
+            "MA57.34 > MA107.26 > MA207.24（完整多头）",
+            "三线密集聚拢（MA5-MA20差距仅1.4%）",
+            "近8日内MA5金叉MA10，趋势刚启动",
+            "量能温和放大 2.1x"
+          ],
+          "note": "止损参考MA20: 7.24"
+        }
+      ]
+    },
+    "total_hits": 2,
+    "summary": "扫描25只 | 中线狙击 1只、均线共振 1只"
+  }
+}

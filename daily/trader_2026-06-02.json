@@ -1,0 +1,69 @@
+{
+  "date": "2026-06-02",
+  "timing": {
+    "date": "2026-06-02",
+    "temperature": 81.5,
+    "phase": "警惕下杀",
+    "index_direction": "下跌",
+    "allow_trade": true,
+    "recommended_position": 0.5,
+    "position_min": 0.4,
+    "position_max": 0.6,
+    "message": "市场疯狂结束警惕下杀，适宜分批减仓",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-06-01",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 3776,
+          "total_down_num": 1682,
+          "total_flat_num": 50,
+          "total_stop_num": 17,
+          "limit_up_num": 166,
+          "limit_down_num": 23
+        },
+        "trading_volume": {
+          "trade_balance": 2877487961489.0,
+          "trade_balance_display": "2.88万亿元",
+          "increment_trade_balance": -441544186673.0,
+          "increment_trade_balance_display": "-4415.44亿元",
+          "increment_trade_balance_rate": "-13.30%"
+        }
+      }
+    }
+  },
+  "scan": {
+    "date": "2026-06-02",
+    "candidate_count": 25,
+    "hits": {
+      "钱坤寻龙": [],
+      "主升狙击": [],
+      "回调狙击": [],
+      "向上缺口": [],
+      "中线狙击": [],
+      "波段雄鹰": [],
+      "弱转强": [],
+      "缩量地板": [],
+      "涨停回踩": [],
+      "高位整理": [],
+      "均线共振": [
+        {
+          "code": "601088",
+          "name": "中国神华",
+          "model": "均线共振",
+          "label": "趋势初启·共振",
+          "entry": "今收 49.00 或回踩MA10 46.01 附近",
+          "reasons": [
+            "MA546.59 > MA1046.01 > MA2045.92（完整多头）",
+            "三线密集聚拢（MA5-MA20差距仅1.5%）",
+            "近8日内MA5金叉MA10，趋势刚启动",
+            "量能温和放大 1.3x"
+          ],
+          "note": "止损参考MA20: 45.92"
+        }
+      ]
+    },
+    "total_hits": 1,
+    "summary": "扫描25只 | 均线共振 1只"
+  }
+}
