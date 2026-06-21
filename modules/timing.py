@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from modules.mcp import mcp_call
+from modules.haoyun import adjust_position
 
 # ── 持久化历史 ──────────────────────────────────────────
 TIMING_HISTORY_FILE = Path(__file__).parent.parent / "data" / "timing_history.json"
@@ -238,6 +239,13 @@ def get_timing(date: str, prev_phase: str | None = None, verbose: bool = True) -
             "snapshot": snapshot,
         },
     }
+
+    # ── 好运哥仓位纪律叠加 ──
+    haoyun_pos, haoyun_flags = adjust_position(
+        date, result["recommended_position"], verbose=verbose,
+    )
+    result["haoyun_position"] = haoyun_pos
+    result["haoyun_flags"] = haoyun_flags
 
     # 持久化到历史（供次日 apply_buffer 读取）
     try:

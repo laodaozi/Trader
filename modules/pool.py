@@ -145,6 +145,24 @@ def assess_lifecycle(bars: list[dict]) -> str:
     return "坏·注意"
 
 
+# ── entry_price 工具 ─────────────────────────────────────────
+
+def _get_entry_price(code: str, date: str) -> Optional[float]:
+    """查询指定日期的收盘价作为入选价。若当日无数据则向前找最近的交易日收盘价。"""
+    try:
+        _, bars = _get_kline(code, date, days=10)
+        if not bars:
+            return None
+        found = None
+        for b in reversed(bars):
+            if b["date"] <= date:
+                found = b
+                break
+        return float(found["close"]) if found else None
+    except Exception:
+        return None
+
+
 # ── 票池 CRUD ─────────────────────────────────────────────
 
 def add_to_pool(
@@ -170,6 +188,7 @@ def add_to_pool(
             save_pool(pool)
             return s
 
+    entry_price = _get_entry_price(code, date)
     entry: dict = {
         "code": code,
         "name": name,
@@ -178,11 +197,15 @@ def add_to_pool(
         "lifecycle": lifecycle or "生·进入",
         "lifecycle_updated": date,
         "notes": notes,
+        "entry_price": entry_price,
+        "entry_price_date": date,
+        "entry_price_source": "mcp_kline",
     }
     pool["stocks"].append(entry)
     pool["last_updated"] = date
     save_pool(pool)
-    print(f"  [pool] 加入票池: {code} {name}  ({lifecycle or '生·进入'})")
+    ep_str = f"{entry_price:.2f}" if entry_price else "未获取"
+    print(f"  [pool] 加入票池: {code} {name}  ({lifecycle or '生·进入'})  入选价:{ep_str}")
     return entry
 
 

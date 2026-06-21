@@ -39,7 +39,7 @@ from modules.strategy import run as run_strategy
 from modules.account import (
     get_positions,
     daily_health_check,
-    get_holdings_summary,
+    refresh_meta,
 )
 
 DATA_DIR   = Path(__file__).parent / "data"
@@ -99,6 +99,10 @@ def print_timing_report(timing: dict):
     pos   = int(timing["recommended_position"] * 100)
     idx   = timing["index_direction"]
 
+    # 好运哥调节仓位（如有）
+    haoyun_pos = timing.get("haoyun_position")
+    haoyun_flags = timing.get("haoyun_flags", [])
+
     print()
     print("=" * 55)
     print(f"  📊 市场择时  {timing['date']}")
@@ -107,6 +111,12 @@ def print_timing_report(timing: dict):
     print(f"  市场阶段 : {emoji} {phase}")
     print(f"  指数方向 : {idx}")
     print(f"  建议仓位 : {pos}%  [{int(timing['position_min']*100)}% ~ {int(timing['position_max']*100)}%]")
+    if haoyun_pos is not None and abs(haoyun_pos - timing["recommended_position"]) > 0.01:
+        haoyun_pct = int(haoyun_pos * 100)
+        print(f"  好运调节 : {haoyun_pct}%  ← 仓位纪律叠加")
+        for f in haoyun_flags:
+            if not f.startswith("✅"):
+                print(f"    {f}")
     print(f"  研判     : {timing['message']}")
     print("=" * 55)
 
@@ -228,6 +238,8 @@ def run(date: str, timing_only: bool = False, skip_scan: bool = False,
             "recommended_position": 0.65,
             "position_min": 0.5,
             "position_max": 0.8,
+            "haoyun_position": 0.65,
+            "haoyun_flags": ["✅ 无触发条件，维持原仓位 65% (dry-run)"],
             "message": "市场处于冲刺阶段，适宜加仓买入 [dry-run]",
             "raw": {},
         }
@@ -308,6 +320,8 @@ def run(date: str, timing_only: bool = False, skip_scan: bool = False,
 
     if not holdings:
         print("\n  ℹ  暂无持仓，跳过账户检查")
+        # 即使空仓，也刷新 positions.json 时间戳，避免数据"冻结"
+        refresh_meta()
     else:
         if dry_run:
             prices = {h["code"]: h["entry_price"] * 1.02 for h in holdings}
@@ -318,7 +332,7 @@ def run(date: str, timing_only: bool = False, skip_scan: bool = False,
         health = daily_health_check(
             date_str=date,
             current_prices=prices,
-            recommended_position=timing["recommended_position"],
+            recommended_position=timing.get("haoyun_position", timing["recommended_position"]),
         )
         print_account_report(health, holdings, prices)
 

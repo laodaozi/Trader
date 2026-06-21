@@ -99,6 +99,14 @@ def get_positions() -> dict:
     return _load_positions()
 
 
+def refresh_meta() -> dict:
+    """刷新 positions.json 元数据时间戳（空仓时每日调用，防止数据"冻结"）。"""
+    data = _load_positions()
+    data["meta"]["last_updated"] = str(date.today())
+    _save_positions(data)
+    return data
+
+
 def add_holding(
     code: str,
     name: str,

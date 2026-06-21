@@ -1,7 +1,7 @@
 """
 modules/scanner.py — Layer 3: 量化选股扫描
 
-11 个模型：
+14 个模型：
   钱坤寻龙  (qkxl)  — 龙虎榜涨停 × 热点板块 × 资金净流入     强势短线
   主升狙击  (zsji)  — 横盘突破12月新高 × 量价确认             突破波段
   回调狙击  (htji)  — 前期涨停波段 × 回调企稳                低吸短线
@@ -13,8 +13,12 @@ modules/scanner.py — Layer 3: 量化选股扫描
   涨停回踩  (ztht)  — 涨停后回踩MA5 不破不阴                 强势
   高位整理  (gwzl)  — 高位横盘后突破创新高                   突破
   均线共振  (jxgz)  — MA5/10/20粘合后金叉共振               趋势
+  好运低吸  (hydx)  — 强势股回调缩量企稳 MA10 支撑            低吸
+  牛市第一阳 (nsdyy) — 大流通盘首阳突破 爆量 MA3 向上        突破
+  超强反弹  (cqft)  — 涨停后深度回调 强反弹承接              超跌
 
 候选池：龙虎榜（~30只）+ 热点行业龙头（~50只），去重后约 80-100 只。
+龙一龙二过滤：每个板块最多保留 2 只（板块择优），避免过度集中。
 """
 from __future__ import annotations
 
@@ -937,6 +941,343 @@ def _model_jxgz(code: str, name: str, kline: list[dict]) -> Optional[dict]:
         "note": f"止损参考MA20: {ma20:.2f}",
     }
 
+# ── 上证指数辅助（牛市第一阳复用）───────────────────────────
+
+# 模块级缓存：每次扫描仅调用一次 MCP 获取上证指数K线
+_index_bars_cache: Optional[list[dict]] = None
+
+
+def _get_index_kline(date: str, lookback_days: int = 45) -> list[dict]:
+    """获取上证指数日K线，返回按日期升序的 bars 列表。"""
+    start = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=lookback_days + 5)).strftime("%Y-%m-%d")
+    try:
+        data = mcp_call("market_quote", "get_kline", {
+            "keyword": "上证指数",
+            "start_date": start,
+            "end_date": date,
+            "kline_type": 1,
+            "reinstatement_type": 1,
+        })
+        raw = data if isinstance(data, list) else data.get("list", [])
+        bars = []
+        for b in raw:
+            bars.append({
+                "date":   b.get("trade_date", ""),
+                "close":  float(b.get("close_price") or b.get("close") or 0),
+                "open":   float(b.get("open_price") or b.get("open") or 0),
+                "high":   float(b.get("high_price") or b.get("high") or 0),
+                "low":    float(b.get("low_price") or b.get("low") or 0),
+                "volume": float(b.get("turnover_rate") or b.get("volume") or 0),
+            })
+        return sorted(bars, key=lambda x: x["date"])
+    except Exception:
+        return []
+
+
+def _ensure_index_bars(date: str) -> list[dict]:
+    global _index_bars_cache
+    if _index_bars_cache is not None:
+        return _index_bars_cache
+    _index_bars_cache = _get_index_kline(date)
+    return _index_bars_cache
+
+
+def _reset_index_cache() -> None:
+    global _index_bars_cache
+    _index_bars_cache = None
+
+
+# 模块级：上证 MA3 方向缓存（scan() 启动时预取，模型函数复用）
+_index_ma3_up_cached: Optional[bool] = None
+
+
+def _prefetch_index_signals(date: str) -> None:
+    """在 scan() 启动时预取上证指数 MA3 方向，避免模型内 MCP 调用。"""
+    global _index_ma3_up_cached
+    bars = _ensure_index_bars(date)
+    if len(bars) < 4:
+        _index_ma3_up_cached = False
+        return
+    ma3_today     = sum(b["close"] for b in bars[-3:])  / 3
+    ma3_yesterday = sum(b["close"] for b in bars[-4:-1]) / 3
+    _index_ma3_up_cached = ma3_today > ma3_yesterday
+
+
+def _is_index_ma3_up() -> bool:
+    return bool(_index_ma3_up_cached)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  好运哥体系 · 3 个核心扫描模型
+# ═══════════════════════════════════════════════════════════════
+
+def _model_hydx(code: str, name: str, kline: list[dict]) -> Optional[dict]:
+    """
+    好运低吸 (hydx) — 规则 3/9：强势股空中加油 × 从容低吸。
+
+    条件：
+    1. 近20日涨幅 > 15%（强势股确认）
+    2. 近5日回调，今收 < 前5日最高收盘 × 0.92
+    3. 今日缩量 (量 ≤ 5日均量 × 0.7)
+    4. 今日收盘站上 MA10 且 MA10 向上
+    5. 下影线 ≥ 上影线（买盘承接）
+    6. 非 ST
+    """
+    if len(kline) < 25:
+        return None
+    today     = kline[-1]
+    recent_5  = kline[-6:-1]    # 近5个交易日（不含今天）
+
+    # 0. 过滤 ST
+    if "ST" in name.upper() or "退市" in name:
+        return None
+
+    # 1. 近20日涨幅 > 15%（取回调前的 20 日窗口，不含近5日）
+    twenty_window  = kline[-26:-6]   # 20 根 K 线，截止于 6 天前
+    twenty_start   = kline[-26]["close"]
+    twenty_high    = max(b["close"] for b in twenty_window)
+    gain_20 = (twenty_high - twenty_start) / twenty_start if twenty_start > 0 else 0
+    if gain_20 <= 0.15:
+        return None
+
+    # 2. 近5日回调：今收 < 5日前最高收盘 × 0.92
+    high_5_before = max(b["close"] for b in recent_5)
+    if today["close"] / max(high_5_before, 0.01) > 0.92:
+        return None
+
+    # 3. 今日缩量：量 ≤ 5日均量 × 0.7
+    vol_5d = sum(b["volume"] for b in recent_5) / max(len(recent_5), 1)
+    if today["volume"] / max(vol_5d, 1) > 0.7:
+        return None
+
+    # 4. 今日站稳 MA10，MA10 向上
+    ma10 = sum(b["close"] for b in kline[-10:]) / 10
+    ma10_prev = sum(b["close"] for b in kline[-11:-1]) / 10
+    if today["close"] < ma10 or ma10 <= ma10_prev:
+        return None
+
+    # 5. 下影线 ≥ 上影线（买盘强势承接）
+    lower = min(today["open"], today["close"]) - today["low"]
+    upper = today["high"] - max(today["open"], today["close"])
+    if lower < upper:
+        return None
+
+    # ⚠ 额外检查：今日不能是大阴线（跌幅 < -5%）
+    if today.get("pct_chg", 0) < -5:
+        return None
+
+    vol_ratio = today["volume"] / max(vol_5d, 1)
+    return {
+        "code": code, "name": name,
+        "model": "好运低吸", "label": "强势回调·缩量企稳",
+        "entry": f"今收 {today['close']:.2f}，MA10 {ma10:.2f} 附近低吸",
+        "reasons": [
+            f"近20日最高涨幅 {gain_20*100:.0f}% （强势股确认）",
+            f"近5日回调超8%，今缩量{vol_ratio:.1f}x 企稳",
+            f"站稳MA10 {ma10:.2f}，MA10向上",
+            "下影线 ≥ 上影线（承接强）",
+        ],
+        "note": f"止损参考今日最低 {today['low']:.2f}（跌破则结构破坏）| 止盈参考前高附近",
+    }
+
+
+def _model_nsdyy(code: str, name: str, kline: list[dict]) -> Optional[dict]:
+    """
+    牛市第一阳 (nsdyy) — 规则 5：大流通盘牛市第一阳。
+
+    条件：
+    1. 前20日涨幅 < 10%（未被爆炒）
+    2. 今日涨幅 > 5% + 成交量 > 20日均量 × 2.5
+    3. 上影线 ≤ 2%（实打实封板或强势）
+    4. 上证指数 MA3 向上
+    5. 非 ST
+    6. ⚠ 需人工确认 流通市值 > 500 亿
+    """
+    if len(kline) < 25:
+        return None
+    today = kline[-1]
+
+    if "ST" in name.upper() or "退市" in name:
+        return None
+
+    # 1. 前20日涨幅 < 10%
+    twenty_back = kline[-21]["close"]
+    gain_20 = (today["close"] - twenty_back) / twenty_back if twenty_back > 0 else 0
+    if gain_20 >= 0.10:
+        return None
+
+    # 2. 今日涨幅 > 5% + 爆量 > 2.5x
+    pct = today.get("pct_chg", None)
+    if pct is None:
+        pct = (today["close"] - today["open"]) / today["open"] * 100 if today["open"] > 0 else 0
+    if pct <= 5.0:
+        return None
+    vol_20d = sum(b["volume"] for b in kline[-21:-1]) / 20
+    vol_ratio = today["volume"] / max(vol_20d, 1)
+    if vol_ratio < 2.5:
+        return None
+
+    # 3. 上影线 ≤ 2%
+    body_high = max(today["open"], today["close"])
+    upper_shadow = today["high"] - body_high
+    if upper_shadow / max(today["close"], 0.01) > 0.02:
+        return None
+
+    # 4. 上证指数 MA3 向上
+    if not _is_index_ma3_up():
+        return None
+
+    return {
+        "code": code, "name": name,
+        "model": "牛市第一阳", "label": "大盘股·首阳突破",
+        "entry": f"今收 {today['close']:.2f} 或次日开盘低吸",
+        "reasons": [
+            f"前20日涨幅仅 {gain_20*100:.1f}%（未被爆炒）",
+            f"今日涨幅 {pct:.1f}% + 爆量 {vol_ratio:.1f}x（资金认可）",
+            "上影线极短（无抛压）",
+            "上证指数 MA3 向上",
+        ],
+        "note": "需人工确认：流通市值 > 500亿 | 止损参考MA20",
+    }
+
+
+def _model_cqft(code: str, name: str, kline: list[dict]) -> Optional[dict]:
+    """
+    超强反弹 (cqft) — 规则 11：超强势股回调后的强反弹。
+
+    条件：
+    1. 近60日曾触及涨停（≥9.5%），距今 5-20 个交易日
+    2. 今日涨幅 > 6% + 成交量 > 5日均量 × 2.0
+    3. 近5日累计跌幅 > -8%（充分回调）
+    4. 下影线 ≥ 上影线（买盘承接）
+    5. 上影线 ≤ 3%（不冲高回落）
+    6. 非 ST
+    """
+    if len(kline) < 65:
+        return None
+    today = kline[-1]
+
+    if "ST" in name.upper() or "退市" in name:
+        return None
+
+    # 1. 近60日内（前5-20天区间）曾涨停
+    has_limit_up = False
+    for b in kline[-21:-5]:  # 5-20 trading days ago
+        pct = b.get("pct_chg", None)
+        if pct is None and b["open"] > 0:
+            pct = (b["close"] - b["open"]) / b["open"] * 100
+        if pct is not None and pct >= 9.5:
+            has_limit_up = True
+            break
+    if not has_limit_up:
+        return None
+
+    # 2. 今日涨幅 > 6% + 爆量
+    pct = today.get("pct_chg", None)
+    if pct is None:
+        pct = (today["close"] - today["open"]) / today["open"] * 100 if today["open"] > 0 else 0
+    if pct <= 6.0:
+        return None
+    vol_5d = sum(b["volume"] for b in kline[-6:-1]) / 5
+    vol_ratio = today["volume"] / max(vol_5d, 1)
+    if vol_ratio < 2.0:
+        return None
+
+    # 3. 近5日累计跌幅 > 8%（充分回调）
+    five_back = kline[-6]["close"]
+    drop_5 = (today["close"] - five_back) / five_back if five_back > 0 else 0
+    if drop_5 > -0.08:  # 跌幅不够
+        return None
+
+    # 4. 下影线 ≥ 上影线
+    lower = min(today["open"], today["close"]) - today["low"]
+    upper = today["high"] - max(today["open"], today["close"])
+    if lower < upper:
+        return None
+
+    # 5. 上影线 ≤ 3%
+    if upper / max(today["close"], 0.01) > 0.03:
+        return None
+
+    return {
+        "code": code, "name": name,
+        "model": "超强反弹", "label": "强势股·超跌反弹",
+        "entry": f"今收 {today['close']:.2f} 或次日回调低吸",
+        "reasons": [
+            f"近5日深度回调 {drop_5*100:.1f}%",
+            f"今日强反弹 {pct:.1f}% + 放量 {vol_ratio:.1f}x",
+            "下影线 ≥ 上影线（承接强）",
+            "上影线短（无冲高回落）",
+        ],
+        "note": f"止损参考今日最低 {today['low']:.2f} | 目标前涨停高点附近",
+    }
+
+
+# ── 龙一龙二过滤器 ────────────────────────────────────────
+
+def _apply_longtou_filter(
+    hits: dict[str, list[dict]],
+    hot_code_to_sector: dict[str, str],
+    verbose: bool = True,
+) -> dict[str, list[dict]]:
+    """
+    好运哥 · 龙一龙二过滤器：
+    - 每个板块最多留 2 只（龙一 / 龙二）
+    - 剔除预期收益不清晰（暂跳过纯收益判断，改为板块择优）
+
+    板块定义：
+    - 有热点标签的：归入对应板块
+    - 无标签的：归入"其他"板块
+    """
+    # ── 1. 按板块分组 ──
+    sector_buckets: dict[str, list[dict]] = {}
+    for model_stocks in hits.values():
+        for stock in model_stocks:
+            sector = hot_code_to_sector.get(stock["code"], "其他")
+            sector_buckets.setdefault(sector, []).append(stock)
+
+    # ── 2. 板块内排序（按今日涨幅 ↓）──
+    filtered: dict[str, list[dict]] = {}
+    for sector, stocks in sector_buckets.items():
+        # 只有1只的板块直接保留
+        if len(stocks) <= 2:
+            for s in stocks:
+                filtered.setdefault(s["model"], []).append(s)
+            continue
+
+        # 按当日涨幅排序（从 kline 推断，取 reasons 中的涨幅）
+        def _sort_key(s: dict) -> float:
+            # 从 reasons 提取涨幅数字
+            for r in s.get("reasons", []):
+                import re
+                m = re.search(r'(今日)?涨幅\s*([\d.-]+)%', r)
+                if m:
+                    try:
+                        return float(m.group(2))
+                    except ValueError:
+                        pass
+            # fallback: model priority as tiebreaker
+            priority = {"好运低吸": 9, "牛市第一阳": 8, "超强反弹": 8}
+            return priority.get(s["model"], 5) * 0.1
+
+        ranked = sorted(stocks, key=_sort_key, reverse=True)
+        top2 = ranked[:2]
+
+        # 标注龙一 / 龙二
+        for i, s in enumerate(top2):
+            tag = f"板块:{sector}·{'龙一' if i == 0 else '龙二'}"
+            s.setdefault("reasons", []).append(tag)
+
+        for s in top2:
+            filtered.setdefault(s["model"], []).append(s)
+
+    if verbose:
+        removed = sum(len(v) for v in hits.values()) - sum(len(v) for v in filtered.values())
+        if removed > 0:
+            print(f"  [龙一龙二] {len(sector_buckets)}个板块，过滤掉 {removed} 只")
+
+    return filtered
+
 
 # ── 主扫描入口 ────────────────────────────────────────────
 
@@ -952,6 +1293,9 @@ MODEL_FUNCS = {
     "ztht": "涨停回踩",
     "gwzl": "高位整理",
     "jxgz": "均线共振",
+    "hydx": "好运低吸",
+    "nsdyy": "牛市第一阳",
+    "cqft": "超强反弹",
 }
 
 # 主升狙击需要更长历史（约270日K线）
@@ -982,6 +1326,9 @@ def scan(
     }
     """
     active_models = models or list(MODEL_FUNCS.keys())
+
+    # 预取上证指数信号（牛市第一阳 + 龙一龙二复用）
+    _prefetch_index_signals(date)
 
     if verbose:
         print(f"\n[scanner] 扫描 {date} | 模型: {', '.join(active_models)}")
@@ -1080,6 +1427,12 @@ def scan(
                 hit = _model_gwzl(code, name, kline)
             elif m == "jxgz":
                 hit = _model_jxgz(code, name, kline)
+            elif m == "hydx":
+                hit = _model_hydx(code, name, kline)
+            elif m == "nsdyy":
+                hit = _model_nsdyy(code, name, kline)
+            elif m == "cqft":
+                hit = _model_cqft(code, name, kline)
 
             if hit:
                 hits[model_name].append(hit)
@@ -1091,6 +1444,9 @@ def scan(
             sector = hot_code_to_sector.get(stock["code"])
             if sector and "reasons" in stock:
                 stock["reasons"].append(f"热点主线:{sector}")
+
+    # ── 龙一龙二过滤 ──
+    hits = _apply_longtou_filter(hits, hot_code_to_sector, verbose=verbose)
 
     total_hits = sum(len(v) for v in hits.values())
     summary_parts = [f"{k} {len(v)}只" for k, v in hits.items() if v]
@@ -1112,6 +1468,9 @@ def scan(
                     "name":    s["name"],
                     "reasons": s.get("reasons", []),
                 }, ensure_ascii=False) + "\n")
+
+    # 清理缓存
+    _reset_index_cache()
 
     return {
         "date": date,

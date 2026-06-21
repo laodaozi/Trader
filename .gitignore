@@ -1,6 +1,12 @@
 # 密钥
 .env
 
+# 运行时数据
+/data/
+/daily/
+/tracker/
+/strategy/
+
 # 产物（走 gh-pages 分支，main 不包含）
 /output/
 

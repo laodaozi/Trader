@@ -38,9 +38,9 @@
 signals.py（NX 买点 + MA 排列 + Fib 位）
     ×
 diagnose.py（周线方向 + 主力资金 + R:R）
-    ×
-scanner overlay（11 模型命中作为共振加分项）
-    ↓
+     ×
+scanner overlay（14 模型命中作为共振加分项，含好运低吸/牛市第一阳/超强反弹）
+     ↓
 strategy.py → 策略分类 + 优先级排序 → HTML 输出 + JSON 日志
 ```
 
