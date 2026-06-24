@@ -1,0 +1,30 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'articles' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <div class="dash-section">
+    <h3 class="dash-section-title">生成文章列表</h3>
+    <% if (articles && articles.length > 0) { %>
+      <div class="article-list">
+        <% articles.forEach(a => { %>
+          <div class="article-item">
+            <span class="article-name"><%= a.name %></span>
+            <span class="article-mtime"><%= new Date(a.mtime).toLocaleString('zh-CN') %></span>
+            <a href="/article/<%= a.name %>.html" target="_blank" class="article-link">预览</a>
+          </div>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="article-empty">
+        <p>📝 暂无生成文章</p>
+        <p>运行 V3.9.6 文章生成 Pipeline 后文章将在此列出 (output/article/)</p>
+      </div>
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>
+</div>

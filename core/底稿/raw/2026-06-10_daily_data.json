@@ -1,0 +1,317 @@
+{
+  "date": "2026-06-10",
+  "collected_at": "2026-06-12T12:25:57.850883",
+  "scan_top10": [],
+  "scan_all_count": 0,
+  "rotation_signals": [],
+  "exit_warnings": [],
+  "plates_unavailable": true,
+  "concept_persistent": [],
+  "concept_top20": [],
+  "morning_news": {
+    "_raw_text": "Error executing tool get_alpha_morning: 请求中未提供签名密钥"
+  },
+  "wechat_sources": {},
+  "rss_news": [],
+  "ma_signals": {
+    "announcements": [
+      {
+        "stock_code": "300373",
+        "stock_name": "扬杰科技",
+        "title": "扬杰科技:关于出售下属控股公司100%股权的进展公告",
+        "notice_type": "收购出售资产/股权",
+        "industry_hint": "计算机"
+      },
+      {
+        "stock_code": "300119",
+        "stock_name": "瑞普生物",
+        "title": "瑞普生物:关于收购控股子公司天津中瑞供应链管理有限公司部分股权暨关联交易的公告",
+        "notice_type": "收购出售资产/股权",
+        "industry_hint": "医药生物"
+      },
+      {
+        "stock_code": "300948",
+        "stock_name": "冠中生态",
+        "title": "冠中生态:关于现金收购杭州精算家人工智能技术有限公司51%股权暨关联交易进展暨完成工商变更登记的公告",
+        "notice_type": "收购出售资产/股权",
+        "industry_hint": "其他"
+      },
+      {
+        "stock_code": "000828",
+        "stock_name": "东莞控股",
+        "title": "东莞控股:关于公开挂牌转让下属公司股权的公告",
+        "notice_type": "股权转让",
+        "industry_hint": "其他"
+      },
+      {
+        "stock_code": "000048",
+        "stock_name": "京基智农",
+        "title": "京基智农:关于控股股东协议转让公司部分股份暨权益变动的提示性公告",
+        "notice_type": "权益变动报告书",
+        "industry_hint": "其他"
+      },
+      {
+        "stock_code": "603679",
+        "stock_name": "华体科技",
+        "title": "华体科技:四川华体照明科技股份有限公司关于股东协议转让部分股份暨权益变动的提示性公告",
+        "notice_type": "权益变动报告书",
+        "industry_hint": "计算机"
+      },
+      {
+        "stock_code": "688432",
+        "stock_name": "有研硅",
+        "title": "有研硅:有研硅关于公司拟通过公开摘牌方式参与收购安徽晶隆半导体科技有限公司股权的公告",
+        "notice_type": "收购出售资产/股权",
+        "industry_hint": "其他"
+      },
+      {
+        "stock_code": "000938",
+        "stock_name": "紫光股份",
+        "title": "紫光股份:关于紫光国际与投资者受让新华三少数股东所持全部股权完成过户的公告",
+        "notice_type": "股权转让",
+        "industry_hint": "其他"
+      },
+      {
+        "stock_code": "000555",
+        "stock_name": "神州信息",
+        "title": "神州信息:关于全资子公司转让参股公司股权暨关联交易的公告",
+        "notice_type": "股权转让",
+        "industry_hint": "计算机"
+      },
+      {
+        "stock_code": "600052",
+        "stock_name": "东望时代",
+        "title": "东望时代:浙江东望时代科技股份有限公司关于购买浙江科冠聚合物有限公司51%股权暨关联交易的进展公告",
+        "notice_type": "收购出售资产/股权",
+        "industry_hint": "其他"
+      },
+      {
+        "stock_code": "000430",
+        "stock_name": "张家界",
+        "title": "张家界:张家界旅游集团股份有限公司关于购买湖南武陵源索道有限公司51%股权暨关联交易的公告",
+        "notice_type": "收购出售资产/股权",
+        "industry_hint": "其他"
+      },
+      {
+        "stock_code": "600072",
+        "stock_name": "中船科技",
+        "title": "中船科技:中船科技股份有限公司关于重大资产重组标的资产业绩承诺期届满减值测试情况及补偿方案暨拟回购注销对应补偿股份的公告",
+        "notice_type": "重组进展公告",
+        "industry_hint": "计算机"
+      },
+      {
+        "stock_code": "600745",
+        "stock_name": "*ST闻泰",
+        "title": "*ST闻泰:关于重大资产出售的进展公告",
+        "notice_type": "收购出售资产/股权",
+        "industry_hint": "其他"
+      },
+      {
+        "stock_code": "300015",
+        "stock_name": "爱尔眼科",
+        "title": "爱尔眼科:关于全资子公司通过认购增资方式收购巴西眼科医疗服务集团控制权的公告",
+        "notice_type": "增资扩股",
+        "industry_hint": "其他"
+      },
+      {
+        "stock_code": "600391",
+        "stock_name": "航发科技",
+        "title": "航发科技:中国航发航空科技股份有限公司关于放弃控股子公司中国航发哈尔滨轴承有限公司同比例增资权暨关联交易公告",
+        "notice_type": "增资扩股",
+        "industry_hint": "计算机"
+      },
+      {
+        "stock_code": "002241",
+        "stock_name": "歌尔股份",
+        "title": "歌尔股份:关于向歌尔光学科技有限公司增资暨关联交易的公告",
+        "notice_type": "增资扩股",
+        "industry_hint": "其他"
+      },
+      {
+        "stock_code": "688248",
+        "stock_name": "南网科技",
+        "title": "南网科技:关于放弃对参股公司增资扩股的优先认购权暨关联交易的公告",
+        "notice_type": "增资扩股",
+        "industry_hint": "计算机"
+      }
+    ],
+    "by_industry": {
+      "计算机": {
+        "count": 6,
+        "strength": "high",
+        "stocks": [
+          "扬杰科技",
+          "华体科技",
+          "神州信息",
+          "中船科技",
+          "航发科技"
+        ],
+        "notable": [
+          "扬杰科技:关于出售下属控股公司100%股权的进展公告",
+          "华体科技:四川华体照明科技股份有限公司关于股东协议转让部分股份暨权益变动的提示性公告",
+          "神州信息:关于全资子公司转让参股公司股权暨关联交易的公告"
+        ]
+      },
+      "医药生物": {
+        "count": 1,
+        "strength": "low",
+        "stocks": [
+          "瑞普生物"
+        ],
+        "notable": [
+          "瑞普生物:关于收购控股子公司天津中瑞供应链管理有限公司部分股权暨关联交易的公告"
+        ]
+      },
+      "其他": {
+        "count": 10,
+        "strength": "high",
+        "stocks": [
+          "冠中生态",
+          "东莞控股",
+          "京基智农",
+          "有研硅",
+          "紫光股份"
+        ],
+        "notable": [
+          "冠中生态:关于现金收购杭州精算家人工智能技术有限公司51%股权暨关联交易进展暨完成工商变更登记的公告",
+          "东莞控股:关于公开挂牌转让下属公司股权的公告",
+          "京基智农:关于控股股东协议转让公司部分股份暨权益变动的提示性公告"
+        ]
+      }
+    },
+    "summary": "今日共 17 家上市公司发布并购重组/股权转让/吸收合并等公告；强信号行业: 计算机(6家), 其他(10家)；其他行业共 1 条",
+    "count": 17,
+    "date": "2026-06-10",
+    "_source": "akshare_notice_report",
+    "_rss_enhanced": 0
+  },
+  "wechat_themes": [],
+  "wechat_deep": {},
+  "search_results": {
+    "A股 行业 利好 今日": {
+      "_raw_text": "Error executing tool search_news: 请求中未提供签名密钥"
+    },
+    "地缘 冲突 经济 风险": {
+      "_raw_text": "Error executing tool search_news: 请求中未提供签名密钥"
+    },
+    "政策 产业 科技 两会": {
+      "_raw_text": "Error executing tool search_news: 请求中未提供签名密钥"
+    }
+  },
+  "news_events": [],
+  "stock_data": {},
+  "wechat_all_stocks": [],
+  "hot_top30_raw": [],
+  "resonance_stocks": [],
+  "industry_stock_ranks": {},
+  "multi_period_heat": {},
+  "prioritized_events": [],
+  "track_record": {},
+  "track_recent": [],
+  "signal_evolutions": [],
+  "global_context": {
+    "commodities": {
+      "黄金": {
+        "price": 4213.1,
+        "prev_close": 4233.5,
+        "chg_pct": -0.48,
+        "5d_chg_pct": -3.23
+      },
+      "原油": {
+        "price": 86.17,
+        "prev_close": 86.42,
+        "chg_pct": -0.29,
+        "5d_chg_pct": -5.58
+      },
+      "铜": {
+        "price": 641.5,
+        "prev_close": 639.15,
+        "chg_pct": 0.37,
+        "5d_chg_pct": 1.29
+      },
+      "白银": {
+        "price": 67.08,
+        "prev_close": 67.475,
+        "chg_pct": -0.59,
+        "5d_chg_pct": -1.79
+      }
+    },
+    "indices": {
+      "标普500": {
+        "price": 7394.3,
+        "chg_pct": 1.75
+      },
+      "纳斯达克": {
+        "price": 25809.66,
+        "chg_pct": 2.54
+      },
+      "道琼斯": {
+        "price": 50848.75,
+        "chg_pct": 1.86
+      },
+      "美元指数": {
+        "price": 99.77,
+        "chg_pct": 0.08
+      },
+      "波罗的海BDI": {
+        "price": 2729.0,
+        "chg_pct": -1.52
+      },
+      "CRB商品指数": {
+        "price": 369.75,
+        "chg_pct": -0.98
+      },
+      "日经225": {
+        "price": 66477.48,
+        "chg_pct": 3.52
+      },
+      "恒生指数": {
+        "price": 24740.41,
+        "chg_pct": 2.03
+      }
+    },
+    "china_ivix": {
+      "value": 17.79,
+      "date": "2026-06-11"
+    }
+  },
+  "macro_context": {},
+  "must_cover_hotspots": {
+    "date": "2026-06-10",
+    "top3_sectors": [],
+    "top3_concepts": [],
+    "hot_stocks": [],
+    "fallback_used": false
+  },
+  "learning_feedback": {
+    "period": "2026-05-13 ~ 2026-06-12 (30天)",
+    "sample_size": 0,
+    "overall": {
+      "sample": 0,
+      "verified": 0,
+      "win_rate": null,
+      "avg_pnl": null
+    },
+    "by_strength": {},
+    "by_event_rank": {},
+    "by_horizon": {},
+    "rr_stats": {
+      "median": null,
+      "distribution": {
+        "high(>=2)": 0,
+        "mid(1.5-2)": 0,
+        "low(1-1.5)": 0,
+        "bad(<1)": 0,
+        "invalid": 0
+      }
+    },
+    "evolution_stats": {
+      "strengthened": 0,
+      "weakened": 0,
+      "falsified": 0,
+      "pending": 0
+    },
+    "insights": [],
+    "calibration": []
+  }
+}

@@ -1,0 +1,82 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+  <%- include('../partials/nav', { active: 'admin' }) %>
+
+  <main class="container">
+    <div class="toolbar">
+      <a class="btn btn-primary" href="/admin/accounts/new">+ 新增订阅号</a>
+
+      <form class="filter" method="get" action="/admin">
+        <label for="category">分类筛选：</label>
+        <select id="category" name="category" onchange="this.form.submit()">
+          <option value="">全部分类</option>
+          <% categories.forEach(function(c){ %>
+            <option value="<%= c %>" <%= currentCategory === c ? 'selected' : '' %>><%= c %></option>
+          <% }); %>
+        </select>
+        <% if (currentCategory) { %>
+          <a class="btn btn-link" href="/admin">清除筛选</a>
+        <% } %>
+      </form>
+
+      <span class="count">共 <%= accounts.length %> 个订阅号</span>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>名称</th>
+          <th>公众号 ID</th>
+          <th>分类</th>
+          <th>标签</th>
+          <th>状态</th>
+          <th>7日 Token 用量</th>
+          <th>文章总数</th>
+          <th>最近同步</th>
+          <th class="actions-col">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (accounts.length === 0) { %>
+          <tr><td colspan="9" class="empty">暂无订阅号</td></tr>
+        <% } %>
+        <% accounts.forEach(function(a){ %>
+          <tr>
+            <td class="name"><%= a.name %></td>
+            <td class="mono"><%= a.mp_id %></td>
+            <td><span class="cat-badge"><%= a.category %></span></td>
+            <td class="tags">
+              <% (a.tags || []).forEach(function(t){ %>
+                <span class="tag"><%= t %></span>
+              <% }); %>
+            </td>
+            <td>
+              <span class="status status-<%= a.status %>">
+                <span class="dot"></span>
+                <%= a.status === 'active' ? '运行中' : (a.status === 'paused' ? '已暂停' : '异常') %>
+              </span>
+            </td>
+            <td class="num"><%= a.token_usage_7d.toLocaleString('en-US') %></td>
+            <td class="num"><%= a.total_articles %></td>
+            <td class="mono small">
+              <%= a.last_sync ? new Date(a.last_sync).toLocaleString('zh-CN', { hour12: false }) : '—' %>
+            </td>
+            <td class="actions">
+              <a class="btn btn-sm" href="/admin/accounts/<%= a.id %>">编辑</a>
+              <form class="inline" method="post" action="/admin/accounts/<%= a.id %>/toggle<%= currentCategory ? '?category=' + encodeURIComponent(currentCategory) : '' %>">
+                <button class="btn btn-sm btn-warn" type="submit">
+                  <%= a.status === 'active' ? '暂停' : '恢复' %>
+                </button>
+              </form>
+              <form class="inline" method="post" action="/admin/accounts/<%= a.id %>/delete" onsubmit="return confirm('确认删除「<%= a.name %>」？（软删除）');">
+                <button class="btn btn-sm btn-danger" type="submit">删除</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </main>
+
+<%- include('../partials/layout-bottom') %>

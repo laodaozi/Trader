@@ -1,0 +1,16 @@
+{
+  "name": "wewe-rss-admin-panel",
+  "version": "1.0.0",
+  "description": "独立的 Express + EJS 管理后台，用于管理 WeWe RSS 订阅号（旁路微服务）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^4.21.0",
+    "sql.js": "^1.14.1"
+  },
+  "license": "MIT"
+}

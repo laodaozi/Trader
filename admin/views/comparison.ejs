@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V3.9.6 三图对比 · CycleRadar Trader</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, "PingFang SC", sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    .top-bar { padding: 12px 20px; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .top-bar h2 { font-size: 15px; }
+    .top-bar span { font-size: 11px; color: #fbbf24; }
+
+    .container { display: flex; height: calc(100vh - 50px); }
+    .panel { flex: 1; border-right: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; }
+    .panel:last-child { border-right: none; }
+    .panel-header { padding: 8px 14px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
+    .panel-header .badge { font-size: 9px; padding: 2px 8px; border-radius: 8px; margin-left: 6px; }
+    .ph1 { color: #fbbf24; } .ph1 .badge { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .ph2 { color: #60a5fa; } .ph2 .badge { background: rgba(96,165,250,0.15); color: #60a5fa; }
+    .ph3 { color: #a78bfa; } .ph3 .badge { background: rgba(167,139,250,0.15); color: #a78bfa; }
+    .panel-body { flex: 1; overflow: hidden; position: relative; }
+    .panel-body iframe { width: 100%; height: 100%; border: none; background: #0f172a; }
+
+    /* Annotation overlay */
+    .annotations { padding: 16px 20px; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.06); display: flex; gap: 20px; }
+    .anno-card { flex: 1; font-size: 11px; line-height: 1.6; }
+    .anno-card .h { font-weight: 700; margin-bottom: 6px; font-size: 12px; }
+    .anno-card .item { color: #94a3b8; margin-bottom: 2px; }
+    .anno-card .item::before { content: "· "; }
+    .anno-card .highlight { color: #fbbf24; }
+
+    /* Mobile toggle */
+    .mobile-toggle { display: flex; align-items: center; gap: 8px; }
+    .mobile-toggle select { background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 4px 8px; font-size: 11px; }
+
+    .footer-note { padding: 8px 20px; font-size: 10px; color: #475569; text-align: center; border-top: 1px solid rgba(255,255,255,0.04); }
+    .footer-note a { color: #60a5fa; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h2>CycleRadar Trader · 三图对比</h2>
+  <div class="mobile-toggle">
+    <span style="font-size:11px;color:#64748b">宽高切换:</span>
+    <select onchange="resizePanel1(this.value)">
+      <option value="desktop">桌面 (960px)</option>
+      <option value="mobile" selected>手机 (480px)</option>
+      <option value="tablet">平板 (768px)</option>
+    </select>
+  </div>
+  <span>V3.9.6 · 2026-06-08</span>
+</div>
+
+<div class="container" id="container">
+  <!-- Panel 1: 假APP -->
+  <div class="panel" id="panel1" style="flex: 0 0 480px; max-width: 480px;">
+    <div class="panel-header ph1">
+      📱 假APP 前端 <span class="badge">/m</span>
+      <span style="font-size:10px;color:#64748b;margin-left:6px">Mobile · 公开</span>
+    </div>
+    <div class="panel-body">
+      <iframe src="http://localhost:3100/m" id="iframe1"></iframe>
+    </div>
+  </div>
+
+  <!-- Panel 2: Admin -->
+  <div class="panel">
+    <div class="panel-header ph2">
+      🔧 Admin 管理图 <span class="badge">/admin/trader</span>
+      <span style="font-size:10px;color:#64748b;margin-left:6px">Desktop · 内网</span>
+    </div>
+    <div class="panel-body">
+      <iframe src="http://localhost:3100/admin/trader"></iframe>
+    </div>
+  </div>
+
+  <!-- Panel 3: 架构图 -->
+  <div class="panel">
+    <div class="panel-header ph3">
+      🏗 技术架构 <span class="badge">/admin/architecture</span>
+      <span style="font-size:10px;color:#64748b;margin-left:6px">文档 · 静态</span>
+    </div>
+    <div class="panel-body">
+      <iframe src="http://localhost:3100/admin/architecture"></iframe>
+    </div>
+  </div>
+</div>
+
+<div class="annotations">
+  <div class="anno-card">
+    <div class="h" style="color:#fbbf24">📱 假APP 设计意图</div>
+    <div class="item">独立于 Admin，无管理导航</div>
+    <div class="item">暗色主题，移动端优先 (480px)</div>
+    <div class="item">读 Python 实时数据，无 mock</div>
+    <div class="item">面向场景：老板/客户快速浏览</div>
+    <div class="item"><span class="highlight">待决策：是否要上云端有外网链接？</span></div>
+  </div>
+  <div class="anno-card">
+    <div class="h" style="color:#60a5fa">🔧 Admin 设计意图</div>
+    <div class="item">内网管理后台，全功能 CRUD</div>
+    <div class="item">4 Tab + 子导航体系</div>
+    <div class="item">数据诊断/跟踪/回测全链</div>
+    <div class="item">桌面向，横向展开布局</div>
+  </div>
+  <div class="anno-card">
+    <div class="h" style="color:#a78bfa">🏗 架构图 设计意图</div>
+    <div class="item">Python → Node 5 层桥接</div>
+    <div class="item">技术决策文档 + 拓扑图</div>
+    <div class="item">给团队/自己理清数据流</div>
+    <div class="item">静态页，不依赖数据</div>
+  </div>
+</div>
+
+<div class="footer-note">
+  三图全在 <a href="http://localhost:3100" target="_blank">localhost:3100</a> 运行中 ·
+  <a href="http://localhost:3100/m" target="_blank">假APP</a> ·
+  <a href="http://localhost:3100/admin/trader" target="_blank">Admin</a> ·
+  <a href="http://localhost:3100/admin/architecture" target="_blank">架构</a>
+</div>
+
+<script>
+  function resizePanel1(mode) {
+    const panel = document.getElementById('panel1');
+    if (mode === 'mobile') { panel.style.flex = '0 0 480px'; panel.style.maxWidth = '480px'; }
+    else if (mode === 'tablet') { panel.style.flex = '0 0 768px'; panel.style.maxWidth = '768px'; }
+    else { panel.style.flex = '1'; panel.style.maxWidth = 'none'; }
+  }
+</script>
+
+</body>
+</html>

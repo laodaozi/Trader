@@ -1,0 +1,475 @@
+{
+  "date": "2026-06-11",
+  "events": [
+    {
+      "rank": 1,
+      "title": "美伊核协议戏剧性反转：特朗普取消打击计划，协议本周末有望签署",
+      "source": "新闻-财联社 / Wind万得早报",
+      "event_time": {
+        "occurred_at": "2026-06-11",
+        "certainty": "ongoing",
+        "decay_days": 0
+      },
+      "interpretation": "特朗普宣布取消对伊朗的军事打击行动，称美伊谅解备忘录进入最后定稿阶段，本周末有望签署；伊方否认已达成最终协议，不确定性犹存。地缘风险溢价快速收缩，国际油价已跌至4月来最低，黄金短期承压但中期避险逻辑仍在。对A股而言，能源化工上游成本端压力缓解，油价回落利好中下游化工；同时军工板块地缘溢价消退，短期承压。",
+      "sector_impact": [
+        {
+          "sector": "石油石化",
+          "direction": "利空",
+          "logic": "伊朗供给预期回归市场，油价下行压制炼化及油气开采估值"
+        },
+        {
+          "sector": "基础化工",
+          "direction": "利好",
+          "logic": "原油成本端下行，化工中下游盈利修复；化工ETF当日已涨1.02%"
+        },
+        {
+          "sector": "国防军工",
+          "direction": "利空",
+          "logic": "地缘冲突溢价消退，中东战事降温压制军工情绪面"
+        },
+        {
+          "sector": "贵金属",
+          "direction": "利空（短期）/中性（中期）",
+          "logic": "避险情绪阶段性降温，黄金5日跌3.48%；但协议不确定性较大，中期避险支撑未完全解除"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "600519",
+          "name": "贵州茅台",
+          "logic": "与中东事件无直接关联，但当日股东会释放价格稳定信号，间接支撑白酒板块情绪"
+        }
+      ],
+      "commodity_impact": [
+        {
+          "commodity": "原油",
+          "direction": "利空",
+          "logic": "伊朗供给预期解除，油价跌至4月以来最低，短期仍有下行压力"
+        },
+        {
+          "commodity": "黄金",
+          "direction": "利空（短期）",
+          "logic": "避险溢价收缩，现货金短期承压，但协议存变数，大方向暂观望"
+        },
+        {
+          "commodity": "白银",
+          "direction": "利空（短期）",
+          "logic": "跟随黄金走弱，工业属性部分抵消"
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "title": "六氟化钨涨价潮驱动钨产业链爆发，小金属获67亿主力净流入居行业第一",
+      "source": "新闻-行业资讯 / 投机观察-小金属",
+      "event_time": {
+        "occurred_at": "2026-06-11",
+        "certainty": "occurred",
+        "decay_days": 0
+      },
+      "interpretation": "六氟化钨价格持续上涨，「以钼代钨」逻辑叠加NAND存储对钨用量快速增长的预期，带动钨产业链盈利弹性释放；当日小金属板块获得67亿元主力净流入，为全市场行业第一，兴福电子20%涨停，章源钨业、翔鹭钨业等标的受资金明显关注。全球半导体Q1营收环比+27%、存储器+80%的超强数据进一步强化了钨材料需求逻辑。",
+      "sector_impact": [
+        {
+          "sector": "小金属",
+          "direction": "利好",
+          "logic": "六氟化钨涨价→钨矿/冶炼/加工全链条盈利弹性提升；主力资金67亿净流入验证"
+        },
+        {
+          "sector": "半导体",
+          "direction": "利好",
+          "logic": "NAND存储扩产带动钨用量增长；Q1全球半导体营收环比+27%，存储器+80%，需求端超预期"
+        },
+        {
+          "sector": "电子化学品",
+          "direction": "利好",
+          "logic": "半导体材料景气上行，电子特气（含六氟化钨相关）价格上涨，兴福电子当日20%涨停"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "002378",
+          "name": "章源钨业",
+          "logic": "钨矿资源龙头，六氟化钨涨价直接受益，盈利弹性显著"
+        },
+        {
+          "code": "002842",
+          "name": "翔鹭钨业",
+          "logic": "钨产业链加工环节，涨价传导利好毛利率修复"
+        },
+        {
+          "code": "300236",
+          "name": "上海新阳",
+          "logic": "电子化学品/半导体特气龙头，行业景气上行直接受益"
+        }
+      ],
+      "commodity_impact": [
+        {
+          "commodity": "铜",
+          "direction": "利多",
+          "logic": "有色金属整体情绪偏强，工业金属联动，铜5日+0.79%"
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "title": "A股核心指数样本调整6月12日收盘后生效，9000亿被动资金集中调仓",
+      "source": "Wind万得早报",
+      "event_time": {
+        "occurred_at": "2026-06-12",
+        "certainty": "expected",
+        "decay_days": -1
+      },
+      "interpretation": "沪深300、中证A500、科创50等十余只核心宽基指数样本调整将于6月12日收盘后正式生效，跟踪规模接近9000亿元，其中沪深300ETF逾4000亿。调仓行为将在收盘前最后时段形成集中的买卖力量，调入标的或出现尾盘冲击，调出标的则承压。对于今日市场参与者，需关注被动资金流向与调仓标的的短期价格扰动。",
+      "sector_impact": [
+        {
+          "sector": "计算机",
+          "direction": "利好",
+          "logic": "并购重组公告显示计算机行业8家公司有动作，叠加指数调仓，资金关注度提升"
+        },
+        {
+          "sector": "半导体",
+          "direction": "中性",
+          "logic": "科创50调仓可能涉及半导体权重股，调入标的受益，调出标的承压，需看具体名单"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "603986",
+          "name": "兆易创新",
+          "logic": "科创50成分股，指数调仓窗口期被动资金或有异动"
+        }
+      ],
+      "commodity_impact": []
+    },
+    {
+      "rank": 4,
+      "title": "光伏强制性能效国标进入最终审批，30%多晶硅产能面临淘汰",
+      "source": "Wind万得早报 / 新闻-行业资讯",
+      "event_time": {
+        "occurred_at": "2026-06-11",
+        "certainty": "ongoing",
+        "decay_days": 0
+      },
+      "interpretation": "《晶体硅光伏组件和逆变器能效限定值及能效等级》强制性国标已进入发布前最后审批阶段，预计将淘汰30%多晶硅产能，这是光伏行业「反内卷」最具约束力的政策信号。供给侧收缩预期明确，有利于行业龙头的产能定价权和盈利率修复，能源金属（锂、钴等电池材料）也将间接受益于行业格局改善。",
+      "sector_impact": [
+        {
+          "sector": "电新行业",
+          "direction": "利好（中期）",
+          "logic": "强制淘汰落后产能，行业集中度提升，龙头企业盈利修复"
+        },
+        {
+          "sector": "能源金属",
+          "direction": "利好",
+          "logic": "光伏产业链改善带动上游锂、钴等需求预期稳定，当日能源金属获36亿主力净流入"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "002466",
+          "name": "天齐锂业",
+          "logic": "锂资源龙头，能源金属行业景气回升叠加光伏供给侧改革利好锂需求稳定预期"
+        },
+        {
+          "code": "603799",
+          "name": "华友钴业",
+          "logic": "钴锂全产业链布局，能源金属景气修复受益"
+        }
+      ],
+      "commodity_impact": []
+    },
+    {
+      "rank": 5,
+      "title": "欧洲央行2023年来首次加息，全球通胀压力重燃",
+      "source": "新闻-财联社 / Wind万得早报",
+      "event_time": {
+        "occurred_at": "2026-06-11",
+        "certainty": "occurred",
+        "decay_days": 0
+      },
+      "interpretation": "欧洲央行因中东冲突推升能源通胀而加息25BP，并将欧元区通胀预期上调至3%，增长预期下调至0.8%，这是全球首个因地缘冲突而被迫收紧的主要央行。欧洲经济滞胀风险上升，全球流动性环境偏紧信号增强，对风险资产整体不利，但对黄金等抗通胀资产中期形成支撑；A股出口欧洲依赖度高的行业需警惕需求下行风险。",
+      "sector_impact": [
+        {
+          "sector": "家用电器",
+          "direction": "利空",
+          "logic": "欧洲需求放缓，出口类家电企业订单预期承压"
+        },
+        {
+          "sector": "汽车整车",
+          "direction": "利空",
+          "logic": "欧洲是中国车企出海重要市场，经济下行叠加加息压制消费"
+        },
+        {
+          "sector": "贵金属",
+          "direction": "利好（中期）",
+          "logic": "欧洲通胀预期3%，全球央行收紧周期中黄金抗通胀属性重估"
+        }
+      ],
+      "stock_impact": [],
+      "commodity_impact": [
+        {
+          "commodity": "黄金",
+          "direction": "利多（中期）",
+          "logic": "全球通胀预期重燃，欧央行加息反映能源通胀结构性风险，黄金中期避险+抗通胀双逻辑支撑"
+        },
+        {
+          "commodity": "原油",
+          "direction": "利空",
+          "logic": "欧洲经济下行压制需求，叠加美伊缓和供给回归，油价中短期承压"
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "title": "全球半导体Q1营收环比+27%，存储器+80%，景气周期强确认",
+      "source": "Wind万得早报 / 新闻-行业资讯",
+      "event_time": {
+        "occurred_at": "2026-06-11",
+        "certainty": "occurred",
+        "decay_days": 0
+      },
+      "interpretation": "Omdia数据显示2026年Q1全球半导体营收3190亿美元，环比增长27%，其中存储器环比增幅超80%，Q2有望延续强劲增长。这是本轮半导体景气周期的关键数据确认，对存储、设计、材料等全产业链均形成利好；A股半导体板块当日获近14亿主力净流入，但美股芯片股已大涨7.9%，部分利好已被海外市场price in。",
+      "sector_impact": [
+        {
+          "sector": "半导体",
+          "direction": "利好",
+          "logic": "全球景气数据超预期，A股半导体标的估值重估空间打开，但需注意美股已先行大涨"
+        },
+        {
+          "sector": "电子化学品",
+          "direction": "利好",
+          "logic": "半导体扩产带动电子特气、抛光液等材料需求高增"
+        },
+        {
+          "sector": "小金属",
+          "direction": "利好",
+          "logic": "NAND存储扩产带动钨用量快速增长，六氟化钨涨价逻辑强化"
+        }
+      ],
+      "stock_impact": [
+        {
+          "code": "603986",
+          "name": "兆易创新",
+          "logic": "国内存储芯片设计龙头，存储景气周期直接受益"
+        },
+        {
+          "code": "300236",
+          "name": "上海新阳",
+          "logic": "半导体电子化学品核心供应商，扩产周期需求高增"
+        },
+        {
+          "code": "600410",
+          "name": "华胜天成",
+          "logic": "计算机/IT服务板块，AI算力基础设施需求驱动，市场热度TOP1个股"
+        }
+      ],
+      "commodity_impact": [
+        {
+          "commodity": "铜",
+          "direction": "利多",
+          "logic": "半导体及电子设备扩产带动铜需求预期上行"
+        }
+      ]
+    }
+  ],
+  "alpha_signals": [
+    {
+      "signal_id": "ALPHA-20260611-001",
+      "stock": {
+        "code": "002378",
+        "name": "章源钨业"
+      },
+      "direction": "long",
+      "entry_price": 18.5,
+      "target_price": 23.5,
+      "stop_loss": 16.8,
+      "confidence": "medium",
+      "time_window": "1m",
+      "event_source": "新闻-六氟化钨涨价潮 / 投机观察-小金属主力净流入67亿",
+      "thesis": "六氟化钨涨价+NAND存储扩产钨用量快速增长，钨矿龙头盈利弹性释放，当日小金属板块资金验证（67亿净流入第一），价格为估算",
+      "sector_context": "小金属，因子状态：initial（资金流入确认，价格刚启动）"
+    },
+    {
+      "signal_id": "ALPHA-20260611-002",
+      "stock": {
+        "code": "300236",
+        "name": "上海新阳"
+      },
+      "direction": "long",
+      "entry_price": 52.0,
+      "target_price": 67.0,
+      "stop_loss": 46.5,
+      "confidence": "medium",
+      "time_window": "1m",
+      "event_source": "新闻-电子化学品板块走强 / 兴福电子涨停联动 / 全球半导体Q1+27%",
+      "thesis": "半导体景气周期强确认（Q1存储+80%）+电子特气涨价，电子化学品国产化龙头估值重估，评分60分白名单最优，价格为估算",
+      "sector_context": "电子化学品，因子状态：initial（资金净流入22亿，板块涨幅第二）"
+    },
+    {
+      "signal_id": "ALPHA-20260611-003",
+      "stock": {
+        "code": "002466",
+        "name": "天齐锂业"
+      },
+      "direction": "long",
+      "entry_price": 28.0,
+      "target_price": 36.0,
+      "stop_loss": 25.0,
+      "confidence": "low",
+      "time_window": "1m",
+      "event_source": "新闻-光伏能效国标淘汰30%产能 / 投机观察-能源金属主力净流入36亿",
+      "thesis": "光伏供给侧改革落地预期强化+能源金属资金流入，锂资源龙头在行业去产能背景下估值修复，价格为估算",
+      "sector_context": "能源金属，因子状态：initial（资金净流入确认，政策催化初期）"
+    }
+  ],
+  "sector_outlook": [
+    {
+      "sector": "小金属",
+      "direction": "看多",
+      "confidence": "high",
+      "event_driver": "六氟化钨涨价潮驱动钨产业链盈利弹性释放，NAND存储扩产钨用量快速增长，当日67亿主力净流入居全行业第一",
+      "factor_status": "confirmed",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "159715",
+        "name": "稀土ETF"
+      },
+      "commodity_link": "铜价5日+0.79%，有色金属情绪联动偏强"
+    },
+    {
+      "sector": "电子化学品",
+      "direction": "看多",
+      "confidence": "medium",
+      "event_driver": "半导体Q1营收环比+27%（存储+80%）驱动特气/材料需求，兴福电子20%涨停，板块资金净流入22亿",
+      "factor_status": "confirmed",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "159997",
+        "name": "电子ETF"
+      },
+      "commodity_link": "无直接大宗品关联"
+    },
+    {
+      "sector": "能源金属",
+      "direction": "看多",
+      "confidence": "medium",
+      "event_driver": "光伏能效国标即将发布淘汰30%落后产能，供给侧改革利好行业格局，能源金属当日获36亿净流入",
+      "factor_status": "initial",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "159840",
+        "name": "锂电池ETF"
+      },
+      "commodity_link": "碳酸锂/沪镍期货关注"
+    },
+    {
+      "sector": "半导体",
+      "direction": "看多",
+      "confidence": "medium",
+      "event_driver": "全球半导体Q1超预期增长，美股费城芯片指数单日+7.9%，A股半导体板块资金净流入14亿，指数调仓亦带来被动增配",
+      "factor_status": "initial",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "512480",
+        "name": "半导体ETF"
+      },
+      "commodity_link": "铜需求间接联动"
+    },
+    {
+      "sector": "石油石化",
+      "direction": "看空",
+      "confidence": "medium",
+      "event_driver": "美伊协议有望签署，伊朗供给预期回归市场，国际油价已跌至4月来最低，原油成本压制炼化估值",
+      "factor_status": "confirmed",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "159593",
+        "name": "石油ETF"
+      },
+      "commodity_link": "原油利空，5日-5.01%"
+    },
+    {
+      "sector": "国防军工",
+      "direction": "看空",
+      "confidence": "medium",
+      "event_driver": "中东地缘风险溢价消退，美伊协议进入最后阶段，军工情绪面短期承压",
+      "factor_status": "initial",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "512660",
+        "name": "军工ETF"
+      },
+      "commodity_link": "无直接关联"
+    },
+    {
+      "sector": "基础化工",
+      "direction": "看多",
+      "confidence": "medium",
+      "event_driver": "油价下行压低原材料成本，化工中下游盈利修复；化工ETF当日已涨1.02%，资金净流入108亿",
+      "factor_status": "initial",
+      "time_horizon": "2-4w",
+      "etf": {
+        "code": "159870",
+        "name": "化工ETF"
+      },
+      "commodity_link": "原油利空传导利好化工成本端"
+    }
+  ],
+  "commodity_signals": [
+    {
+      "commodity": "原油",
+      "direction": "空",
+      "confidence": "high",
+      "driver": "美伊协议进入最后定稿，伊朗供给预期回归市场，油价已跌至4月来最低，欧洲经济下行压制需求，双重利空叠加",
+      "sector_transmission": [
+        "石油石化",
+        "基础化工"
+      ]
+    },
+    {
+      "commodity": "黄金",
+      "direction": "观望",
+      "confidence": "medium",
+      "driver": "短期：美伊缓和避险溢价消退，黄金5日-3.48%；中期：欧央行加息证实通胀风险，全球不确定性未消，协议存在变数，中性偏多观望",
+      "sector_transmission": [
+        "贵金属"
+      ]
+    },
+    {
+      "commodity": "铜",
+      "direction": "多",
+      "confidence": "medium",
+      "driver": "半导体+新能源扩产周期持续，全球制造业需求稳健，铜5日+0.79%走势偏强；伊朗局势缓和不影响铜需求基本面",
+      "sector_transmission": [
+        "工业金属",
+        "电网设备",
+        "半导体"
+      ]
+    },
+    {
+      "commodity": "白银",
+      "direction": "观望",
+      "confidence": "low",
+      "driver": "跟随黄金短期承压，但工业属性（光伏/半导体需求）提供支撑，方向暂不明确",
+      "sector_transmission": [
+        "贵金属",
+        "电新行业"
+      ]
+    }
+  ],
+  "global_conclusion": {
+    "market_regime": "均衡",
+    "confidence": 58,
+    "action": "持仓",
+    "key_thesis": "美伊缓和压制能源与避险溢价，但半导体景气强确认+钨等小金属涨价潮形成结构性机会，A股呈现「能源/军工退潮、科技材料涨潮」的板块轮动格局，维持均衡偏进攻仓位，聚焦小金属/电子化学品/半导体材料三条景气主线",
+    "risk_warnings": [
+      "美伊协议存在伊方否认的不确定性，若谈判破裂地缘风险重燃，油价反弹将冲击化工等受益板块",
+      "9000亿被动资金指数调仓（6月12日收盘后生效）可能引发调出标的集中抛压，需规避调仓名单中的弱势标的",
+      "欧央行加息开启全球滞胀担忧，若美联储跟进紧缩预期升温，高估值科技板块面临杀估值风险",
+      "美股芯片指数单日+7.9%已大幅price in半导体景气数据，A股若跟涨则存在高位追涨风险",
+      "中欧高级别会议取消，贸易摩擦升级风险值得警惕，出口导向型行业（家电/汽车）需回避"
+    ]
+  },
+  "_quality_gate": {
+    "passed": true
+  }
+}

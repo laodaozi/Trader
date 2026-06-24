@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    .recover-hero { text-align: center; padding: 2rem 1rem; }
+    .recover-hero .icon { font-size: 3rem; margin-bottom: 0.5rem; }
+    .recover-hero h2 { margin-bottom: 0.5rem; font-size: 1.5rem; }
+    .recover-hero .subtitle { color: #666; font-size: 0.95rem; }
+
+    .steps { display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap; justify-content: center; }
+    .step-card { flex: 1; min-width: 180px; max-width: 250px; background: #f8f9fa; border-radius: 10px; padding: 1.2rem; text-align: center; border: 2px solid transparent; }
+    .step-card .step-num { display: inline-flex; width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; color: #666; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 0.6rem; }
+    .step-card .step-title { font-weight: 600; margin-bottom: 0.3rem; }
+    .step-card .step-desc { font-size: 0.85rem; color: #888; }
+
+    .scan-area { text-align: center; margin: 2rem 0; }
+    .btn-scan { display: inline-block; padding: 0.9rem 2.5rem; background: #07c160; color: #fff; font-size: 1.1rem; font-weight: 600; border-radius: 8px; text-decoration: none; transition: background 0.2s; }
+    .btn-scan:hover { background: #06ad56; }
+
+    .account-list { margin: 1.5rem auto; max-width: 500px; }
+    .account-row { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border-radius: 6px; margin-bottom: 0.3rem; background: #fafafa; }
+    .account-row .name { font-weight: 500; }
+    .account-row .status-badge { font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: 10px; }
+    .status-good { background: #e6f7e8; color: #07c160; }
+    .status-bad { background: #fde8e8; color: #e74c3c; }
+
+    .pm2-bar { margin: 1rem auto; max-width: 500px; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.8rem; background: #fafafa; border-radius: 6px; }
+    .pm2-bar .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .dot-online { background: #07c160; }
+    .dot-off { background: #e74c3c; }
+    .dot-unknown { background: #f39c12; }
+
+    .verify-bar { text-align: center; margin: 1.5rem 0; }
+    .btn-verify { padding: 0.6rem 1.8rem; border: 2px solid #07c160; color: #07c160; background: #fff; border-radius: 8px; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; }
+    .btn-verify:hover { background: #07c160; color: #fff; }
+    .verify-result { margin-top: 0.5rem; font-size: 0.9rem; min-height: 1.5rem; }
+
+    .alert { padding: 1rem 1.2rem; border-radius: 8px; margin: 1rem auto; max-width: 500px; font-size: 0.95rem; }
+    .alert-crit { background: #fde8e8; border-left: 4px solid #e74c3c; color: #b33; }
+    .alert-ok { background: #e6f7e8; border-left: 4px solid #07c160; color: #276; }
+    .alert-warn { background: #fef3e2; border-left: 4px solid #f39c12; color: #856404; }
+  </style>
+</head>
+<body>
+  <%- include('./partials/nav', { active: 'admin' }) %>
+
+  <main class="container">
+    <div class="card">
+      <div class="recover-hero">
+        <div class="icon"><%= connected ? (hasBad ? '🔐' : '✅') : '🔌' %></div>
+        <h2>微信读书扫码恢复</h2>
+        <p class="subtitle">RSS 账号 Session 失效？扫码一键恢复</p>
+      </div>
+
+      <% if (!connected) { %>
+        <div class="alert alert-crit">⚠️ 无法连接 ECS 服务器，请检查网络或 SSH</div>
+      <% } else if (hasBad) { %>
+        <div class="alert alert-crit">
+          🔴 <strong><%= accounts.filter(function(a){return a.status!==1}).length %> 个账号 session 已失效</strong><br>
+          需重新扫码登录，点击下方按钮进入微信读书扫码页面
+        </div>
+      <% } else if (!hasAny) { %>
+        <div class="alert alert-warn">📭 暂未绑定微信读书账号</div>
+      <% } else { %>
+        <div class="alert alert-ok">✅ 全部账号正常运行，无需恢复</div>
+      <% } %>
+
+      <% if (connected) { %>
+        <!-- 当前状态 -->
+        <div class="pm2-bar">
+          <span>PM2 进程:</span>
+          <span class="dot <%= pm2Status === 'online' ? 'dot-online' : (pm2Status === 'absent' ? 'dot-off' : 'dot-unknown') %>"></span>
+          <span><%= pm2Status %></span>
+        </div>
+
+        <div class="account-list">
+          <% accounts.forEach(function(a){ %>
+            <div class="account-row">
+              <span class="name"><%= a.name %></span>
+              <span class="status-badge <%= a.status === 1 ? 'status-good' : 'status-bad' %>">
+                <%= a.status === 1 ? '正常' : '失效' %>
+              </span>
+            </div>
+          <% }); %>
+        </div>
+
+        <!-- 操作步骤 -->
+        <div class="steps">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-title">打开扫码</div>
+            <div class="step-desc">点击下方按钮进入微信读书管理后台</div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-title">微信扫码</div>
+            <div class="step-desc">用微信扫二维码完成登录</div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-title">验证恢复</div>
+            <div class="step-desc">返回此页点击"验证恢复"</div>
+          </div>
+        </div>
+
+        <div class="scan-area">
+          <a class="btn-scan" href="<%= dashUrl %>" target="_blank" rel="noopener">
+            📱 打开扫码管理页
+          </a>
+        </div>
+
+        <div class="verify-bar">
+          <button class="btn-verify" onclick="verify()">🔄 验证恢复</button>
+          <div class="verify-result" id="verifyResult"></div>
+        </div>
+      <% } %>
+    </div>
+  </main>
+
+  <script>
+    async function verify() {
+      const el = document.getElementById('verifyResult');
+      el.style.color = '#666';
+      el.textContent = '⏳ 正在检查...';
+
+      try {
+        const resp = await fetch('/admin/recover/api/health-check');
+        const data = await resp.json();
+
+        if (data.healthy) {
+          el.style.color = '#07c160';
+          el.textContent = '✅ 已恢复！所有账号正常运行，PM2 online';
+          setTimeout(() => location.reload(), 3000);
+        } else if (data.accounts && data.accounts.bad > 0) {
+          el.style.color = '#e74c3c';
+          el.textContent = `❌ 仍有 ${data.accounts.bad} 个账号未恢复，请确认扫码完成`;
+        } else if (data.pm2 !== 'online') {
+          el.style.color = '#e74c3c';
+          el.textContent = `⚠️ PM2 进程状态: ${data.pm2}，等待进程恢复`;
+        } else {
+          el.style.color = '#f39c12';
+          el.textContent = '⚠️ 状态异常，请稍后重试';
+        }
+      } catch (e) {
+        el.style.color = '#e74c3c';
+        el.textContent = '❌ 检查失败: ' + e.message;
+      }
+    }
+
+    // 每 30 秒自动刷新状态（如果页面打开着且账号失效）
+    <% if (hasBad) { %>
+    setInterval(() => location.reload(), 30000);
+    <% } %>
+  </script>
+</body>
+</html>

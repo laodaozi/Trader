@@ -1,0 +1,78 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'dashboard' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <% if (!dashboardData) { %>
+    <div class="dash-empty">
+      <p>📡 暂无信号数据</p>
+      <p>请运行上游策略模块生成信号到 dashboardData/upstream_signals.jsonl</p>
+    </div>
+  <% } else { %>
+    <div class="dash-cards">
+      <div class="dash-card"><span class="dash-card-value"><%= dashboardData.summary.active %></span><span class="dash-card-label">活跃信号</span></div>
+      <div class="dash-card"><span class="dash-card-value"><%= dashboardData.summary.longCount %>|<%= dashboardData.summary.shortCount %></span><span class="dash-card-label">多/空</span></div>
+      <div class="dash-card"><span class="dash-card-value"><%= dashboardData.summary.strategyCount %></span><span class="dash-card-label">策略数</span></div>
+      <div class="dash-card"><span class="dash-card-value"><%= Number(dashboardData.summary.avgConfidence || 0).toFixed(2) %></span><span class="dash-card-label">均信度</span></div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-section">
+        <h3 class="dash-section-title">最新信号</h3>
+        <table class="sig-table">
+          <thead>
+            <tr><th>时间</th><th>策略</th><th>标的</th><th>类型</th><th>方向</th><th>信度</th></tr>
+          </thead>
+          <tbody>
+            <% dashboardData.signals.forEach(s => { %>
+              <tr class="sig-row">
+                <td><%= new Date(s.timestamp).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) %></td>
+                <td><%= s.strategy %></td>
+                <td><%= s.asset %></td>
+                <td><%= s.asset_type %></td>
+                <td><span class="sig-badge <%= s.direction %>"><%= s.direction === 'long' ? '多' : '空' %></span></td>
+                <td><%= (s.confidence * 100).toFixed(0) %>%</td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="dash-section">
+        <h3 class="dash-section-title">策略分布</h3>
+        <% dashboardData.byStrategy.forEach(s => { %>
+          <div class="strategy-row">
+            <span class="strategy-name"><%= s.strategy %></span>
+            <span class="strategy-count"><%= s.count %>条</span>
+            <span class="strategy-ratio">多<%= s.direction.long %>:空<%= s.direction.short %></span>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-section">
+        <h3 class="dash-section-title">方向热度</h3>
+        <table class="heatmap-table">
+          <thead>
+            <tr><th>类型</th><th>多头</th><th>空头</th></tr>
+          </thead>
+          <tbody>
+            <% dashboardData.byAssetType.forEach(at => { %>
+              <tr>
+                <td><%= at.assetType %></td>
+                <td class="heatmap-cell <%= at.direction.long >= 3 ? 'heatmap-hot' : at.direction.long >= 1 ? 'heatmap-warm' : 'heatmap-cold' %>"><%= at.direction.long %></td>
+                <td class="heatmap-cell <%= at.direction.short >= 3 ? 'heatmap-hot' : at.direction.short >= 1 ? 'heatmap-warm' : 'heatmap-cold' %>"><%= at.direction.short %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>

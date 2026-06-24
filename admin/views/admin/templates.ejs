@@ -1,0 +1,27 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+  <%- include('../partials/nav', { active: 'templates' }) %>
+
+  <main class="container">
+    <div class="toolbar">
+      <h2 style="margin:0;font-size:18px;">写作模板管理</h2>
+      <span class="count">共 <%= templates.length %> 套模板</span>
+    </div>
+
+    <% if (locals.success) { %>
+      <div class="alert-success-tmpl"><%= success %></div>
+    <% } %>
+
+    <div class="tmpl-grid">
+      <% templates.forEach(function(t){ %>
+        <a class="tmpl-card" href="/admin/templates/<%= encodeURIComponent(t.role) %>">
+          <div class="tmpl-card-role"><%= t.role %></div>
+          <div class="tmpl-card-preview"><%= t.preview || '（空模板）' %></div>
+          <div class="tmpl-card-status"><%= t.hasContent ? '已加载' : '未配置' %></div>
+        </a>
+      <% }); %>
+    </div>
+  </main>
+
+<%- include('../partials/layout-bottom') %>

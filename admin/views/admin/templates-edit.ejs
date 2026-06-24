@@ -1,0 +1,53 @@
+<%- include('../partials/layout-top') %>
+  <style>
+    .edit-container { max-width: 900px; }
+    .edit-card { background: #fff; border-radius: 8px; padding: 28px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .edit-card h2 { margin: 0 0 20px; font-size: 18px; }
+    .form-row textarea {
+      width: 100%;
+      min-height: 560px;
+      padding: 14px;
+      border: 1px solid #cfd5de;
+      border-radius: 6px;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #2c3038;
+      resize: vertical;
+    }
+    .form-row textarea:focus { outline: none; border-color: #3b82f6; }
+    .error-msg { color: #b42318; font-size: 13px; margin-bottom: 12px; }
+    .char-count { font-size: 12px; color: #94a3b8; text-align: right; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <%- include('../partials/nav', { active: 'templates' }) %>
+
+  <main class="container edit-container">
+    <div class="edit-card">
+      <h2><%= title %></h2>
+
+      <% if (locals.error) { %>
+        <div class="error-msg"><%= error %></div>
+      <% } %>
+
+      <form method="post" action="/admin/templates/<%= encodeURIComponent(role) %>">
+        <div class="form-row">
+          <label for="content">Prompt 模板内容（Markdown）</label>
+          <textarea
+            id="content"
+            name="content"
+            onkeyup="document.getElementById('count').textContent = this.value.length"
+          ><%= typeof content !== 'undefined' ? content : '' %></textarea>
+          <div class="char-count"><span id="count"><%= typeof content !== 'undefined' ? content.length : 0 %></span> 字符</div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">保存模板</button>
+          <a href="/admin/templates" class="btn btn-link">返回列表</a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+<%- include('../partials/layout-bottom') %>

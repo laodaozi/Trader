@@ -1,0 +1,183 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'reflection' }) %>
+
+<div class="dash-container">
+  <h2>🔁 项目复盘 — Loop Learning</h2>
+  <p style="font-size:0.85em;color:var(--text-muted);margin:-8px 0 16px">跨模块闭环反思 · AI策略 × 信号命中 × 执行偏差 · 定期与 Claude 复盘</p>
+
+  <!-- 子导航 -->
+  <div class="subnav">
+    <a href="/admin/trader" class="subnav-tab">概览</a>
+    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
+    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
+    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
+    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
+    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
+    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
+    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
+    <a href="/admin/trader/reflection" class="subnav-tab active">策略反思</a>
+  </div>
+
+  <% if (error) { %>
+    <div class="dash-empty" style="margin-top:20px"><p>⚠️ <%= error %></p></div>
+  <% } else { %>
+
+    <!-- ═══ LLM 策略反思（generate_strategy_reflection.py 产出） ═══ -->
+    <% if (llmReflection && llmReflection.reflections && llmReflection.reflections.length > 0) { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">🤖 AI 策略反思
+        <span style="font-size:0.65em;font-weight:400;color:var(--text-muted);margin-left:8px"><%= llmReflection.model || '' %> · <%= llmReflection.period || '' %></span>
+      </h3>
+
+      <!-- 核心摘要 -->
+      <% if (llmReflection.summary) { %>
+      <div style="background:rgba(59,130,246,0.06);border-left:3px solid var(--primary);padding:12px 16px;margin:12px 0;border-radius:4px">
+        <div style="font-weight:700;color:var(--primary);font-size:0.95em">💡 核心判断</div>
+        <div style="margin-top:6px;line-height:1.7;color:var(--text)"><%= llmReflection.summary %></div>
+      </div>
+      <% } %>
+
+      <!-- 反思卡片 -->
+      <% const confColors = { high: '#22c55e', medium: '#f59e0b', low: '#9ca3af' }; %>
+      <% llmReflection.reflections.forEach(r => {
+        let icon = '📰';
+        if (r.section.includes('轮动')) icon = '🔄';
+        else if (r.section.includes('标的')) icon = '🎯';
+        else if (r.section.includes('因子')) icon = '🔬';
+        else if (r.section.includes('事件')) icon = '📡';
+        const conf = r.confidence || 'low';
+      %>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin:10px 0">
+        <div style="font-weight:700;font-size:0.9em;color:var(--primary);margin-bottom:8px">
+          <%= icon %> <%= r.section %>
+          <span style="font-size:0.7em;color:<%= confColors[conf] || '#9ca3af' %>;margin-left:8px"><%= conf %></span>
+        </div>
+        <div style="font-size:0.88em;line-height:1.75;color:var(--text);white-space:pre-wrap"><%= r.content %></div>
+      </div>
+      <% }) %>
+
+      <!-- 元数据 -->
+      <div style="font-size:0.72em;color:var(--text-muted);text-align:center;padding:8px">
+        <%= llmReflection.generated_at || '' %>
+        <% if (llmReflection.tokens) { %> | tokens: in=<%= llmReflection.tokens.input %> out=<%= llmReflection.tokens.output %><% } %>
+      </div>
+    </div>
+    <% } else { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">🤖 AI 策略反思</h3>
+      <div class="dash-empty" style="padding:20px">
+        <p>⚠️ 暂无 LLM 策略反思数据</p>
+        <p style="font-size:0.85em;color:var(--text-muted)">请运行: <code>python3.9 core/scripts/generate_strategy_reflection.py</code></p>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- 数据概览卡片 -->
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">📊 数据概览</h3>
+      <table class="data-table" style="width:auto">
+        <thead>
+          <tr><th>数据源</th><th>总条数</th><th>最新日期</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>反思日志</strong> (tracker_reflection.py)</td>
+            <td><%= stats.totalReflections %></td>
+            <td><%= stats.latestReflection %></td>
+          </tr>
+          <tr>
+            <td><strong>策略执行</strong> (strategy_exec.py)</td>
+            <td><%= stats.totalStrategies %></td>
+            <td><%= stats.latestStrategy %></td>
+          </tr>
+          <tr>
+            <td><strong>扫描日志</strong> (scanner.py)</td>
+            <td><%= stats.totalScannerRuns %></td>
+            <td><%= stats.latestScanner %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 最新反思日志 -->
+    <% if (reflections.length > 0) { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">📝 最新反思日志（近20条）</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>日期</th><th>类型</th><th>概述</th><th>详情</th></tr>
+        </thead>
+        <tbody>
+          <% reflections.forEach(r => { %>
+            <tr>
+              <td><%= r.date || r.timestamp || '-' %></td>
+              <td><%= r.type || r.category || '-' %></td>
+              <td><%= (r.summary || r.title || JSON.stringify(r).slice(0, 80)) %></td>
+              <td><pre style="margin:0;max-width:500px;white-space:pre-wrap;font-size:0.85em"><%= JSON.stringify(r, null, 2).slice(0, 500) %></pre></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <!-- A1 胜率矩阵 — 待填充 -->
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">📈 A1 胜率矩阵（构建中）</h3>
+      <div class="dash-empty" style="padding:30px">
+        <p>🛠 此处将展示各模型（scanner 14 模型 + NX 买卖点）横向对比：命中率 / 平均收益 / 夏普 / 最大回撤</p>
+        <p style="color:var(--m-sub)">数据源：tracker_log.jsonl 反思条目 × 验证观点 → 按模型分组统计</p>
+      </div>
+    </div>
+
+    <!-- 最新策略执行 -->
+    <% if (strategies.length > 0) { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">⚙️ 最新策略执行（近10次）</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>日期</th><th>持仓数</th><th>建议动作</th><th>概述</th></tr>
+        </thead>
+        <tbody>
+          <% strategies.forEach(s => { %>
+            <tr>
+              <td><%= s.date || s.timestamp || '-' %></td>
+              <td><%= s.position_count || s.positions?.length || '-' %></td>
+              <td><%= s.action || s.recommendation || '-' %></td>
+              <td><pre style="margin:0;max-width:400px;white-space:pre-wrap;font-size:0.85em"><%= JSON.stringify(s, null, 2).slice(0, 300) %></pre></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <!-- 最新扫描结果 -->
+    <% if (scannerEntries.length > 0) { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">🔍 最新扫描结果（近5次）</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>日期</th><th>信号数</th><th>模型</th><th>详情</th></tr>
+        </thead>
+        <tbody>
+          <% scannerEntries.forEach(e => { %>
+            <tr>
+              <td><%= e.date || e.timestamp || '-' %></td>
+              <td><%= e.signal_count || e.signals?.length || '-' %></td>
+              <td><%= e.model || e.source || '-' %></td>
+              <td><pre style="margin:0;max-width:400px;white-space:pre-wrap;font-size:0.85em"><%= JSON.stringify(e, null, 2).slice(0, 300) %></pre></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>
+</body>
+</html>

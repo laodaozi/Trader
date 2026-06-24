@@ -1,0 +1,57 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+  <%- include('../partials/nav', { active: 'admin' }) %>
+
+  <main class="container">
+    <div class="card form-card">
+      <h2><%= isNew ? '新增订阅号' : '编辑：' + account.name %></h2>
+
+      <form method="post" action="<%= isNew ? '/admin/accounts' : '/admin/accounts/' + account.id %>">
+        <div class="form-row">
+          <label for="name">名称 <span class="req">*</span></label>
+          <input type="text" id="name" name="name" required
+                 value="<%= isNew ? '' : account.name %>" placeholder="如：财闻私享" />
+        </div>
+
+        <div class="form-row">
+          <label for="mp_id">公众号 ID <span class="req">*</span></label>
+          <input type="text" id="mp_id" name="mp_id" required
+                 value="<%= isNew ? '' : account.mp_id %>" placeholder="如：MP_WXS_3233243226" />
+        </div>
+
+        <div class="form-row">
+          <label for="category">分类</label>
+          <select id="category" name="category">
+            <% categories.forEach(function(c){ %>
+              <option value="<%= c %>" <%= (!isNew && account.category === c) ? 'selected' : '' %>><%= c %></option>
+            <% }); %>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="tags">标签（逗号分隔）</label>
+          <input type="text" id="tags" name="tags"
+                 value="<%= isNew ? '' : (account.tags || []).join(', ') %>"
+                 placeholder="如：财经, 私享" />
+        </div>
+
+        <% if (!isNew) { %>
+          <div class="form-row readonly-info">
+            <label>当前状态</label>
+            <span class="status status-<%= account.status %>">
+              <span class="dot"></span>
+              <%= account.status === 'active' ? '运行中' : (account.status === 'paused' ? '已暂停' : '异常') %>
+            </span>
+          </div>
+        <% } %>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">保存</button>
+          <a class="btn btn-link" href="/admin">取消返回</a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+<%- include('../partials/layout-bottom') %>

@@ -1,0 +1,158 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'trader' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <div class="subnav">
+    <a href="/admin/trader" class="subnav-tab">概览</a>
+    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
+    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
+    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
+    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
+    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
+    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
+    <a href="/admin/trader/drawdown" class="subnav-tab active">回撤统计</a>
+    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
+  </div>
+
+  <% if (error) { %>
+    <div class="dash-empty" style="margin-top:20px"><p><%= error %></p></div>
+  <% } else { %>
+    <% const s = report.summary; %>
+    <!-- 摘要卡片 -->
+    <div class="dash-cards" style="margin-top:20px">
+      <div class="dash-card">
+        <span class="dash-card-value"><%= s.totalAuto %> + <%= s.totalWatchlist %></span>
+        <span class="dash-card-label">auto / 自选</span>
+      </div>
+      <div class="dash-card">
+        <span class="dash-card-value"><%= s.withDrawdown %></span>
+        <span class="dash-card-label">有回撤数据</span>
+      </div>
+      <div class="dash-card" style="--card-color: var(--cr-positive)">
+        <span class="dash-card-value"><%= s.profitCount %></span>
+        <span class="dash-card-label">盈利数</span>
+      </div>
+      <div class="dash-card" style="--card-color: var(--cr-negative)">
+        <span class="dash-card-value"><%= s.lossCount %></span>
+        <span class="dash-card-label">亏损数</span>
+      </div>
+      <div class="dash-card">
+        <span class="dash-card-value"><%= s.avgDrawdown !== null ? parseFloat(s.avgDrawdown).toFixed(2) + '%' : '—' %></span>
+        <span class="dash-card-label">平均涨跌</span>
+      </div>
+      <div class="dash-card" style="--card-color: var(--cr-warn)">
+        <span class="dash-card-value"><%= s.maxDD !== null ? Math.abs(parseFloat(s.maxDD)).toFixed(2) + '%' : '—' %></span>
+        <span class="dash-card-label">最大回撤</span>
+      </div>
+      <div class="dash-card" style="--card-color: var(--cr-positive)">
+        <span class="dash-card-value"><%= s.maxGain !== null ? '+'+parseFloat(s.maxGain).toFixed(2)+'%' : '—' %></span>
+        <span class="dash-card-label">最大涨幅</span>
+      </div>
+      <div class="dash-card dash-card-dim">
+        <span class="dash-card-value"><%= s.pricedCount %>/<%= s.requestedCount %></span>
+        <span class="dash-card-label">行情覆盖</span>
+      </div>
+    </div>
+
+    <!-- 自动池（来自上游信号） -->
+    <% if (report.auto.length > 0) { %>
+    <div class="dash-section" style="margin-top:24px">
+      <h3 class="dash-section-title">自动选股池 · <%= report.auto.length %> 只</h3>
+      <p class="dash-section-desc">来自 upstream_signals 中有 entry_price 的信号</p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>代码</th><th>名称</th><th>入价</th><th>现价</th><th>涨跌</th><th>策略</th><th>持有天</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% report.auto.forEach(r => { %>
+            <tr class="<%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'row-profit' : 'row-loss') : '' %>">
+              <td class="mono"><%= r.code %></td>
+              <td class="name"><%= r.name %></td>
+              <td class="num"><%= r.entryPrice %></td>
+              <td class="num"><%= r.price || '—' %></td>
+              <td class="num <%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'val-positive' : 'val-negative') : '' %>"><%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? '+' : '') + r.drawdownPct.toFixed(2) + '%' : '—' %></td>
+              <td class="tag-cell"><%= r.strategy || '—' %></td>
+              <td class="num"><%= r.daysHeld !== null ? r.daysHeld + 'd' : '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <!-- 自选池（手动管理） -->
+    <% if (report.watchlist.length > 0) { %>
+    <div class="dash-section" style="margin-top:24px">
+      <h3 class="dash-section-title">自选池 · <%= report.watchlist.length %> 只</h3>
+      <p class="dash-section-desc">来自自选股列表，尽可能匹配信号 entry_price</p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>代码</th><th>名称</th><th>入价</th><th>现价</th><th>涨跌</th><th>匹配策略</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% report.watchlist.forEach(r => { %>
+            <tr class="<%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'row-profit' : 'row-loss') : '' %>">
+              <td class="mono"><%= r.code %></td>
+              <td class="name"><%= r.name %></td>
+              <td class="num"><%= r.entryPrice || '—' %></td>
+              <td class="num"><%= r.price || '—' %></td>
+              <td class="num <%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'val-positive' : 'val-negative') : '' %>"><%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? '+' : '') + r.drawdownPct.toFixed(2) + '%' : '—' %></td>
+              <td class="tag-cell"><%= r.strategy || '无匹配信号' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <!-- 双池重叠（both auto and watchlist） -->
+    <% if (report.both && report.both.length > 0) { %>
+    <div class="dash-section" style="margin-top:24px">
+      <h3 class="dash-section-title">双池重叠 · <%= report.both.length %> 只</h3>
+      <p class="dash-section-desc">同时出现在信号自动池和自选股中</p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>代码</th><th>名称</th><th>入价</th><th>现价</th><th>涨跌</th><th>策略</th><th>持有天</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% report.both.forEach(r => { %>
+            <tr class="<%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'row-profit' : 'row-loss') : '' %>">
+              <td class="mono"><%= r.code %></td>
+              <td class="name"><%= r.name %></td>
+              <td class="num"><%= r.entryPrice %></td>
+              <td class="num"><%= r.price || '—' %></td>
+              <td class="num <%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'val-positive' : 'val-negative') : '' %>"><%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? '+' : '') + r.drawdownPct.toFixed(2) + '%' : '—' %></td>
+              <td class="tag-cell"><%= r.strategy || '—' %></td>
+              <td class="num"><%= r.daysHeld !== null ? r.daysHeld + 'd' : '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <!-- 全部无数据时 -->
+    <% if (report.auto.length === 0 && report.watchlist.length === 0) { %>
+    <div class="dash-empty" style="margin-top:20px">
+      <p>暂无回撤数据</p>
+      <p style="font-size:12px;color:var(--cr-text-secondary)">需要 upstream_signals.jsonl 中有 entry_price 的信号，或自选股列表中有股票</p>
+    </div>
+    <% } %>
+
+    <div style="margin-top:16px; font-size:11px; color:var(--cr-text-secondary)">
+      行情拉取时间：<%= report.fetchedAt %> · <a href="/admin/trader/drawdown" style="color: var(--cr-primary)">刷新</a>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>

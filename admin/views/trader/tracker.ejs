@@ -1,0 +1,143 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'trader' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <!-- 子导航 -->
+  <div class="subnav">
+    <a href="/admin/trader" class="subnav-tab">概览</a>
+    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
+    <a href="/admin/trader/tracker" class="subnav-tab active">信号跟踪</a>
+    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
+    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
+    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
+    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
+    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
+    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
+  </div>
+
+  <% if (error) { %>
+    <div class="dash-empty" style="margin-top:20px"><p>⚠️ <%= error %></p></div>
+  <% } else if (trackerSummary) { %>
+    <!-- 全局统计 -->
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">📊 全量统计</h3>
+      <table class="data-table" style="width:auto">
+        <thead>
+          <tr><th>周期</th><th>总数</th><th>HIT</th><th>MISS</th><th>NEUTRAL</th><th>PENDING</th><th>NODATA</th><th>均收益</th></tr>
+        </thead>
+        <tbody>
+          <% [5,10,20].forEach(h => {
+            const stat = trackerSummary.allByHorizon[h];
+            if (!stat) return; %>
+            <tr>
+              <td><strong><%= h %>日</strong></td>
+              <td><%= stat.total %></td>
+              <td class="track-hit"><%= stat.verdicts.HIT || 0 %></td>
+              <td class="track-miss"><%= stat.verdicts.MISS || 0 %></td>
+              <td class="track-neutral"><%= stat.verdicts.NEUTRAL || 0 %></td>
+              <td class="track-pending"><%= stat.verdicts.PENDING || 0 %></td>
+              <td class="track-nodata"><%= stat.verdicts.NODATA || 0 %></td>
+              <td><strong><%= stat.avgReturn %></strong></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 个股命中率 -->
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">🎯 个股命中率</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>代码</th><th>名称</th><th>信号类型</th><th>总数</th><th>HIT</th><th>MISS</th><th>PENDING</th><th>NODATA</th><th>命中率</th></tr>
+        </thead>
+        <tbody>
+          <% trackerSummary.stockSummary.forEach(s => { %>
+            <tr>
+              <td class="track-mono">
+                <a href="/admin/trader/tracker/stock/<%= s.code %>" class="track-link"><%= s.code %></a>
+              </td>
+              <td><%= s.name %></td>
+              <td><%= s.signal_type %></td>
+              <td><%= s.total %></td>
+              <td class="track-success"><%= s.hit %></td>
+              <td class="track-danger"><%= s.miss %></td>
+              <td class="track-pending"><%= s.pending %></td>
+              <td class="track-nodata"><%= s.nodata %></td>
+              <td class="track-bold"><%= s.hitRate %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 筛选器 + 明细 -->
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">📋 信号明细</h3>
+      <div class="toolbar" style="margin-top:0">
+        <span style="font-weight:600;font-size:13px">日期:</span>
+        <select onchange="const h=document.getElementById('horizonSel').value;location.href='/admin/trader/tracker?date='+this.value+'&horizon='+h" style="min-width:140px">
+          <% (trackerSummary.dates || []).forEach(d => { %>
+            <option value="<%= d %>" <%= d === currentDate ? 'selected' : '' %>><%= d %></option>
+          <% }) %>
+        </select>
+        <span style="font-weight:600;font-size:13px;margin-left:12px">周期:</span>
+        <select id="horizonSel" onchange="const d='<%= currentDate %>';location.href='/admin/trader/tracker?date='+d+'&horizon='+this.value">
+          <% [5,10,20].forEach(h => { %>
+            <option value="<%= h %>" <%= h === currentHorizon ? 'selected' : '' %>><%= h %>日</option>
+          <% }) %>
+        </select>
+        <span class="count"><%= records.length %> 条记录</span>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>代码</th>
+              <th>名称</th>
+              <th>信号</th>
+              <th>策略</th>
+              <th>得分</th>
+              <th>入场</th>
+              <th>止损</th>
+              <th>目标</th>
+              <th>结果</th>
+              <th>最大收益</th>
+              <th>最大回撤</th>
+              <th>最终收益</th>
+              <th>K线数</th>
+              <th>跟踪日期</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% records.forEach(r => { %>
+              <tr>
+                <td class="track-mono"><a href="/admin/trader/tracker/stock/<%= r.code %>" class="track-link"><%= r.code %></a></td>
+                <td><%= r.name %></td>
+                <td><%= r.signal_type %></td>
+                <td><%= r.strategy %></td>
+                <td><%= r.score %></td>
+                <td><%= r.entry %></td>
+                <td><%= r.stop %></td>
+                <td class="track-sm"><%= (r.targets || []).join(', ') %></td>
+                <td class="<%= r.result === 'HIT' ? 'track-hit' : r.result === 'MISS' ? 'track-miss' : 'track-nodata' %>"><%= r.result %></td>
+                <td class="<%= r.max_return > 0 ? 'track-success' : 'track-danger' %>"><%= (r.max_return * 100).toFixed(1) %>%</td>
+                <td class="<%= r.max_dd < 0 ? 'track-danger' : '' %>"><%= (r.max_dd * 100).toFixed(1) %>%</td>
+                <td class="<%= r.final_return > 0 ? 'track-success' : 'track-danger' %>"><%= (r.final_return * 100).toFixed(1) %>%</td>
+                <td><%= r.n_bars %></td>
+                <td class="track-sm"><%= r.track_date %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>

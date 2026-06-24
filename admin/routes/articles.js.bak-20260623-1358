@@ -1,0 +1,54 @@
+"use strict";
+
+const express = require("express");
+const fs = require("fs/promises");
+const path = require("path");
+
+const router = express.Router();
+const articleDir = "/Users/scott/products/cycleradar-trader/output/article";
+
+router.get("/articles", async (req, res) => {
+  try {
+    let articles = [];
+
+    try {
+      const entries = await fs.readdir(articleDir, { withFileTypes: true });
+      const htmlEntries = entries.filter((entry) => entry.isFile() && path.extname(entry.name) === ".html");
+
+      articles = await Promise.all(
+        htmlEntries.map(async (entry) => {
+          const filePath = path.join(articleDir, entry.name);
+          const stats = await fs.stat(filePath);
+
+          return {
+            name: path.basename(entry.name, ".html"),
+            path: filePath,
+            mtime: stats.mtime,
+          };
+        })
+      );
+
+      articles.sort((a, b) => b.mtime - a.mtime);
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
+    }
+
+    res.render("articles/index", {
+      title: "文章看板",
+      active: "articles",
+      articles,
+    });
+  } catch (error) {
+    res.status(500).render("admin/error", {
+      title: "500 服务器错误",
+      status: 500,
+      active: "articles",
+      message: "文章目录读取失败",
+      error,
+    });
+  }
+});
+
+module.exports = router;

@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V6.4 技术架构 · CycleRadar Trader</title>
+<link rel="stylesheet" href="/style.css" />
+<style>
+  /* ===== Style B: Engineering Document ===== */
+  /* Primary: #2D5D7C  Low-saturation Blue */
+  /* S=5 L=5 B=3  (Default engineering) */
+
+  :root {
+    --bg: #F7F8FA;
+    --text: #2C3E50;
+    --text-muted: #5A6B7C;
+    --border: #D8DEE4;
+
+    --primary: #2D5D7C;
+    --primary-light: #4A7D9C;
+    --primary-pale: #E8EFF4;
+
+    --accent-amber: #C17D2A;
+    --accent-pale: #FDF3E3;
+
+    --domain-mac: #6B7B8D;
+    --domain-mac-bg: #F0F3F6;
+
+    --domain-ecs: #2D5D7C;
+    --domain-ecs-bg: #F5F8FA;
+
+    --domain-proxy: #3D6B7A;
+    --domain-proxy-bg: #F1F6F8;
+
+    --domain-api: #5C6E7F;
+    --domain-api-bg: #EEF1F4;
+
+    --domain-db: #45606E;
+    --domain-db-bg: #EDF1F4;
+
+    --fix-color: #C17D2A;
+    --fix-bg: #FEF8EE;
+
+    --node-radius-sm: 0px;
+    --node-radius-md: 4px;
+    --node-radius-lg: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 28px 24px 60px;
+  }
+
+  .diagram {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .diagram-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+  .diagram-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    display: flex;
+    gap: 16px;
+  }
+  .diagram-meta span {
+    background: var(--primary-pale);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+
+  /* ===== Three-Column Topology Grid ===== */
+  .topology {
+    display: grid;
+    grid-template-columns: 220px 1fr 220px;
+    gap: 0;
+    position: relative;
+  }
+
+  /* Column headers */
+  .col-header {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+
+  /* ===== Left Column: Mac ===== */
+  .col-left {
+    padding-right: 16px;
+  }
+
+  .node-mac {
+    background: var(--domain-mac-bg);
+    border: 1.5px solid var(--domain-mac);
+    border-radius: var(--node-radius-lg);
+    padding: 16px 14px;
+  }
+  .node-mac .node-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--domain-mac);
+    margin-bottom: 8px;
+  }
+  .node-mac .node-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+  .node-mac .component {
+    font-size: 10.5px;
+    color: var(--domain-mac);
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 8px;
+    margin-bottom: 5px;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  }
+  .node-mac .component:last-child { margin-bottom: 0; }
+
+  /* ===== Center Column: ECS ===== */
+  .col-center {
+    padding: 0 16px;
+    position: relative;
+  }
+
+  .node-ecs {
+    border: 2px solid var(--domain-ecs);
+    border-radius: 6px;
+    background: white;
+    padding: 20px;
+  }
+  .node-ecs-header {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--domain-ecs);
+    text-align: center;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--border);
+  }
+
+  /* Nginx node */
+  .node-nginx {
+    background: var(--domain-ecs-bg);
+    border: 1.5px solid var(--primary-light);
+    border-radius: var(--node-radius-md);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .node-nginx .label { font-size: 12px; font-weight: 600; color: var(--primary); }
+  .node-nginx .detail { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; font-family: "SF Mono", "Menlo", "Consolas", monospace; }
+
+  /* PM2 / wewe-rss node */
+  .node-app {
+    background: white;
+    border: 1.5px solid var(--domain-ecs);
+    border-radius: var(--node-radius-md);
+    padding: 14px;
+    margin-bottom: 2px;
+    position: relative;
+  }
+  .node-app .label { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 8px; }
+  .node-app .label .pid { font-size: 10px; font-weight: 400; color: var(--text-muted); margin-left: 8px; }
+
+  .service-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 8px;
+  }
+  .svc-block {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 8px 10px;
+    background: var(--bg);
+  }
+  .svc-block .svc-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary);
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  }
+  .svc-block .svc-desc {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .svc-block-fix {
+    border-left: 3px solid var(--fix-color);
+  }
+
+  .fix-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .fix-badge {
+    font-size: 9.5px;
+    background: var(--fix-bg);
+    color: var(--fix-color);
+    border: 1px solid var(--fix-color);
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    white-space: nowrap;
+  }
+
+  .infra-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .node-db {
+    background: var(--domain-db-bg);
+    border: 1.5px solid var(--domain-db);
+    border-radius: var(--node-radius-sm);
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .node-db .label { font-size: 11px; font-weight: 600; color: var(--domain-db); }
+  .node-db .detail { font-size: 9.5px; color: var(--text-muted); margin-top: 3px; font-family: "SF Mono", "Menlo", "Consolas", monospace; }
+  .node-db .tables { display: flex; gap: 6px; justify-content: center; margin-top: 4px; }
+  .node-db .table { font-size: 9px; background: white; border: 1px solid var(--border); border-radius: 2px; padding: 1px 5px; }
+
+  .node-cron {
+    background: var(--domain-db-bg);
+    border: 1.5px solid var(--domain-db);
+    border-radius: var(--node-radius-sm);
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .node-cron .label { font-size: 11px; font-weight: 600; color: var(--domain-db); }
+  .node-cron .detail { font-size: 9.5px; color: var(--text-muted); margin-top: 3px; font-family: "SF Mono", "Menlo", "Consolas", monospace; }
+
+  /* ===== Right Column: External ===== */
+  .col-right {
+    padding-left: 16px;
+  }
+
+  .node-proxy {
+    background: var(--domain-proxy-bg);
+    border: 1.5px solid var(--domain-proxy);
+    border-radius: 6px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .node-proxy .node-label { font-size: 12px; font-weight: 600; color: var(--domain-proxy); margin-bottom: 6px; }
+  .node-proxy .endpoint { font-size: 10px; color: var(--text-muted); font-family: "SF Mono", "Menlo", "Consolas", monospace; margin-bottom: 3px; }
+
+  .node-weread {
+    background: var(--domain-api-bg);
+    border: 1.5px solid var(--domain-api);
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .node-weread .node-label { font-size: 12px; font-weight: 600; color: var(--domain-api); margin-bottom: 4px; }
+  .node-weread .detail { font-size: 10px; color: var(--text-muted); }
+
+  /* ===== Connection arrows ===== */
+  .arrow-box {
+    position: relative;
+    height: 0;
+  }
+
+  .connector-h {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+  }
+
+  .topology::before {
+    /* SSH arrow: Mac / ECS (top edge) */
+  }
+
+  .arrow-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    background: var(--bg);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 8px 0;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .flow-arrow {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    position: relative;
+  }
+  .flow-arrow::after {
+    content: "\25B6";
+    position: absolute;
+    right: -6px;
+    top: -7px;
+    font-size: 8px;
+    color: var(--primary-light);
+  }
+
+  .external-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 14px 0 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .external-flow .pipe {
+    width: 40px;
+    height: 1.5px;
+    background: var(--primary-light);
+  }
+  .external-flow .pipe-end {
+    width: 0; height: 0;
+    border-left: 5px solid var(--primary-light);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 28px 0;
+  }
+
+  .fix-reference {
+    margin-top: 28px;
+  }
+  .fix-reference h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 12px;
+  }
+  .fix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  .fix-table th {
+    text-align: left;
+    background: var(--primary-pale);
+    padding: 6px 10px;
+    font-weight: 600;
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary-light);
+  }
+  .fix-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .fix-table tr:last-child td { border-bottom: none; }
+  .fix-table .fix-id {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-weight: 600;
+    color: var(--fix-color);
+    white-space: nowrap;
+  }
+  .fix-table .file {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 20px;
+    font-size: 10px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .legend-swatch {
+    width: 10px; height: 10px;
+    border-radius: 1px;
+    border: 1px solid rgba(0,0,0,0.15);
+  }
+
+  .status-badge {
+    font-size: 12px;
+    font-weight: 500;
+    background: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid #4CAF50;
+    border-radius: 4px;
+    padding: 2px 10px;
+    margin-left: 10px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .section-card {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: var(--node-radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .section-card-warn {
+    border-color: var(--accent-amber);
+    background: var(--accent-pale);
+  }
+
+  .section-number {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-right: 8px;
+  }
+  .section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 14px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .card-grid-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .mini-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+  .mini-card .mc-title {
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 4px;
+    font-size: 11.5px;
+  }
+  .mini-card .mc-desc {
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-size: 10.5px;
+  }
+  .mini-card .mc-file {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 9.5px;
+    color: var(--domain-ecs);
+    margin-top: 4px;
+  }
+
+  .pill-ok {
+    display: inline-block;
+    font-size: 10px;
+    background: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid #A5D6A7;
+    border-radius: 3px;
+    padding: 1px 7px;
+    font-weight: 600;
+  }
+  .pill-warn {
+    display: inline-block;
+    font-size: 10px;
+    background: #FFF3E0;
+    color: #E65100;
+    border: 1px solid #FFB74D;
+    border-radius: 3px;
+    padding: 1px 7px;
+    font-weight: 600;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text);
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .status-row .label {
+    font-weight: 600;
+    color: var(--text-muted);
+    min-width: 90px;
+  }
+
+  .priority-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .priority-col {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    background: var(--bg);
+  }
+  .priority-col h4 {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .priority-col h4.p0 { color: #C62828; }
+  .priority-col h4.p1 { color: var(--accent-amber); }
+  .priority-col h4.p2 { color: var(--text-muted); }
+  .priority-col ul {
+    list-style: none;
+    padding: 0;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+  .priority-col ul li::before {
+    content: "\25B8 ";
+    color: var(--primary-light);
+  }
+
+  .step-list {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin-top: 10px;
+  }
+  .step-list li {
+    counter-increment: step;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    background: var(--bg);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .step-list li::before {
+    content: counter(step) ".";
+    color: var(--primary);
+    font-weight: 700;
+    margin-right: 8px;
+    font-size: 12px;
+  }
+  .step-list li .step-tag {
+    font-size: 9.5px;
+    font-weight: 600;
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-right: 4px;
+  }
+  .step-list li .step-tag.tag-p0 { background: #FFCDD2; color: #C62828; }
+  .step-list li .step-tag.tag-p1 { background: #FFE0B2; color: #E65100; }
+  .step-list li .step-code {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 10px;
+    color: var(--domain-ecs);
+    background: white;
+    padding: 1px 5px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+<%- include('../partials/nav', {active: 'architecture'}) %>
+
+<div class="diagram">
+
+  <!-- ===== TITLE BLOCK ===== -->
+  <div class="diagram-title">
+    周期雷达 V6.4 — 策略库 7模型 + trackerHitCard修复 + hotEvents合并 <span class="status-badge">稳定运行</span>
+  </div>
+  <div class="diagram-meta">
+    <span>Style B / Engineering</span>
+    <span>2026-06-24</span>
+    <span>Dual Pipeline</span>
+    <span>3-Bridge Contracts</span>
+    <span>LLM策略反思</span>
+    <span>launchd Auto</span>
+    <span>RSS 8源 + 好运哥已激活</span>
+  </div>
+
+  <!-- ===== THREE-COLUMN TOPOLOGY ===== -->
+  <div class="topology">
+
+    <!-- Left col: Remote Admin -->
+    <div class="col-left">
+      <div class="col-header">Remote Admin</div>
+      <div class="node-mac">
+        <div class="node-label">Mac (Scott)</div>
+        <div class="node-sub">launchd 定时任务 / SSH 运维入口</div>
+        <div class="component">launchd 08:07 cron_daily.sh</div>
+        <div class="component">launchd 15:00 unified.sh</div>
+        <div class="component">~/交易员/ (gh-pages)</div>
+        <div class="component">git push → ECS pull</div>
+      </div>
+    </div>
+
+    <!-- Center col: ECS -->
+    <div class="col-center">
+      <div class="col-header">ECS Node · 139.196.115.64</div>
+      <div class="node-ecs">
+        <div class="node-ecs-header">Aliyun ECS · CentOS 8 · Node v20.20.2</div>
+
+        <!-- Nginx -->
+        <div class="node-nginx">
+          <div class="label">Nginx :80</div>
+          <div class="detail">/m→:3100 | /trader→files | /dashboard/→301</div>
+        </div>
+
+        <!-- PM2 process matrix -->
+        <div class="node-app">
+          <div class="label">PM2 进程矩阵</div>
+          <div class="service-grid">
+            <div class="svc-block">
+              <div class="svc-name">trader-admin id:7</div>
+              <div class="svc-desc">:3100 / Express /m API + admin</div>
+            </div>
+            <div class="svc-block">
+              <div class="svc-name">wewe-rss id:5</div>
+              <div class="svc-desc">:4000 / RSS采集 ecosystem.config.js</div>
+            </div>
+            <div class="svc-block">
+              <div class="svc-name">simensuji id:0</div>
+              <div class="svc-desc">:3000 / 主站后端</div>
+            </div>
+            <div class="svc-block svc-block-fix">
+              <div class="svc-name">stock_agent cron</div>
+              <div class="svc-desc">15:35 Mon-Fri / Pipeline B 盘后信号</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Infra row: DB + Cron -->
+        <div class="infra-row">
+          <div class="node-db">
+            <div class="label">3-Bridge Contracts</div>
+            <div class="detail">/opt/trader/output/contracts/</div>
+            <div class="tables">
+              <span class="table">alpha_latest</span>
+              <span class="table">event_narrative</span>
+              <span class="table">upstream_signals</span>
+            </div>
+            <div class="detail" style="font-size:9px;margin-top:2px">+ snapshots/ (90d) · daily_pnl_history</div>
+          </div>
+          <div class="node-cron">
+            <div class="label">ECS Cron</div>
+            <div class="detail">06:27 enrich_morning</div>
+            <div class="detail">08:30 generate_strategy_reflection</div>
+            <div class="detail">0 8,18 enrich_hot_events</div>
+            <div class="detail">15:35 Mon-Fri stock_agent</div>
+            <div class="detail">15:40 scanner_signal_runner</div>
+            <div class="detail">15:40 rebuild_trader_views</div>
+            <div class="detail">15:41 generate_backtest_html</div>
+            <div class="detail">15:42 Mon-Fri snapshot_alpha</div>
+            <div class="detail">15:43 Mon-Fri calc_30d_winrate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right col: External -->
+    <div class="col-right">
+      <div class="col-header">External</div>
+      <div class="node-proxy">
+        <div class="node-label">Anthropic Claude API</div>
+        <div class="endpoint">Mac daily.py → report_agent → LLM</div>
+        <div class="endpoint">ECS enrich_hot_events.py → LLM</div>
+        <div class="endpoint">claude-sonnet-4-6 / claude-opus-4</div>
+      </div>
+      <div class="node-weread">
+        <div class="node-label">WeChat / WeWe RSS</div>
+        <div class="detail">weread.111965.xyz proxy | Token session ~2-3h</div>
+      </div>
+    </div>
+
+  </div>
+
+  <hr class="divider">
+
+  <!-- ===== SECTION: 双 Pipeline 信号交换机 ===== -->
+  <div class="section-card">
+    <div class="section-title">🆕 双 Pipeline 信号交换机 — upstream_signals.jsonl 唯一真相来源</div>
+    <div class="status-row"><span class="pill-ok">V5.0已落地</span></div>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0; font-size: 10.5px; font-family: 'SF Mono', 'Menlo', 'Consolas', monospace; color: var(--domain-ecs); background: var(--bg); padding: 10px 12px; border-radius: 4px; border: 1px solid var(--border);">
+      <span>upstream_signals.jsonl</span><span style="text-align:center">→</span><span style="text-align:center">signals.js</span><span style="text-align:center">→</span><span style="text-align:center">mobile.js</span>
+      <span style="text-align:center">→</span><span style="text-align:center">/m/api/cycleradar</span><span style="text-align:center">→</span><span style="text-align:center">app.js</span>
+    </div>
+    <div class="card-grid" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="mini-card">
+        <div class="mc-title">Alpha <span class="pill-ok">stock_agent+report_agent</span></div>
+        <div class="mc-desc">entry/target/stop/thesis</div>
+        <div class="mc-file">Pipeline A主源</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">ETF <span class="pill-ok">rotation_factor</span></div>
+        <div class="mc-desc">行业轮动+ETF代码</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">商品 <span class="pill-ok">commodity_radar</span></div>
+        <div class="mc-desc">原油/铜/黄金/白银</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">事件叙事 <span class="pill-ok">V5.1增强</span></div>
+        <div class="mc-desc">event_narrative_latest.json</div>
+        <div class="mc-file">global_conclusion+events[]字段扩充(stat_time/risk_flag/thesis/sectors/tickers)</div>
+      </div>
+    </div>
+    <div style="margin-top: 10px; padding: 8px 12px; background: #FFF3E0; border: 1px solid #FFB74D; border-radius: 4px; font-size: 10.5px; color: #E65100;">
+      ⚠️ 新增策略必须在 STRATEGY_CATEGORY_MAP 注册，否则归入 unknown
+    </div>
+  </div>
+
+  <!-- ===== SECTION: 3-Bridge Contracts 管道 ===== -->
+  <div class="section-card">
+    <div class="section-title">🆕 3-Bridge Contracts 管道 — Mac→gh-pages→ECS→/m 全自动</div>
+    <div class="status-row"><span class="pill-ok">V5.0已完成</span></div>
+    <div class="card-grid">
+      <div class="mini-card">
+        <div class="mc-title">Pipeline A (Mac)</div>
+        <div class="mc-desc">cron_daily.sh step 2.5: cp 3契约文件 → git push gh-pages → ssh ECS git pull</div>
+        <div class="mc-file">launchd 08:07 Mon-Fri</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">Pipeline B (ECS)</div>
+        <div class="mc-desc">stock_agent 15:35 直写 /opt/cycleradar-trader/data/</div>
+        <div class="mc-file">fallback when Pipeline A未运行</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION: 移动端 5 Tab ===== -->
+  <div class="section-card">
+    <div class="section-title">🆕 移动端 5 Tab 看板 — /m 每日投研 checklist</div>
+    <div class="status-row"><span class="pill-ok">V5.1已增强</span></div>
+    <div class="card-grid" style="grid-template-columns: repeat(5, 1fr);">
+      <div class="mini-card">
+        <div class="mc-title">概览</div>
+        <div class="mc-desc">buildNarrativeCard()</div>
+        <div class="mc-file">今日研判+event_narrative+好运哥卡片</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">诊断 <span style="font-size:9px;color:#E65100;background:#FFF3E0;padding:1px 4px;border-radius:2px">7天窗口</span></div>
+        <div class="mc-desc">/m/api/strategy/all?days=7</div>
+        <div class="mc-file" style="color:#E65100;">⚠️ 不等于跟踪Tab — 仅最近7日滚动视图。长期历史数据见 /admin/trader/tracker</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">跟踪</div>
+        <div class="mc-desc">/admin/trader/tracker</div>
+        <div class="mc-file">全部历史决策记录 · 独立于诊断Tab</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">信号</div>
+        <div class="mc-desc">V5.3排序+截断</div>
+        <div class="mc-file">事件rank排序限10条 · Alpha置信度排序限8条 · 头条微信素材标记</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">回测</div>
+        <div class="mc-desc">策略回测报告</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION: 已知问题 ===== -->
+  <div class="section-card section-card-warn">
+    <div class="section-title">已知问题 & 近期修复</div>
+    <div class="card-grid card-grid-3" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="mini-card" style="border-left: 3px solid #2E7D32;">
+        <div class="mc-title">🟢 信号字段映射修复</div>
+        <div class="mc-desc"><span class="pill-ok">V5.1已修复</span> consumer端stock_tag→impact_factor/stock_entry_price/stock_stop_loss字段映射(6个events)</div>
+      </div>
+      <div class="mini-card" style="border-left: 3px solid #2E7D32;">
+        <div class="mc-title">🟢 sync_覆盖4文件根因</div>
+        <div class="mc-desc"><span class="pill-ok">06-13已修复</span> sync_to_ecs.sh排除4运行时文件+upstream_signals append-only合并+timing rsync -L</div>
+      </div>
+      <div class="mini-card" style="border-left: 3px solid #2E7D32;">
+        <div class="mc-title">🟢 回测HTML自动化</div>
+        <div class="mc-desc"><span class="pill-ok">06-13已完成</span> generate_backtest_html.py+15:41 cron → /m回测tab实时刷新</div>
+      </div>
+    </div>
+    <div class="card-grid card-grid-3" style="grid-template-columns: repeat(3, 1fr); margin-top: 8px;">
+      <div class="mini-card" style="border-left: 3px solid #C62828;">
+        <div class="mc-title">🔴 Event #6 stock_impact[]</div>
+        <div class="mc-desc"><span class="pill-warn">prompt已松绑</span> 06-24修正："不知就别填"→"尽量给出1-2只"，待下次有事件验证</div>
+      </div>
+      <div class="mini-card" style="border-left: 3px solid #E65100;">
+        <div class="mc-title">🟢 30日胜率后端就绪</div>
+        <div class="mc-desc"><span class="pill-ok">06-24已上线</span> snapshot_alpha.sh + calc_30d_winrate.py → positions.json daily_pnl_history，30天后首批真实数据出炉</div>
+      </div>
+      <div class="mini-card" style="border-left: 3px solid #E65100;">
+        <div class="mc-title">🟡 articles.db 0字节</div>
+        <div class="mc-desc"><span class="pill-warn">P2</span> better-sqlite3未安装,account模块不可用,wewe-rss.db替代后端</div>
+      </div>
+    </div>
+    <div class="card-grid card-grid-3" style="grid-template-columns: repeat(3, 1fr); margin-top: 8px;">
+      <div class="mini-card" style="border-left: 3px solid #2E7D32;">
+        <div class="mc-title">🟢 GIT_PUSH断点</div>
+        <div class="mc-desc"><span class="pill-ok">✅V5.1已修复</span> unified.sh Step 6 改为 checkout/copy/push 流</div>
+      </div>
+      <div class="mini-card" style="border-left: 3px solid #E65100;">
+        <div class="mc-title">🟡 freshness假断流</div>
+        <div class="mc-desc"><span class="pill-warn">已知</span> upstream_signals周末不更新触发假断流，非阻塞</div>
+      </div>
+      <div class="mini-card" style="border-left: 3px solid #2E7D32;">
+        <div class="mc-title">🟢 周期信号过期</div>
+        <div class="mc-desc"><span class="pill-ok">自动恢复</span> rotation_factor/commodity_radar周一15:35自动重生成</div>
+      </div>
+    </div>
+    <div class="card-grid card-grid-3" style="grid-template-columns: repeat(3, 1fr); margin-top: 8px;">
+      <div class="mini-card" style="border-left: 3px solid #2E7D32;">
+        <div class="mc-title">🟢 trackerHitCard 回归修复</div>
+        <div class="mc-desc"><span class="pill-ok">V6.4已修复</span> trackerHitCard在信号Tab空数组时崩溃，已加空值守卫</div>
+      </div>
+      <div class="mini-card" style="border-left: 3px solid #2E7D32;">
+        <div class="mc-title">🟢 hotEvents 重复合并</div>
+        <div class="mc-desc"><span class="pill-ok">V6.4已修复</span> enrich_hot_events.py多次运行导致event_narrative_latest.json重复条目，改为幂等合并</div>
+      </div>
+      <div class="mini-card" style="border-left: 3px solid #E65100;">
+        <div class="mc-title">🟡 反思JSON解析加固</div>
+        <div class="mc-desc"><span class="pill-ok">06-24加固</span> _clean_json加raw text落盘(data/strategy_reflection_debug_raw.txt)，下次失败时有日志排查根因</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ===== SECTION: Admin Dashboard 层 ===== -->
+  <div class="section-card">
+    <div class="section-title">Admin Dashboard 层 — trader-admin :3100</div>
+    <div class="status-row"><span class="pill-ok">V5.0已部署</span></div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px;">
+      <div class="mini-card">
+        <div class="mc-title">周期雷达信号</div>
+        <div class="mc-file">data/upstream_signals.jsonl → models/signals.js</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">契约桥数据</div>
+        <div class="mc-file">/opt/trader/output/contracts/ → mobile.js _getContractsPath()</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">调度器状态</div>
+        <div class="mc-file">admin/scheduler.js → /admin/api/scheduler/</div>
+      </div>
+    </div>
+    <!-- V6.4 新增: 策略库 + 自选股批量导入 -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+      <div class="mini-card" style="border-left: 3px solid #1565C0;">
+        <div class="mc-title">策略库 <span class="pill-ok">V6.4新增</span></div>
+        <div class="mc-desc">7模型卡片：trend_follow / mean_reversion / breakout / momentum / sector_rotation / event_driven / macro_factor</div>
+        <div class="mc-file">/admin/strategy-library → models/strategyLibrary.js</div>
+      </div>
+      <div class="mini-card" style="border-left: 3px solid #1565C0;">
+        <div class="mc-title">自选股批量导入 <span class="pill-ok">V6.4新增</span></div>
+        <div class="mc-desc">CSV/文本批量解析 → watchlist 去重写入 → /m/api/watchlist 自动刷新</div>
+        <div class="mc-file">/admin/watchlist/import → routes/watchlist.js</div>
+      </div>
+    </div>
+    <div class="card-grid" style="margin-top: 14px;">
+      <div class="mini-card">
+        <div class="mc-title">Express路由</div>
+        <div class="mc-desc">/m/api/cycleradar四分类+event_narrative+alpha_latest</div>
+        <div class="mc-desc">/m/api/summary narrative</div>
+        <div class="mc-desc">/admin/api/scheduler/heartbeat|status|history</div>
+      </div>
+      <div class="mini-card">
+        <div class="mc-title">V5.0 Scheduler API</div>
+        <div class="mc-desc">X-Scheduler-Token认证</div>
+        <div class="mc-desc">POST /heartbeat {stage,status,exit_code}</div>
+        <div class="mc-desc">GET /status | GET /history?days=7</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION: RSS 信源配置 ===== -->
+  <div class="section-card">
+    <div class="section-title">RSS 信源配置 — 9 订阅号分级采集</div>
+    <div class="status-row"><span class="pill-ok">V6.4 9源</span> <span style="font-size:10px;color:var(--text-muted)">core/writing/source_registry.py</span></div>
+    <table class="fix-table" style="margin-top: 8px;">
+      <thead>
+        <tr><th>信源</th><th>mp_id</th><th>分级</th><th>策略方向</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>财闻私享</td><td class="file">MP_WXS_3233243226</td><td><strong style="color:#C62828;">S</strong> 不限量</td><td>政策分析</td></tr>
+        <tr><td>叙事平权old</td><td class="file">MP_WXS_3988180000</td><td><strong style="color:#C62828;">S</strong> 不限量</td><td>反转信号</td></tr>
+        <tr><td>台球之门</td><td class="file">MP_WXS_3191151316</td><td>A ≤3条</td><td>趋势跟踪</td></tr>
+        <tr><td>低吸波段王</td><td class="file">MP_WXS_3901470107</td><td>A ≤3条</td><td>趋势跟踪</td></tr>
+        <tr><td>在下杜牛牛</td><td class="file">MP_WXS_3583532298</td><td>A ≤3条</td><td>情绪周期</td></tr>
+        <tr><td>微策神机</td><td class="file">MP_WXS_3242358265</td><td>A ≤3条</td><td>催化事件</td></tr>
+        <tr><td>数据宝</td><td class="file">MP_WXS_3080543482</td><td>A ≤3条</td><td>催化事件</td></tr>
+        <tr><td>小马白话期权</td><td class="file">MP_WXS_3521606446</td><td>A ≤3条</td><td>波动率套利</td></tr>
+        <tr><td>财经早餐</td><td class="file">MP_WXS_2398512110</td><td>A ≤3条</td><td>宏观资讯</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== SECTION: 技术债状态 ===== -->
+  <div class="section-card section-card-warn">
+    <div class="section-title">技术债状态</div>
+    <div class="status-row"><span class="label">P0 GIT_PUSH断点</span><span class="pill-ok">✅V5.1已修复</span> — unified.sh Step 6 git checkout/copy/push 流</div>
+    <div class="status-row"><span class="label">信号字段映射</span><span class="pill-ok">✅V5.1已修复</span> — consumer端stock_tag→stock_entry_price/stock_stop_loss</div>
+    <div class="status-row"><span class="label">30日胜率</span><span class="pill-ok">✅ 06-24上线</span> — snapshot_alpha.sh + calc_30d_winrate.py → positions.json daily_pnl_history</div>
+    <div class="status-row"><span class="label">sync覆盖修复</span><span class="pill-ok">✅ 06-13完成</span> — 4运行时文件排除 + upstream_signal append-only合并</div>
+    <div class="status-row"><span class="label">回测自动化</span><span class="pill-ok">✅ 06-13上线</span> — generate_backtest_html.py + 15:41 cron</div>
+    <div class="status-row"><span class="label">contracts管道</span><span class="pill-ok">✅V5.0已打通</span></div>
+    <div class="status-row"><span class="label">ECS Python迁移</span><span class="pill-ok">✅已完成</span> — /opt/cycleradar-trader/core/</div>
+    <div class="status-row"><span class="label">freshness语义</span><span class="pill-warn">已知非阻塞</span></div>
+    <div class="status-row"><span class="label">日报管道ECS</span><span class="pill-warn">延后</span> — 依赖Mac MCP</div>
+  </div>
+
+  <!-- ===== SECTION: V5.0→V6.2 里程碑 ===== -->
+  <div class="section-card">
+    <div class="section-title">V5.0→V6.2 里程碑</div>
+    <div class="priority-grid" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="priority-col">
+        <h4 class="p0">✅ V5.0</h4>
+        <ul>
+          <li>Scheduler模块</li>
+          <li>Contracts双路径</li>
+          <li>Overview今日研判</li>
+          <li>alpha_latest可视化</li>
+          <li>信号Tab V5.0新UI</li>
+          <li>架构图V5.0</li>
+        </ul>
+      </div>
+       <div class="priority-col">
+        <h4 class="p1">✅ V5.1</h4>
+        <ul>
+          <li>信号字段映射修复(6 events)</li>
+          <li>CR统计栏(pipeline/stats/signals/buy/hold/sell)</li>
+          <li>风险警告(yellow/red)</li>
+          <li>事件卡片(thesis/sectors/tickers)</li>
+          <li><strong style="color:#2E7D32">sync覆盖4文件根因修复</strong></li>
+          <li><strong style="color:#2E7D32">回测HTML自动化上线</strong></li>
+        </ul>
+      </div>
+      <div class="priority-col">
+        <h4 class="p0">✅ V5.2</h4>
+        <ul>
+          <li>事件卡片1:1移植生产dashboard.py</li>
+          <li>彩色rank / decay / sector-comm tags</li>
+          <li>stock chips onclick展开(toggleCrReason)</li>
+          <li>source底行 + ev-* CSS 20条</li>
+          <li>商品方向映射分离(多空 vs 利好利空)</li>
+          <li>架构图V5.2</li>
+        </ul>
+      </div>
+      <div class="priority-col" style="border: 2px solid #2E7D32; background: #F0FFF0;">
+        <h4 class="p0">✅ V5.3</h4>
+        <ul>
+          <li>RSS 8源分级采集(S不限量+A≤3条)</li>
+          <li>好运哥已激活(haoyunge.js→/m/api/haoyunge)</li>
+          <li>source_registry.py 接入架构图</li>
+          <li>Admin 暗色 UI 风格</li>
+          <li>10项工程纪律审计修复</li>
+          <li>架构图V5.3</li>
+        </ul>
+      </div>
+    </div>
+    <div class="priority-grid" style="margin-top: 12px; grid-template-columns: repeat(4, 1fr);">
+      <div class="priority-col" style="border: 2px solid #2E7D32; background: #F0FFF0;">
+        <h4 class="p0">✅ V5.4</h4>
+        <ul>
+          <li>自选股入口(watchlist API→/m/api/watchlist)</li>
+          <li>微信文章统计(wewe-rss.db→/m 概览Tab)</li>
+          <li>ROADMAP 版本线整合(V4.4.0→折叠为技术债)</li>
+          <li>/m 信号Tab 排序+截断优化</li>
+          <li>架构图V5.4</li>
+        </ul>
+      </div>
+       <div class="priority-col" style="border: 2px solid #1565C0; background: #E3F2FD;">
+        <h4 style="color: #1565C0;">✅ V6.0 · V6.1</h4>
+        <ul>
+          <li>交易员风格视觉升级(/m 暗色主题)</li>
+          <li>wanjun screener + tracker_closer OHLC</li>
+          <li>/m 三 tab 迁移 + design-tokens</li>
+          <li>watchlist 批量导入 + strategy 排序</li>
+          <li>架构图V6.1</li>
+        </ul>
+      </div>
+      <div class="priority-col" style="border: 2px solid #2E7D32; background: #F0FFF0;">
+        <h4 class="p0">✅ V6.2</h4>
+        <ul>
+          <li>scanner 14 模型信号接入 ✅</li>
+          <li>wanjun_screener 全量废弃</li>
+          <li>自选 NX 信号增强 (B) ✅</li>
+          <li>持仓 P&L 前端接入 (C) ✅</li>
+          <li>B站散户情绪 (终止 — RSS 停摆不可恢复)</li>
+          <li>P0-B LLM策略反思管线 ✅</li>
+          <li>架构图V6.2</li>
+        </ul>
+      </div>
+      <div class="priority-col" style="border: 2px solid #2E7D32; background: #F0FFF0;">
+        <h4 class="p0">✅ V6.3</h4>
+        <ul>
+          <li>scanner 14 模型信号接入 ✅</li>
+          <li>wanjun_screener 全量废弃</li>
+          <li>自选 NX 信号增强 (B) ✅</li>
+          <li>持仓 P&L 前端接入 (C) ✅</li>
+          <li>B站散户情绪 (终止 — RSS 停摆不可恢复)</li>
+          <li>P0-B LLM策略反思管线 ✅</li>
+          <li>架构图V6.3</li>
+        </ul>
+      </div>
+      <div class="priority-col" style="border: 2px solid #1565C0; background: #E3F2FD;">
+        <h4 style="color: #1565C0;">📋 V6.4 · 当前</h4>
+        <ul>
+          <li>策略库 7模型卡片 ✅</li>
+          <li>自选股批量导入 ✅</li>
+          <li>scanner_signal_runner 15:40 cron ✅</li>
+          <li>generate_strategy_reflection 8:30 cron ✅</li>
+          <li>trackerHitCard 回归修复 ✅</li>
+          <li>hotEvents 幂等合并修复 ✅</li>
+          <li>架构图V6.4</li>
+          <li>30日胜率管线 ✅ (06-24)</li>
+          <li>_clean_json 加固 raw text 落盘 ✅ (06-24)</li>
+          <li>watchlist路径修复 + regime兼容修复 ✅ (06-23)</li>
+        </ul>
+      </div>
+       <div class="priority-col">
+        <h4 class="p2">📋 远期</h4>
+        <ul>
+          <li>回撤统计(entry→maxDD)</li>
+          <li>PWA离线+通知</li>
+          <li>票池管理</li>
+          <li>行业轮动独立页</li>
+          <li>邮件日报</li>
+          <li>articles.db修复(better-sqlite3)</li>
+        </ul>
+      </div>
+      <div class="priority-col" style="border: 2px solid var(--border); background: #FEF8EE;">
+        <h4 style="color: #C17D2A;">⚠️ 讨论中</h4>
+        <ul>
+          <li>consumer端stock_impact[]为空→06-24 prompt松绑（"尽量给出1-2只"），等待验证</li>
+          <li>CR统计栏30日胜率前端接入 daily_pnl_history</li>
+          <li>Event card 与 Alpha card 优先级: 事件在前→是否需要统一信号排序逻辑？</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION: 部署验收步骤 ===== -->
+  <div class="section-card">
+    <div class="section-title">部署验收步骤</div>
+    <ol class="step-list">
+      <li><span class="step-tag tag-p0">P0</span> sync_to_ecs.sh（排除 runtime 文件，含 timing -L）</li>
+      <li><span class="step-tag tag-p0">P0</span> pm2 restart trader-admin</li>
+      <li><span class="step-tag tag-p0">P0</span> curl localhost:3100/m/api/summary 验证 narrative/timing 非空</li>
+      <li><span class="step-tag tag-p0">P0</span> curl localhost:3100/m/api/strategy/all 验证 >0 条</li>
+      <li><span class="step-tag tag-p0">P0</span> curl localhost:3100/m/api/tracker/all 验证 >0 条</li>
+      <li><span class="step-tag tag-p1">P1</span> Nginx 80 端口打开 /m 四 tab 确认数据完整</li>
+      <li><span class="step-tag tag-p1">P1</span> /admin/trader/backtest → 确认 latest.html 可访问</li>
+      <li><span class="step-tag tag-p1">P1</span> /admin/architecture → 确认版本号与状态一致</li>
+    </ol>
+  </div>
+
+  <!-- ===== LEGEND ===== -->
+  <div class="legend">
+    <div class="legend-item"><span class="legend-swatch" style="background:#E8EFF4"></span> Admin</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#F5F8FA"></span> ECS/App</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#EDF1F4"></span> Storage/Cron</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#F1F6F8"></span> Proxy</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#EEF1F4"></span> External API</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#FEF8EE; border-color:#C17D2A;"></span> code fix</div>
+  </div>
+
+</div>
+
+<%- include('../partials/layout-bottom') %>

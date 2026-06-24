@@ -1,0 +1,111 @@
+<%- include('../partials/layout-top') %>
+
+<%
+// ── 工具函数 ──
+const STATUS_LABEL = { healthy: '✅ HEALTHY', degraded: '⚠️ DEGRADED', critical: '❌ CRITICAL' };
+const STATUS_CLASS = { healthy: 'status-healthy', degraded: 'status-degraded', critical: 'status-critical' };
+const CHECK_ICON  = { pass: '✓', warn: '⚠', fail: '✗' };
+const CHECK_CLASS = { pass: 'check-pass', warn: 'check-warn', fail: 'check-fail' };
+const DIM_LABEL   = { process: '进程', data: '数据新鲜度', cron: 'Cron 执行', system: '系统资源' };
+const DIM_ICON    = { process: '⚙️', data: '📂', cron: '🕐', system: '🖥️' };
+
+const s = health.status || 'critical';
+const sum = health.summary || { pass: 0, warn: 0, fail: 0 };
+const checks = health.checks || [];
+
+// 按维度分组
+const byDim = {};
+checks.forEach(c => {
+  (byDim[c.dim] = byDim[c.dim] || []).push(c);
+});
+const dims = ['process', 'data', 'cron', 'system'];
+%>
+
+</head>
+<body>
+<%- include('../partials/nav', { active: 'health' }) %>
+
+<div class="health-page">
+  <h2>生产健康</h2>
+  <div class="health-meta">
+    数据目录：<span><%= health.data_dir || '—' %></span>
+    &nbsp;·&nbsp;检查时间：<span><%= health.timestamp || '—' %></span>
+  </div>
+
+  <% if (health._error) { %>
+    <div class="health-error">⚠ health_check.sh 执行异常：<%= health._error %></div>
+  <% } %>
+
+  <!-- 状态横幅 -->
+  <div class="status-banner <%= STATUS_CLASS[s] || 'status-critical' %>">
+    <div class="status-label"><%= STATUS_LABEL[s] || s.toUpperCase() %></div>
+    <div class="status-counters">
+      <div class="counter counter-pass">
+        <div class="counter-val"><%= sum.pass %></div>
+        <div class="counter-label">PASS</div>
+      </div>
+      <div class="counter counter-warn">
+        <div class="counter-val"><%= sum.warn %></div>
+        <div class="counter-label">WARN</div>
+      </div>
+      <div class="counter counter-fail">
+        <div class="counter-val"><%= sum.fail %></div>
+        <div class="counter-label">FAIL</div>
+      </div>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" onclick="refreshHealth()">↻ 刷新</button>
+  </div>
+
+  <!-- 四维检查卡片 -->
+  <div class="dims-grid" id="dimsGrid">
+    <% dims.forEach(dim => {
+      const dimChecks = byDim[dim] || [];
+      const dimFails = dimChecks.filter(c => c.status === 'fail').length;
+    %>
+    <div class="dim-card">
+      <div class="dim-head">
+        <span class="dim-head-icon"><%= DIM_ICON[dim] || '📋' %></span>
+        <%= DIM_LABEL[dim] || dim %>
+        <% if (dimFails > 0) { %><span class="dim-head-fail-badge"><%= dimFails %> FAIL</span><% } %>
+      </div>
+      <div class="dim-body">
+        <% if (dimChecks.length === 0) { %>
+          <div class="dim-empty">— 无检查项 —</div>
+        <% } else { %>
+          <% dimChecks.forEach(c => { %>
+            <div class="check-row <%= CHECK_CLASS[c.status] || 'check-fail' %>">
+              <div class="check-icon"><%= CHECK_ICON[c.status] || '?' %></div>
+              <div>
+                <div class="check-name"><%= c.check %></div>
+                <div class="check-detail"><%= c.detail %></div>
+              </div>
+            </div>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+
+  <div class="health-ts" id="lastRefreshed">上次刷新：<%= new Date().toLocaleString('zh-CN') %></div>
+</div>
+
+<script>
+async function refreshHealth() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('loading');
+  btn.textContent = '刷新中…';
+  try {
+    const res = await fetch('/admin/api/health');
+    const data = await res.json();
+    // 简单刷新整页（避免重写渲染逻辑）
+    window.location.reload();
+  } catch (e) {
+    btn.classList.remove('loading');
+    btn.textContent = '↻ 刷新';
+    alert('刷新失败：' + e.message);
+  }
+}
+</script>
+
+<%- include('../partials/layout-bottom') %>

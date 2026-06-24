@@ -1,0 +1,258 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cycleradar.local/schemas/signals_contract.json",
+  "title": "CycleRadar Upstream Signal Contract",
+  "description": "分支 C：上游策略模块输出信号的统一契约。任何策略模块按本 schema 输出一条信号，即可被 daily.py / morning_report.py 等下游消费者自动读取，无需修改消费者代码。每条信号是 upstream_signals.jsonl 中的一行。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "signal_id",
+    "timestamp",
+    "strategy",
+    "asset",
+    "asset_type",
+    "direction",
+    "confidence",
+    "expiry"
+  ],
+  "properties": {
+    "signal_id": {
+      "type": "string",
+      "description": "信号唯一标识。推荐 UUID4，亦兼容 'ALPHA-YYYYMMDD-NNN' 历史格式。",
+      "minLength": 1,
+      "examples": [
+        "5f3c2d18-9a4b-4f2e-8c1a-0b7d6e5f4a3c",
+        "ALPHA-20260605-001"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "信号生成时间，ISO8601（含时区）。对应历史 generated_at 字段。",
+      "examples": ["2026-06-05T16:30:00+08:00"]
+    },
+    "strategy": {
+      "type": "string",
+      "description": "产出该信号的策略模块名（不含 .py）。下游按此字段路由 metadata 子 schema。",
+      "enum": [
+        "ma_signals",
+        "rotation_factor",
+        "commodity_radar",
+        "etf_allocation",
+        "stock_agent",
+        "factor_agent",
+        "enhanced_nx",
+        "report_agent"
+      ]
+    },
+    "asset": {
+      "type": "string",
+      "description": "标的代码或名称。股票/ETF 用 6 位代码，行业/商品用规范名称，指数用代码。",
+      "minLength": 1,
+      "examples": ["600019", "515880", "通信", "原油", "000300"]
+    },
+    "asset_type": {
+      "type": "string",
+      "description": "标的类型。",
+      "enum": ["stock", "etf", "index", "commodity", "sector"]
+    },
+    "direction": {
+      "type": "string",
+      "description": "统一后的方向枚举。各策略本地词汇（多/空/看多/利好/buy/sell/+1/-1）须在写入前归一到此三值。映射见 _direction_mapping。",
+      "enum": ["long", "short", "neutral"]
+    },
+    "confidence": {
+      "type": "number",
+      "description": "置信度 0~1（含端点）。历史字符串置信度按 high=0.85 / medium=0.55 / low=0.3 归一。",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "expiry": {
+      "type": "string",
+      "format": "date-time",
+      "description": "信号有效期截止，ISO8601。由 timestamp + decay_days/time_window 推算。过期信号被下游忽略。",
+      "examples": ["2026-06-08T16:30:00+08:00"]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "策略自定义扩展字段。按 strategy 取对应子 schema。下游通用消费者可忽略，专用消费者按需读取。",
+      "default": {}
+    },
+    "_direction_mapping": {
+      "type": "object",
+      "description": "（文档性字段，非数据）各策略本地方向词汇 → 统一 direction 的映射参考。",
+      "default": {
+        "commodity_radar": {"多": "long", "空": "short", "观望": "neutral"},
+        "etf_allocation": {"看多": "long", "看空": "short", "中性": "neutral"},
+        "report_agent.sector_impact": {"利好": "long", "利空": "short", "中性": "neutral"},
+        "enhanced_nx": {"buy": "long", "sell": "short", "neutral": "neutral"},
+        "factor_agent.cross_asset": {"1": "long", "-1": "short", "0": "neutral"},
+        "alpha_signals": {"long": "long", "short": "short"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"strategy": {"const": "ma_signals"}}},
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "ma_signals 并购重组信号扩展。",
+            "properties": {
+              "industry_hint": {"type": "string", "description": "公司名关键词推断行业"},
+              "notice_type": {"type": "string", "description": "公告类型（收购出售资产/股权 等）"},
+              "stock_name": {"type": "string"},
+              "strength": {"type": "string", "enum": ["high", "medium", "low"], "description": "同行业公告聚集强度"},
+              "industry_count": {"type": "integer", "minimum": 0, "description": "同行业公告条数"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"strategy": {"const": "rotation_factor"}}},
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "rotation_factor 行业轮动信号扩展。",
+            "properties": {
+              "score_auto": {"type": "number", "description": "8 因子加权得分（满分 8.0）"},
+              "stage": {"type": "string", "enum": ["确认", "关注", "观察", "观望"]},
+              "rank": {"type": "integer", "minimum": 1},
+              "rotation_signal_type": {"type": "string", "enum": ["新晋TOP10", "退出TOP10", "持续轮动", "升温", "降温", "加速", "减速"]},
+              "active_factors": {"type": "array", "items": {"type": "string"}, "description": "命中因子代码 A1/B1/E1 等"},
+              "intensity": {"type": "number", "description": "整体轮动强度 -100~+100"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"strategy": {"const": "commodity_radar"}}},
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "commodity_radar 商品/期货方向扩展。",
+            "properties": {
+              "commodity_type": {"type": "string", "enum": ["工业金属", "贵金属", "能源金属", "原油", "黑色", "农产品", "其他"]},
+              "driver": {"type": "string", "description": "方向驱动逻辑"},
+              "price_5d_pct": {"type": ["number", "null"], "description": "近 5 日价格变化 %"},
+              "transmission_sectors": {"type": "array", "items": {"type": "string"}, "description": "传导行业"},
+              "lag_weeks": {"type": "integer", "minimum": 0, "description": "传导滞后周数"},
+              "ic": {"type": "number", "description": "传导 IC 系数"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"strategy": {"const": "etf_allocation"}}},
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "etf_allocation ETF 配置信号扩展。",
+            "required": ["weight"],
+            "properties": {
+              "weight": {"type": "number", "minimum": 0, "maximum": 100, "description": "建议配置权重 %（对应 weight_pct）"},
+              "sector": {"type": "string", "description": "对应行业"},
+              "etf_code": {"type": "string", "description": "ETF 代码（冗余，便于直接下单）"},
+              "etf_name": {"type": "string"},
+              "event_driver": {"type": "string"},
+              "factor_confirmed": {"type": "boolean", "description": "因子层是否已确认"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"strategy": {"const": "stock_agent"}}},
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "stock_agent 个股选股信号扩展。",
+            "properties": {
+              "stock_name": {"type": "string"},
+              "tier": {"type": "string", "enum": ["强推", "关注", "观望"]},
+              "catalyst_score": {"type": "number", "description": "多催化剂综合分"},
+              "resonance_score": {"type": "integer", "description": "行业共振强度"},
+              "reasons": {"type": "array", "items": {"type": "string"}},
+              "entry_price": {"type": ["number", "null"]},
+              "target_price": {"type": ["number", "null"]},
+              "stop_loss": {"type": ["number", "null"]},
+              "industry": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"strategy": {"const": "factor_agent"}}},
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "factor_agent 跨资产 / 复合因子信号扩展。",
+            "properties": {
+              "composite_score": {"type": "number", "description": "复合因子分 0~100"},
+              "composite_tier": {"type": "string"},
+              "cross_asset_value": {"type": "integer", "description": "跨资产传导原始值 +N/-N"},
+              "by_tier": {"type": "object", "description": "short/mid/long 三档贡献"},
+              "active_factors": {"type": "array", "items": {"type": "string"}}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"strategy": {"const": "enhanced_nx"}}},
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "enhanced_nx 形态+三重确认信号扩展。",
+            "properties": {
+              "grade": {"type": "string", "enum": ["S", "A", "B", "neutral"], "description": "信号分级"},
+              "nx_signal": {"type": "string", "enum": ["buy", "sell", "neutral", "unknown"]},
+              "ma_aligned": {"type": "boolean"},
+              "volume_confirmed": {"type": "boolean"},
+              "alignment_type": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"strategy": {"const": "report_agent"}}},
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "report_agent 事件驱动信号扩展（对应历史 trader 契约 theme/sectors/stocks）。",
+            "properties": {
+              "theme": {"type": "string", "description": "事件主题"},
+              "decay_days": {"type": "integer", "minimum": 0, "description": "信号衰减天数（用于推算 expiry）"},
+              "sectors": {"type": "array", "items": {"type": "string"}},
+              "stocks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {"type": "string"},
+                    "name": {"type": "string"},
+                    "logic": {"type": "string"}
+                  }
+                }
+              },
+              "event_rank": {"type": "integer"}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

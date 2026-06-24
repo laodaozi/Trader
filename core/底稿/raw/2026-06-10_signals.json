@@ -1,0 +1,70 @@
+{
+  "date": "2026-06-10",
+  "generated_at": "2026-06-10T08:30:00",
+  "events": [
+    {
+      "type": "sector_signal",
+      "sector": "白酒",
+      "direction": "long",
+      "trigger": "中秋备货",
+      "confidence": "high"
+    },
+    {
+      "type": "stock_signal",
+      "asset": "600519",
+      "name": "贵州茅台",
+      "direction": "long",
+      "confidence": "high",
+      "reasons": "库存低位+中秋催化"
+    }
+  ],
+  "sector_signals": [
+    {
+      "sector": "白酒",
+      "direction": "long",
+      "strength": 8
+    }
+  ],
+  "stock_impacts": [
+    {
+      "code": "600519",
+      "name": "贵州茅台",
+      "direction": "long",
+      "score": 85
+    }
+  ],
+  "alpha_signals": [
+    {
+      "signal_id": "ALPHA-20260610-001",
+      "stock": {
+        "code": "600519",
+        "name": "贵州茅台"
+      },
+      "direction": "long",
+      "entry_price": 1580.0,
+      "target_price": 1720.0,
+      "stop_loss": 1453.6,
+      "confidence": "high",
+      "time_window": "2w",
+      "event_source": "经销商库存数据",
+      "thesis": "茅台一批商渠道库存降至1月内，叠加中秋国庆备货预期，短期存在补库驱动。当前估值处于历史中枢下沿。",
+      "sector_context": "白酒板块渠道库存周期触底"
+    },
+    {
+      "signal_id": "ALPHA-20260610-002",
+      "stock": {
+        "code": "300750",
+        "name": "宁德时代"
+      },
+      "direction": "long",
+      "entry_price": 195.0,
+      "target_price": 220.0,
+      "stop_loss": 179.4,
+      "confidence": "medium",
+      "time_window": "1m",
+      "event_source": "产业链排产数据",
+      "thesis": "6月锂电排产环比+15%，宁德份额稳固，储能业务超预期。",
+      "sector_context": "新能源产业链排产加速"
+    }
+  ]
+}

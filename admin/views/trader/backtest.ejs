@@ -1,0 +1,52 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'trader' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <!-- 子导航 -->
+  <div class="subnav">
+    <a href="/admin/trader" class="subnav-tab">概览</a>
+    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
+    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
+    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
+    <a href="/admin/trader/backtest" class="subnav-tab active">策略回测</a>
+    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
+    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
+    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
+    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
+  </div>
+
+  <% if (reports && reports.length > 0) { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">📜 回测报告 (<%= reports.length %> 份)</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>报告</th><th>日期</th><th>类型</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          <% reports.forEach(r => { %>
+            <tr>
+              <td style="font-family:monospace;font-size:13px"><%= r.filename %></td>
+              <td><%= r.date %></td>
+              <td><%= r.isLatest ? '<span class="track-pending track-bold">最新</span>' : '归档' %></td>
+              <td>
+                <a href="/admin/trader/backtest/view/<%= r.filename %>" target="_blank" class="btn btn-sm">查看报告</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <p style="margin-top:12px">💡 点击"查看报告"在新页签打开完整 HTML 回测报告</p>
+    </div>
+  <% } else { %>
+    <div class="dash-empty" style="margin-top:20px">
+      <p>📡 暂无回测报告</p>
+      <p>请运行 Python min_backtest.py 生成回测报告到 strategy/ 目录</p>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>

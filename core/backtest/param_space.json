@@ -1,0 +1,147 @@
+{
+  "version": "1.0",
+  "generator": "param_scan.py",
+  "scanned_files": [
+    "rotation_factor.py"
+  ],
+  "used_fallback": false,
+  "grid_rule": "每个参数 3 档：默认值×0.5 / 默认值 / 默认值×2（整数四舍五入、去重排序）",
+  "param_count": 15,
+  "params": {
+    "rotation_factor::PREHEAT_RANK_START": {
+      "default": 11,
+      "grid": [
+        6,
+        11,
+        22
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::PREHEAT_RANK_END": {
+      "default": 20,
+      "grid": [
+        10,
+        20,
+        40
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::ROTATION_SIGNAL_THRESHOLDS.升温": {
+      "default": 3,
+      "grid": [
+        2,
+        3,
+        6
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::ROTATION_SIGNAL_THRESHOLDS.降温": {
+      "default": -2,
+      "grid": [
+        -4,
+        -2,
+        -1
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::ROTATION_SIGNAL_THRESHOLDS.持续轮动": {
+      "default": 3,
+      "grid": [
+        2,
+        3,
+        6
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::ROTATION_SIGNAL_THRESHOLDS.加速": {
+      "default": 4,
+      "grid": [
+        2,
+        4,
+        8
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::ROTATION_SIGNAL_THRESHOLDS.减速": {
+      "default": -3,
+      "grid": [
+        -6,
+        -3,
+        -2
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::A1_weight": {
+      "default": 1.0,
+      "grid": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::A2_weight": {
+      "default": 1.0,
+      "grid": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::B1_weight": {
+      "default": 1.0,
+      "grid": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::B2_weight": {
+      "default": 1.0,
+      "grid": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::C1_weight": {
+      "default": 0.5,
+      "grid": [
+        0.25,
+        0.5,
+        1.0
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::D1_weight": {
+      "default": 1.0,
+      "grid": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::D2_weight": {
+      "default": 1.0,
+      "grid": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "source": "rotation_factor.py"
+    },
+    "rotation_factor::E1_weight": {
+      "default": 1.5,
+      "grid": [
+        0.75,
+        1.5,
+        3.0
+      ],
+      "source": "rotation_factor.py"
+    }
+  }
+}

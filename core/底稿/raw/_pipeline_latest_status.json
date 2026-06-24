@@ -1,0 +1,7 @@
+{
+  "date": "2026-06-11",
+  "run_at": "2026-06-12T09:34:39.867837",
+  "pipeline_status": "degraded",
+  "phase2_success": true,
+  "phase1_integrity_status": "DEGRADED"
+}

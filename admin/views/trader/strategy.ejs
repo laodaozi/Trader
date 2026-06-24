@@ -1,0 +1,137 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'trader' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <!-- 子导航 -->
+  <div class="subnav">
+    <a href="/admin/trader" class="subnav-tab">概览</a>
+    <a href="/admin/trader/strategy" class="subnav-tab active">自选池诊断</a>
+    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
+    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
+    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
+    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
+    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
+    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
+    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
+  </div>
+
+  <!-- 日期选择 -->
+  <div class="toolbar" style="margin-top:16px">
+    <span style="font-weight:600;font-size:13px">诊断日期:</span>
+    <select onchange="location.href='/admin/trader/strategy?date=' + this.value" style="min-width:140px">
+      <% strategyDateList.forEach(d => { %>
+        <option value="<%= d %>" <%= d === currentDate ? 'selected' : '' %>><%= d %></option>
+      <% }) %>
+    </select>
+  </div>
+
+  <% if (error) { %>
+    <div class="dash-empty"><p>⚠️ <%= error %></p></div>
+  <% } else if (strategy) { %>
+    <!-- 摘要卡片 -->
+    <div class="dash-cards" style="justify-content:flex-start;gap:14px">
+      <div class="dash-card" style="flex:0 0 auto;padding:14px 24px;min-width:80px;text-align:center">
+        <span style="font-size:28px;font-weight:700"><%= strategy.count %></span>
+        <span class="dash-card-label">总标的</span>
+      </div>
+      <div class="dash-card" style="flex:0 0 auto;padding:14px 24px;min-width:80px;text-align:center">
+        <span class="track-miss" style="font-size:16px">🔥</span> <span style="font-size:24px;font-weight:700"><%= strategy.attack %></span>
+        <span class="dash-card-label">进攻</span>
+      </div>
+      <div class="dash-card" style="flex:0 0 auto;padding:14px 24px;min-width:80px;text-align:center">
+        <span class="track-hit" style="font-size:16px">✅</span> <span style="font-size:24px;font-weight:700"><%= strategy.buy %></span>
+        <span class="dash-card-label">买入</span>
+      </div>
+      <div class="dash-card" style="flex:0 0 auto;padding:14px 24px;min-width:80px;text-align:center">
+        <span class="track-neutral" style="font-size:16px">🕐</span> <span style="font-size:24px;font-weight:700"><%= strategy.ambush %></span>
+        <span class="dash-card-label">埋伏</span>
+      </div>
+      <div class="dash-card" style="flex:0 0 auto;padding:14px 24px;min-width:80px;text-align:center">
+        <span style="font-size:24px;font-weight:700"><%= strategy.avgScore %></span>
+        <span class="dash-card-label">均分</span>
+      </div>
+    </div>
+
+    <!-- NX 分布 -->
+    <div class="dash-grid" style="margin-top:20px">
+      <div class="dash-section">
+        <h3 class="dash-section-title">NX 分布</h3>
+        <div style="display:flex;gap:24px;padding:12px 16px">
+          <div style="text-align:center"><span class="track-success" style="font-size:20px;font-weight:700"><%= strategy.nxDist.buy || 0 %></span><br><span class="track-dim" style="font-size:12px">买点</span></div>
+          <div style="text-align:center"><span class="track-neutral" style="font-size:20px;font-weight:700"><%= strategy.nxDist.rising || 0 %></span><br><span class="track-dim" style="font-size:12px">升势</span></div>
+          <div style="text-align:center"><span class="track-danger" style="font-size:20px;font-weight:700"><%= strategy.nxDist.sell || 0 %></span><br><span class="track-dim" style="font-size:12px">卖点</span></div>
+        </div>
+      </div>
+      <div class="dash-section">
+        <h3 class="dash-section-title">周线 / 资金方向</h3>
+        <div style="display:flex;gap:24px;padding:12px 16px">
+          <div>
+            <span class="track-dim" style="font-weight:600;font-size:12px">周线方向</span>
+            <% Object.entries(strategy.weeklyDirDist).forEach(([k,v]) => { %>
+              <div style="margin-top:4px"><%= k %>: <strong><%= v %></strong></div>
+            <% }) %>
+          </div>
+          <div>
+            <span class="track-dim" style="font-weight:600;font-size:12px">资金方向</span>
+            <% Object.entries(strategy.capitalDirDist).forEach(([k,v]) => { %>
+              <div style="margin-top:4px"><%= k %>: <strong><%= v %></strong></div>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 标的清单 -->
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">五维诊断清单</h3>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>代码</th>
+              <th>名称</th>
+              <th>信号</th>
+              <th>NX</th>
+              <th>均线</th>
+              <th>斐波</th>
+              <th>周线</th>
+              <th>资金</th>
+              <th>风报比</th>
+              <th>模型</th>
+              <th>得分</th>
+              <th>入场区间</th>
+              <th>止损</th>
+              <th>目标</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% strategy.stocks.forEach(s => { %>
+              <tr class="<%= (s.signal_type || '').includes('🔥') ? 'track-bg-attack' : (s.signal_type || '').includes('✅') ? 'track-bg-buy' : '' %>">
+                <td style="font-family:monospace;font-size:12px"><%= s.code %></td>
+                <td><%= s.name %></td>
+                <td><%= s.signal_type || '—' %></td>
+                <td><%= s.nx || '—' %></td>
+                <td><%= (typeof s.ma_align === 'boolean' ? (s.ma_align ? '✅' : '❌') : s.ma_align) || '—' %></td>
+                <td><%= (typeof s.fib_zone === 'boolean' ? (s.fib_zone ? '✅' : '❌') : s.fib_zone) || '—' %></td>
+                <td><%= s.weekly_dir || '—' %></td>
+                <td><%= s.capital_dir || '—' %></td>
+                <td><%= s.rr || '—' %></td>
+                <td style="font-size:11px"><%= (s.model_hits || []).join(', ') || '—' %></td>
+                <td style="font-weight:700;font-size:<%= (s.score||0) >= 55 ? '18px' : '14px' %>"><%= s.score || 0 %></td>
+                <td style="font-size:12px"><%= s.entry_low || '—' %>-<%= s.entry_high || '—' %></td>
+                <td style="font-size:12px"><%= s.stop_loss || '—' %></td>
+                <td style="font-size:12px"><%= (s.take_profit || []).join(', ') || '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>

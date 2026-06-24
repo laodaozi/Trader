@@ -1,0 +1,31 @@
+{
+  "date": "2026-06-11",
+  "run_at": "2026-06-12T09:34:39.867837",
+  "phase1_integrity": {
+    "status": "DEGRADED",
+    "issues": [
+      "微信信源为空（alpha 来源降级为 morning_news + search）"
+    ]
+  },
+  "phase1_stats": {
+    "scan_top10_count": 10,
+    "stock_data_count": 7,
+    "wechat_articles": 0,
+    "news_count": 0,
+    "concept_count": 0
+  },
+  "phase2_success": true,
+  "phase2_stats": {
+    "events": 6,
+    "alpha_signals": 3,
+    "sector_outlook": 7,
+    "commodity_signals": 4,
+    "quality_gate_passed": true
+  },
+  "outputs": [
+    "2026-06-11_signals.json",
+    "2026-06-11_alpha.json",
+    "2026-06-11_alpha.html"
+  ],
+  "pipeline_status": "degraded"
+}

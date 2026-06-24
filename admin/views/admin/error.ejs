@@ -1,0 +1,12 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+  <%- include('../partials/nav', { active: typeof active !== 'undefined' ? active : 'admin' }) %>
+  <main class="container">
+    <div class="card error-card">
+      <h2><%= status %></h2>
+      <p><%= message %></p>
+      <a class="btn btn-primary" href="/admin/dashboard">返回看板</a>
+    </div>
+  </main>
+<%- include('../partials/layout-bottom') %>

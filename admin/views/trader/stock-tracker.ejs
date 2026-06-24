@@ -1,0 +1,67 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'trader' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <!-- 子导航 -->
+  <div class="subnav">
+    <a href="/admin/trader" class="subnav-tab">概览</a>
+    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
+    <a href="/admin/trader/tracker" class="subnav-tab active">信号跟踪</a>
+    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
+    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
+  </div>
+
+  <p style="margin-top:16px"><a href="/admin/trader/tracker" class="btn">← 返回跟踪列表</a></p>
+
+  <% if (error) { %>
+    <div class="dash-empty"><p>⚠️ <%= error %></p></div>
+  <% } else { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title"><%= code %> <%= name %></h3>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>信号日期</th>
+              <th>周期</th>
+              <th>信号</th>
+              <th>得分</th>
+              <th>入场</th>
+              <th>止损</th>
+              <th>目标</th>
+              <th>结果</th>
+              <th>最大收益</th>
+              <th>最终收益</th>
+              <th>K线数</th>
+              <th>跟踪日期</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% records.forEach(r => { %>
+              <tr>
+                <td><%= r.signal_date %></td>
+                <td><%= r.horizon %>日</td>
+                <td><%= r.signal_type %></td>
+                <td><%= r.score %></td>
+                <td><%= r.entry %></td>
+                <td><%= r.stop %></td>
+                <td style="font-size:12px"><%= (r.targets || []).join(', ') %></td>
+                <td class="<%= r.result === 'HIT' ? 'track-hit' : r.result === 'MISS' ? 'track-miss' : 'track-dim' %>"><%= r.result %></td>
+                <td style="color:<%= r.max_return > 0 ? 'var(--cr-positive)' : 'var(--cr-negative)' %>"><%= (r.max_return * 100).toFixed(1) %>%</td>
+                <td style="color:<%= r.final_return > 0 ? 'var(--cr-positive)' : 'var(--cr-negative)' %>"><%= (r.final_return * 100).toFixed(1) %>%</td>
+                <td><%= r.n_bars %></td>
+                <td style="font-size:12px"><%= r.track_date %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>

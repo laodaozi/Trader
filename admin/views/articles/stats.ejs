@@ -1,0 +1,106 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'articles' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <div class="subnav">
+    <a href="/admin/articles" class="subnav-tab">文章列表</a>
+    <a href="/admin/articles/stats" class="subnav-tab active">数据统计</a>
+  </div>
+
+  <% if (error) { %>
+    <div class="dash-empty" style="margin-top:20px"><p><%= error %></p></div>
+  <% } else { %>
+    <!-- 摘要卡片 -->
+    <div class="dash-cards" style="margin-top:20px">
+      <div class="dash-card">
+        <span class="dash-card-value"><%= stats.totalArticles %></span>
+        <span class="dash-card-label">总富化文章</span>
+      </div>
+      <div class="dash-card">
+        <span class="dash-card-value"><%= stats.articlesWithTickers %></span>
+        <span class="dash-card-label">有效信号（含标的）</span>
+      </div>
+      <div class="dash-card">
+        <span class="dash-card-value"><%= stats.signalRatio %></span>
+        <span class="dash-card-label">信号覆盖率</span>
+      </div>
+      <div class="dash-card">
+        <span class="dash-card-value"><%= stats.totalTickers %></span>
+        <span class="dash-card-label">总生成标的</span>
+      </div>
+      <div class="dash-card">
+        <span class="dash-card-value"><%= stats.uniqueTickers %></span>
+        <span class="dash-card-label">不重复标的</span>
+      </div>
+      <div class="dash-card">
+        <span class="dash-card-value"><%= stats.avgTickers %></span>
+        <span class="dash-card-label">篇均标的数</span>
+      </div>
+    </div>
+
+    <!-- 时间范围 -->
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">数据覆盖</h3>
+      <table class="data-table" style="width:auto">
+        <tr><td style="width:120px">最早富化</td><td><%= stats.earliestEnrich || 'N/A' %></td></tr>
+        <tr><td>最近富化</td><td><%= stats.latestEnrich || 'N/A' %></td></tr>
+        <tr><td>零标的文章</td><td><%= stats.zeroTickerCount %> 篇（纯信息类，无投资映射）</td></tr>
+        <tr><td>含 tickers 文章</td><td><%= stats.articlesWithTickers %> 篇</td></tr>
+      </table>
+    </div>
+
+    <!-- 标的分布 Top N -->
+    <% if (stats.topTickers && stats.topTickers.length > 0) { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">热门标的 Top <%= stats.topTickers.length %></h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>代码</th><th>名称</th><th>出现次数</th></tr>
+        </thead>
+        <tbody>
+          <% stats.topTickers.forEach(t => { %>
+            <tr>
+              <td class="mono"><%= t.code %></td>
+              <td class="name"><%= t.name %></td>
+              <td class="num"><%= t.count %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <!-- 每日富化量趋势 -->
+    <% if (stats.dailyCounts && stats.dailyCounts.length > 0) { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">每日富化量（近 30 日）</h3>
+      <table class="data-table" style="width:auto">
+        <thead>
+          <tr><th>日期</th><th>富化数</th><th>有效信号</th><th>总标的</th><th>零信号</th></tr>
+        </thead>
+        <tbody>
+          <% stats.dailyCounts.forEach(d => { %>
+            <tr>
+              <td><%= d.date %></td>
+              <td class="num"><%= d.total %></td>
+              <td class="num track-hit"><%= d.withTickers %></td>
+              <td class="num"><%= d.tickerCount %></td>
+              <td class="num track-dim"><%= d.zeroCount %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <p style="margin-top:20px;font-size:12px;color:var(--cr-text-secondary)">
+      数据源：data/hot_enrichment.json（LLM 热点事件增强管线产出）。文章原始数据来自 WeWe RSS 8 源接入，经由 enrich_hot_events_cron.sh 触发 LLM 增强生成 thesis + tickers。
+    </p>
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>

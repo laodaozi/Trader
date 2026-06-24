@@ -1,0 +1,135 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'trader' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <!-- 子导航 -->
+  <div class="subnav">
+    <a href="/admin/trader" class="subnav-tab <%= subTab === 'overview' ? 'active' : '' %>">概览</a>
+    <a href="/admin/trader/strategy" class="subnav-tab <%= subTab === 'strategy' ? 'active' : '' %>">自选池诊断</a>
+    <a href="/admin/trader/tracker" class="subnav-tab <%= subTab === 'tracker' ? 'active' : '' %>">信号跟踪</a>
+    <a href="/admin/trader/model-library" class="subnav-tab <%= subTab === 'model-library' ? 'active' : '' %>">策略库</a>
+    <a href="/admin/trader/backtest" class="subnav-tab <%= subTab === 'backtest' ? 'active' : '' %>">策略回测</a>
+    <a href="/admin/trader/watchlist" class="subnav-tab <%= subTab === 'watchlist' ? 'active' : '' %>">自选股</a>
+    <a href="/admin/trader/article-stats" class="subnav-tab <%= subTab === 'article-stats' ? 'active' : '' %>">文章统计</a>
+    <a href="/admin/trader/drawdown" class="subnav-tab <%= subTab === 'drawdown' ? 'active' : '' %>">回撤统计</a>
+    <a href="/admin/trader/reflection" class="subnav-tab <%= subTab === 'reflection' ? 'active' : '' %>">策略反思</a>
+  </div>
+
+  <!-- ── 概览卡片行 ── -->
+  <div class="dash-cards" style="margin-top:20px">
+    <div class="dash-card">
+      <span class="dash-card-value"><%= (latestStrategy && latestStrategy.count) || 0 %></span>
+      <span class="dash-card-label">最新诊断标的</span>
+    </div>
+    <div class="dash-card">
+      <span class="dash-card-value"><%= (trackerSummary && trackerSummary.totalRecords) || 0 %></span>
+      <span class="dash-card-label">跟踪记录</span>
+    </div>
+    <div class="dash-card">
+      <span class="dash-card-value"><%= (backtestReports && backtestReports.length) || 0 %></span>
+      <span class="dash-card-label">回测报告</span>
+    </div>
+    <div class="dash-card">
+      <span class="dash-card-value"><%= account ? account.meta.total_capital.toLocaleString() : 'N/A' %></span>
+      <span class="dash-card-label">总资金</span>
+    </div>
+  </div>
+
+  <% if (account) { %>
+  <!-- ── 账户快照 ── -->
+  <div class="dash-grid" style="margin-top:24px">
+    <div class="dash-section">
+      <h3 class="dash-section-title">📊 账户快照</h3>
+      <table class="data-table">
+        <tr><td style="width:140px">总资金</td><td>¥<%= account.meta.total_capital.toLocaleString() %></td></tr>
+        <tr><td>可用资金</td><td>¥<%= account.meta.available_cash.toLocaleString() %></td></tr>
+        <tr><td>持仓比例</td><td><%= (account.meta.position_ratio * 100).toFixed(1) %>%</td></tr>
+        <tr><td>账户状态</td><td class="<%= account.account_state === '良性' ? 'track-hit' : 'track-miss' %>"><%= account.account_state %></td></tr>
+        <tr><td>连续亏损日</td><td><%= account.consecutive_loss_days || 0 %></td></tr>
+        <tr><td>持仓数量</td><td><%= (account.holdings || []).length %></td></tr>
+        <tr><td>更新于</td><td><%= account.meta.last_updated %></td></tr>
+      </table>
+    </div>
+
+    <!-- ── 市场体温 ── -->
+    <div class="dash-section">
+      <h3 class="dash-section-title">🌡️ 市场体温</h3>
+      <% if (timing && timing.history && timing.history.length > 0) {
+        const latest = timing.history[timing.history.length - 1]; %>
+        <div style="padding:16px">
+          <p style="font-size:32px;margin:0;font-weight:700"><%= latest.phase_desc || latest.phase || 'N/A' %></p>
+          <p class="track-dim" style="margin:4px 0 0">温度: <%= (latest.temp * 100).toFixed(0) %>% | 仓位: <%= (latest.position_pct * 100).toFixed(0) %>%</p>
+        </div>
+      <% } else { %>
+        <p class="track-dim" style="padding:16px">暂无市场体温数据</p>
+      <% } %>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (latestStrategy) { %>
+  <!-- ── 最新诊断摘要 ── -->
+  <div class="dash-section" style="margin-top:24px">
+    <h3 class="dash-section-title">📋 最新诊断 <%= latestStrategy.date %></h3>
+    <div class="dash-cards" style="justify-content:flex-start;gap:12px">
+      <div class="dash-card" style="flex:0 0 auto;padding:12px 20px"><span class="track-miss" style="font-size:24px">🔥</span> <span class="dash-card-value"><%= latestStrategy.attack %></span><span class="dash-card-label">进攻</span></div>
+      <div class="dash-card" style="flex:0 0 auto;padding:12px 20px"><span class="track-hit" style="font-size:24px">✅</span> <span class="dash-card-value"><%= latestStrategy.buy %></span><span class="dash-card-label">买入</span></div>
+      <div class="dash-card" style="flex:0 0 auto;padding:12px 20px"><span class="track-neutral" style="font-size:24px">🕐</span> <span class="dash-card-value"><%= latestStrategy.ambush %></span><span class="dash-card-label">埋伏</span></div>
+      <div class="dash-card" style="flex:0 0 auto;padding:12px 20px"><span class="track-dim" style="font-size:24px">—</span> <span class="dash-card-value"><%= latestStrategy.watch %></span><span class="dash-card-label">观望</span></div>
+      <div class="dash-card" style="flex:0 0 auto;padding:12px 20px"><span class="dash-card-value"><%= latestStrategy.avgScore %></span><span class="dash-card-label">均分</span></div>
+    </div>
+    <p style="margin-top:12px"><a href="/admin/trader/strategy?date=<%= latestStrategy.date %>" class="btn">查看完整诊断 →</a></p>
+  </div>
+  <% } %>
+
+  <% if (trackerSummary) { %>
+  <!-- ── 跟踪摘要 ── -->
+  <div class="dash-section" style="margin-top:24px">
+    <h3 class="dash-section-title">📈 信号跟踪</h3>
+    <table class="data-table" style="width:auto">
+      <thead>
+        <tr><th>周期</th><th>总数</th><th>HIT</th><th>MISS</th><th>NEUTRAL</th><th>PENDING</th><th>NODATA</th><th>均收益</th></tr>
+      </thead>
+      <tbody>
+        <% [5,10,20].forEach(h => {
+          const stat = trackerSummary.allByHorizon[h];
+          if (!stat) return; %>
+          <tr>
+            <td><strong><%= h %>日</strong></td>
+            <td><%= stat.total %></td>
+            <td class="track-hit"><%= stat.verdicts.HIT || 0 %></td>
+            <td class="track-miss"><%= stat.verdicts.MISS || 0 %></td>
+            <td class="track-neutral"><%= stat.verdicts.NEUTRAL || 0 %></td>
+            <td class="track-pending"><%= stat.verdicts.PENDING || 0 %></td>
+            <td class="track-nodata"><%= stat.verdicts.NODATA || 0 %></td>
+            <td><%= stat.avgReturn %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <p style="margin-top:12px"><a href="/admin/trader/tracker" class="btn">查看跟踪详情 →</a></p>
+  </div>
+  <% } %>
+
+  <% if (backtestReports && backtestReports.length > 0) { %>
+  <!-- ── 回测报告 ── -->
+  <div class="dash-section" style="margin-top:24px">
+    <h3 class="dash-section-title">📜 回测报告</h3>
+    <p><%= backtestReports.length %> 份报告</p>
+    <p><a href="/admin/trader/backtest" class="btn">查看回测 →</a></p>
+  </div>
+  <% } %>
+
+  <% if (!latestStrategy && !trackerSummary) { %>
+    <div class="dash-empty" style="margin-top:32px">
+      <p>📡 暂无交易员数据</p>
+      <p>请先运行 Python 交易员模块生成数据</p>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>

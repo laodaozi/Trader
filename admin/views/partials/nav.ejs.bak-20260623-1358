@@ -1,0 +1,16 @@
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="/admin/dashboard" class="topbar-brand">CycleRadar Admin</a>
+    <nav class="topbar-nav" aria-label="主导航">
+      <a href="/admin/dashboard" class="nav-tab <%= active === 'dashboard' ? 'active' : '' %>">周期雷达</a>
+      <a href="/m" class="nav-tab" target="_blank" style="color:#fbbf24">📱 看板</a>
+      <a href="/admin/trader" class="nav-tab <%= active === 'trader' ? 'active' : '' %>">交易员</a>
+      <a href="/admin/articles" class="nav-tab <%= active === 'articles' ? 'active' : '' %>">文章</a>
+      <a href="/admin/templates" class="nav-tab <%= active === 'templates' ? 'active' : '' %>">模板</a>
+      <a href="/admin" class="nav-tab <%= active === 'admin' ? 'active' : '' %>">RSS订阅管理</a>
+      <a href="/admin/health" class="nav-tab <%= active === 'health' ? 'active' : '' %>">🟢 健康</a>
+      <a href="/admin/architecture" class="nav-tab <%= active === 'architecture' ? 'active' : '' %>">架构</a>
+    </nav>
+    <span class="version-badge">V6.2</span>
+  </div>
+</header>

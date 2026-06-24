@@ -1,0 +1,77 @@
+<%- include('../partials/layout-top') %>
+<style>
+  .model-cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:16px; margin-top:20px }
+  .model-card { background:var(--cr-card-bg); border-radius:8px; padding:20px; border:1px solid var(--cr-border); border-left:4px solid var(--cr-accent) }
+  .model-card.alpha { border-left-color:var(--cr-positive) }
+  .model-card.etf { border-left-color:var(--cr-accent) }
+  .model-card.commodity { border-left-color:var(--cr-warning) }
+  .model-card.closed { border-left-color:var(--cr-text-secondary) }
+  .model-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px }
+  .model-card-header h3 { margin:0; font-size:15px; font-weight:600 }
+  .model-badge { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--cr-bg-tertiary); color:var(--cr-text-secondary); text-transform:uppercase }
+  .model-badge.alpha { background:#dcfce7; color:#166534 }
+  .model-badge.etf { background:#dbeafe; color:#1e40af }
+  .model-badge.commodity { background:#fef3c7; color:#92400e }
+  .model-badge.concept { background:#fce7f3; color:#9d174d }
+  .model-desc { font-size:13px; color:var(--cr-text-secondary); margin-bottom:12px; line-height:1.5 }
+  .model-stats { display:flex; gap:16px; font-size:13px }
+  .model-stat { display:flex; flex-direction:column; align-items:center }
+  .model-stat-val { font-size:22px; font-weight:700; color:var(--cr-text-primary); font-variant-numeric:tabular-nums }
+  .model-stat-label { font-size:11px; color:var(--cr-text-secondary); margin-top:2px }
+  .model-key { font-size:11px; color:var(--cr-text-tertiary); margin-top:8px; font-family:monospace }
+  .concept-callout { margin-top:20px; padding:14px 18px; background:var(--cr-bg-tertiary); border-radius:8px; border-left:4px solid var(--cr-text-secondary); font-size:13px; color:var(--cr-text-secondary); line-height:1.6 }
+</style>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'trader' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <div class="subnav">
+    <a href="/admin/trader" class="subnav-tab">概览</a>
+    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
+    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
+    <a href="/admin/trader/model-library" class="subnav-tab active">策略库</a>
+    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
+    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
+    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
+    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
+    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
+  </div>
+
+  <div class="model-cards">
+    <% models.forEach(m => { %>
+      <div class="model-card <%= m.category %>">
+        <div class="model-card-header">
+          <h3><%= m.key %></h3>
+          <span class="model-badge <%= m.category %>"><%= m.category %></span>
+        </div>
+        <div class="model-desc"><%= m.description %></div>
+        <div class="model-stats">
+          <div class="model-stat">
+            <span class="model-stat-val"><%= m.total.toLocaleString() %></span>
+            <span class="model-stat-label">总信号</span>
+          </div>
+          <div class="model-stat">
+            <span class="model-stat-val"><%= m.active.toLocaleString() %></span>
+            <span class="model-stat-label">活跃中</span>
+          </div>
+          <div class="model-stat">
+            <span class="model-stat-val"><%= m.today.toLocaleString() %></span>
+            <span class="model-stat-label">今日</span>
+          </div>
+        </div>
+        <div class="model-key"><%= m.key %></div>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="concept-callout">
+    <strong>钱坤寻龙</strong> — V6.1 产品文档中的命名标签，非独立策略模型。<br>
+    当前 watchlist.json 中有 2 只股票以 <code>add_reason: "钱坤寻龙"</code> 标注，代表该标签的概念方向。<br>
+    如需启为独立模型，需新建 Python 策略脚本 + 注册 STRATEGY_CATEGORY_MAP + 配置 cron，参考 scanner 14 模型的接入流程。
+  </div>
+</div>
+
+<%- include('../partials/layout-bottom') %>

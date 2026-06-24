@@ -1,0 +1,92 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'trader' }) %>
+
+<div class="dash-container">
+  <h2><%= title %></h2>
+
+  <div class="subnav">
+    <a href="/admin/trader" class="subnav-tab">概览</a>
+    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
+    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
+    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
+    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
+    <a href="/admin/trader/watchlist" class="subnav-tab active">自选股</a>
+    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
+    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
+    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
+  </div>
+
+  <% if (error) { %>
+    <div class="dash-empty" style="margin-top:20px"><p><%= error %></p></div>
+  <% } %>
+
+  <% if (success) { %>
+    <div style="margin-top:16px;padding:10px 16px;background:#dcfce7;color:var(--cr-positive);border-radius:6px;font-size:13px">
+      <%= success %>
+    </div>
+  <% } %>
+
+  <div class="dash-grid" style="margin-top:20px">
+    <div class="dash-section">
+      <h3 class="dash-section-title">添加自选股</h3>
+      <form method="POST" action="/admin/trader/watchlist" class="calc-form" style="gap:10px">
+        <label>股票代码 <input type="text" name="code" class="calc-input" placeholder="如 600519" required></label>
+        <label>名称 <input type="text" name="name" class="calc-input" placeholder="如 贵州茅台" required></label>
+        <label>备注 <input type="text" name="notes" class="calc-input" placeholder="添加理由/关注方向（可选）"></label>
+        <div style="margin-top:4px">
+          <button type="submit" class="btn">添加到自选股</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="dash-section">
+      <h3 class="dash-section-title">批量导入 <span style="font-weight:400;font-size:12px;color:var(--cr-text-secondary)">支持 CSV/JSON</span></h3>
+      <form method="POST" action="/admin/trader/watchlist/import" class="calc-form" style="gap:10px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="margin:0;font-size:13px"><input type="radio" name="format" value="csv" checked onchange="document.getElementById('import-example').textContent=this.value==='json'?'[{\"code\":\"600519\",\"name\":\"贵州茅台\",\"notes\":\"\"}]':'代码,名称,备注\n600519,贵州茅台,' style="margin-right:4px"> CSV</label>
+          <label style="margin:0;font-size:13px"><input type="radio" name="format" value="json" onchange="document.getElementById('import-example').textContent=this.value==='json'?'[{\"code\":\"600519\",\"name\":\"贵州茅台\",\"notes\":\"\"}]':'代码,名称,备注\n600519,贵州茅台,' style="margin-right:4px"> JSON</label>
+        </div>
+        <label style="font-size:12px;color:var(--cr-text-secondary)">每行一只：<code id="import-example">代码,名称,备注</code></label>
+        <textarea name="data" class="calc-input" rows="5" placeholder="600519,贵州茅台,&#10;000858,五粮液,白酒龙头" style="resize:vertical;min-height:80px;font-family:monospace;font-size:13px"></textarea>
+        <div style="margin-top:4px">
+          <button type="submit" class="btn">批量导入</button>
+          <span style="margin-left:12px;font-size:12px;color:var(--cr-text-secondary)">重复代码自动跳过</span>
+        </div>
+      </form>
+    </div>
+
+    <div class="dash-section">
+      <h3 class="dash-section-title">自选股列表 <span style="font-weight:400;font-size:12px;color:var(--cr-text-secondary)">共 <%= stocks.length %> 只</span></h3>
+      <% if (stocks.length === 0) { %>
+        <p class="track-dim">暂无自选股，请在左侧添加</p>
+      <% } else { %>
+        <table class="data-table" style="width:100%">
+          <thead>
+            <tr><th>代码</th><th>名称</th><th>备注</th><th>添加时间</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% stocks.forEach(s => { %>
+              <tr>
+                <td class="mono"><%= s.code %></td>
+                <td class="name"><%= s.name %></td>
+                <td class="track-dim"><%= s.notes || '—' %></td>
+                <td class="track-dim" style="font-size:12px"><%= (s.added_at || '').slice(0,10) %></td>
+                <td>
+                  <form method="POST" action="/admin/trader/watchlist/delete" style="display:inline" onsubmit="return confirm('确认移除 <%= s.code %> <%= s.name %>？')">
+                    <input type="hidden" name="code" value="<%= s.code %>">
+                    <button type="submit" class="btn" style="background:var(--cr-negative);border-color:var(--cr-negative);font-size:11px;padding:4px 10px">移除</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <p style="margin-top:10px;font-size:12px;color:var(--cr-text-secondary)">提示：邮件列表也支持买入/清仓/永久清仓三级操作，在自选股管理员添加后，在下一次日报中将自动加入追踪清单。</p>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/layout-bottom') %>
