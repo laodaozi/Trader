@@ -1,0 +1,28 @@
+{
+  "date": "2026-06-22",
+  "timing": {
+    "date": "2026-06-22",
+    "temperature": 0.0,
+    "phase": "试盘",
+    "index_direction": "上涨",
+    "allow_trade": true,
+    "recommended_position": 0.25,
+    "position_min": 0.2,
+    "position_max": 0.3,
+    "message": "市场处于试盘阶段，适宜快进快出",
+    "raw": {
+      "snapshot": {}
+    },
+    "haoyun_position": 0.25,
+    "haoyun_flags": [
+      "✅ 无触发条件，维持原仓位 25%"
+    ]
+  },
+  "scan": {
+    "date": "2026-06-22",
+    "candidate_count": 18,
+    "hits": {},
+    "total_hits": 0,
+    "summary": "扫描18只 | 无命中"
+  }
+}

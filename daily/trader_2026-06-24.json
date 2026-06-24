@@ -1,0 +1,79 @@
+{
+  "date": "2026-06-24",
+  "timing": {
+    "date": "2026-06-24",
+    "temperature": 40.7,
+    "phase": "反弹",
+    "index_direction": "上涨",
+    "allow_trade": true,
+    "recommended_position": 0.4,
+    "position_min": 0.3,
+    "position_max": 0.5,
+    "message": "市场处于反弹阶段，适宜分批介入",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-06-24",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 1434,
+          "total_down_num": 4034,
+          "total_flat_num": 44,
+          "total_stop_num": 17,
+          "limit_up_num": 106,
+          "limit_down_num": 58
+        },
+        "trading_volume": {
+          "trade_balance": 3284328300356.0,
+          "trade_balance_display": "3.28万亿元",
+          "increment_trade_balance": -156435712035.0,
+          "increment_trade_balance_display": "-1564.36亿元",
+          "increment_trade_balance_rate": "-4.55%"
+        }
+      }
+    },
+    "haoyun_position": 0.4,
+    "haoyun_flags": [
+      "✅ 无触发条件，维持原仓位 40%"
+    ]
+  },
+  "scan": {
+    "date": "2026-06-24",
+    "candidate_count": 17,
+    "hits": {
+      "中线狙击": [
+        {
+          "code": "002415",
+          "name": "海康威视",
+          "model": "中线狙击",
+          "label": "低吸·中线",
+          "entry": "T+1 开盘或之后回调低点（今收 34.03）",
+          "reasons": [
+            "MA60趋势向上 +1.2%（30日）",
+            "收盘 34.03 > MA60 31.90",
+            "昨日在MA5下方，今日站上MA5 32.59",
+            "放量 2.4x 前日"
+          ],
+          "note": "需人工核查：PE<100、净利润增长、近3月无减持/解禁"
+        }
+      ],
+      "均线共振": [
+        {
+          "code": "002415",
+          "name": "海康威视",
+          "model": "均线共振",
+          "label": "趋势初启·共振",
+          "entry": "今收 34.03 或回踩MA10 31.64 附近",
+          "reasons": [
+            "MA532.59 > MA1031.64 > MA2031.18（完整多头）",
+            "三线密集聚拢（MA5-MA20差距仅4.5%）",
+            "近8日内MA5金叉MA10，趋势刚启动",
+            "量能温和放大 1.9x"
+          ],
+          "note": "止损参考MA20: 31.18"
+        }
+      ]
+    },
+    "total_hits": 2,
+    "summary": "扫描17只 | 中线狙击 1只、均线共振 1只"
+  }
+}
