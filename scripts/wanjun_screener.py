@@ -195,7 +195,7 @@ def compute_spot_derivations(df: pd.DataFrame) -> pd.DataFrame:
 
 
 TENCENT_KL_URL = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
-TENCENT_HIST_DELAY = 0.15  # 每个请求间隔150ms，避免被腾讯限流
+TENCENT_HIST_DELAY = 0.02  # 每个请求间隔20ms，实测腾讯不严格限流
 
 
 def _parse_tencent_symbol(sym: str) -> Tuple[str, str]:
@@ -840,6 +840,9 @@ def run(models: Optional[List[int]] = None):
 
     # Phase 1: spot 数据
     df = fetch_spot_data()
+    if df is None or df.empty:
+        print("[ERROR] Spot 数据获取失败，中止", file=sys.stderr)
+        return []
     df = compute_spot_derivations(df)
 
     # Phase 2: 预筛选
@@ -851,9 +854,14 @@ def run(models: Optional[List[int]] = None):
         return []
 
     # Phase 3: 拉历史数据（取最大所需窗口）
-    max_days = max(MODEL_REGISTRY[m]["hist_days"] for m in models if MODEL_REGISTRY[m]["needs_hist"])
-    symbols = candidates['symbol'].tolist()
-    hist_data = fetch_hist_batch(symbols, days=max_days)
+    hist_models = [m for m in models if MODEL_REGISTRY[m]["needs_hist"]]
+    if hist_models:
+        max_days = max(MODEL_REGISTRY[m]["hist_days"] for m in hist_models)
+        symbols = candidates['symbol'].tolist()
+        hist_data = fetch_hist_batch(symbols, days=max_days)
+    else:
+        hist_data = {}
+        symbols = candidates['symbol'].tolist()
 
     # Phase 4: 逐模型匹配
     results = []
@@ -865,7 +873,11 @@ def run(models: Optional[List[int]] = None):
 
         for m in models:
             fn = MODEL_REGISTRY[m]["fn"]
-            passed, reason = fn(row, hist)
+            try:
+                passed, reason = fn(row, hist)
+            except Exception as e:
+                passed, reason = False, f"模型{m}异常: {e}"
+                print(f"  [ERROR] {sym} 模型{m}({MODEL_REGISTRY[m]['name']}) 崩溃: {e}", file=sys.stderr)
             if passed:
                 hit_models.append(m)
             details[f"model_{m}"] = {"passed": passed, "reason": reason if reason else "OK"}
@@ -962,7 +974,7 @@ def output_jsonl(results: List[dict], filepath: str = None):
 def main():
     parser = argparse.ArgumentParser(description="万军量化选股筛选脚本")
     parser.add_argument('--model', type=str, default='1,2,3,4,5,6,7,8,9,10,11',
-                        help='模型编号，逗号分隔 (默认: 2,8,10)')
+                        help='模型编号，逗号分隔 (默认: 全量)')
     parser.add_argument('--jsonl', action='store_true',
                         help='输出 JSONL 格式')
     parser.add_argument('--output', type=str, default=None,
@@ -970,7 +982,13 @@ def main():
     args = parser.parse_args()
 
     model_ids = [int(m.strip()) for m in args.model.split(',')]
-    results = run(models=model_ids)
+    try:
+        results = run(models=model_ids)
+    except Exception as e:
+        print(f"\n[FATAL] 脚本崩溃: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)
 
     if args.jsonl:
         output_jsonl(results, filepath=args.output)
