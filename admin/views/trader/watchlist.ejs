@@ -62,28 +62,47 @@
       <% if (stocks.length === 0) { %>
         <p class="track-dim">暂无自选股，请在左侧添加</p>
       <% } else { %>
-        <table class="data-table" style="width:100%">
-          <thead>
-            <tr><th>代码</th><th>名称</th><th>备注</th><th>添加时间</th><th></th></tr>
-          </thead>
-          <tbody>
-            <% stocks.forEach(s => { %>
-              <tr>
-                <td class="mono"><%= s.code %></td>
-                <td class="name"><%= s.name %></td>
-                <td class="track-dim"><%= s.notes || '—' %></td>
-                <td class="track-dim" style="font-size:12px"><%= (s.added_at || '').slice(0,10) %></td>
-                <td>
-                  <form method="POST" action="/admin/trader/watchlist/delete" style="display:inline" onsubmit="return confirm('确认移除 <%= s.code %> <%= s.name %>？')">
-                    <input type="hidden" name="code" value="<%= s.code %>">
-                    <button type="submit" class="btn" style="background:var(--cr-negative);border-color:var(--cr-negative);font-size:11px;padding:4px 10px">移除</button>
-                  </form>
-                </td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
+        <form method="POST" action="/admin/trader/watchlist/delete-batch" id="batch-delete-form">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)"> 全选
+            </label>
+            <button type="submit" class="btn" style="background:var(--cr-negative);border-color:var(--cr-negative);font-size:12px;padding:5px 14px" onclick="return confirmBatchDelete()">批量移除选中</button>
+          </div>
+          <table class="data-table" style="width:100%">
+            <thead>
+              <tr><th style="width:32px"></th><th>代码</th><th>名称</th><th>备注</th><th>添加时间</th><th></th></tr>
+            </thead>
+            <tbody>
+              <% stocks.forEach(s => { %>
+                <tr>
+                  <td><input type="checkbox" name="codes" value="<%= s.code %>" class="row-check"></td>
+                  <td class="mono"><%= s.code %></td>
+                  <td class="name"><%= s.name %></td>
+                  <td class="track-dim"><%= s.notes || '—' %></td>
+                  <td class="track-dim" style="font-size:12px"><%= (s.added_at || '').slice(0,10) %></td>
+                  <td>
+                    <form method="POST" action="/admin/trader/watchlist/delete" style="display:inline" onsubmit="return confirm('确认移除 <%= s.code %> <%= s.name %>？')">
+                      <input type="hidden" name="code" value="<%= s.code %>">
+                      <button type="submit" class="btn" style="background:var(--cr-negative);border-color:var(--cr-negative);font-size:11px;padding:4px 10px">移除</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </form>
         <p style="margin-top:10px;font-size:12px;color:var(--cr-text-secondary)">提示：邮件列表也支持买入/清仓/永久清仓三级操作，在自选股管理员添加后，在下一次日报中将自动加入追踪清单。</p>
+        <script>
+          function toggleSelectAll(cb) {
+            document.querySelectorAll('.row-check').forEach(function(c) { c.checked = cb.checked; });
+          }
+          function confirmBatchDelete() {
+            var checked = document.querySelectorAll('.row-check:checked');
+            if (checked.length === 0) { alert('请先勾选要移除的股票'); return false; }
+            return confirm('确认批量移除选中的 ' + checked.length + ' 只股票？');
+          }
+        </script>
       <% } %>
     </div>
   </div>

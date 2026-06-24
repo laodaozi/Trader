@@ -31,7 +31,10 @@ function _getPositionsPath() {
 }
 const POSITIONS_PATH = void 0; // replaced by _getPositionsPath()
 const BACKTEST_DIR = path.join(__dirname, '..', '..', 'data', 'backtest_reports');
-const WEWE_DB_PATH = path.join(__dirname, '..', 'data', 'wewe-rss.db');
+// V6.5: 优先读 wewe-rss 真实运行目录（9个信源），旧副本作 fallback
+const WEWE_DB_PATH = fsSync.existsSync('/opt/wewe-rss-deploy/data/wewe-rss.db')
+  ? '/opt/wewe-rss-deploy/data/wewe-rss.db'
+  : path.join(__dirname, '..', 'data', 'wewe-rss.db');
 const HOTEVENTS_CACHE_PATH = path.join(__dirname, '..', '..', 'data', 'hotevents_cache.json');
 const ENRICHMENT_CACHE_PATH = path.join(__dirname, '..', '..', 'data', 'hot_enrichment.json');
 
@@ -692,6 +695,16 @@ router.get('/m/api/cycleradar', async (req, res) => {
 
     const enrichedEvents = _enrichHotEvents(events || []);
 
+    // Q11: 后端过滤——正文缺失且无标的、或纯非市场内容，不下发前端
+    const _badKws = ['正文缺失', '无法确认', '信息不完整', '但无正文', '但正文缺失'];
+    const filteredEvents = enrichedEvents.filter(e => {
+      const thesis = e.thesis || '';
+      if (thesis === '非市场分析内容') return false;
+      const hasIncomplete = _badKws.some(kw => thesis.includes(kw));
+      if (hasIncomplete && (e.tickers || []).length === 0) return false;
+      return true;
+    });
+
     let summary = null;
     let byStrategy = [];
     let byAssetType = [];
@@ -746,8 +759,8 @@ router.get('/m/api/cycleradar', async (req, res) => {
       summary,
       byStrategy,
       byAssetType,
-      // V4.1.0 四分类 + V4.1.2 LLM 增强
-      hotEvents: enrichedEvents || [],
+      // V4.1.0 四分类 + V4.1.2 LLM 增强；Q11: 已在后端过滤空正文/非市场事件
+      hotEvents: filteredEvents || [],
       dataFreshness: rssHealth,  // V4.2: RSS 数据管路健康度（hotEvents 用）
       signalFreshness,           // V4.3: 信号新鲜度（alpha/ETF/commodity 用）
       alpha: (categories.alpha || []).map(formatSignal),

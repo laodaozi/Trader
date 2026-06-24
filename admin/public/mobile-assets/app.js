@@ -582,9 +582,15 @@ function _buildCrHotEvents(events, noWrapper) {
     return '<div class="cr-section"><div class="cr-section-title"><span class="cr-ico">🔥</span> 热点事件' + staleHint + '</div><div class="nodata">暂无事件</div></div>';
   }
 
-  // 按时间降序 + 限 10 条
+  // 按时间降序 + 限 10 条；提前过滤掉正文缺失且无标的的事件（Q11）
+  var _incompleteKws = ['正文缺失', '无法确认', '信息不完整', '但无正文', '但正文缺失'];
   var sorted = el.slice().sort(function(a, b) { return (b.time || '').localeCompare(a.time || ''); });
-  var top10 = sorted.slice(0, 10);
+  var top10 = sorted.filter(function(e) {
+    var t = e.thesis || e.title || '';
+    var hasIncomplete = _incompleteKws.some(function(kw) { return t.indexOf(kw) >= 0; });
+    var isNonMarket = t === '非市场分析内容';
+    return !(isNonMarket || (hasIncomplete && (e.tickers || []).length === 0));
+  }).slice(0, 10);
 
   // ── 总体概述段 ──
   // 汇总：有多少事件、涉及哪些板块、整体方向

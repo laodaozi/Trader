@@ -397,6 +397,31 @@ router.post('/trader/watchlist/delete', async (req, res) => {
   }
 });
 
+// ── POST /admin/trader/watchlist/delete-batch ── 自选股批量删除 ──
+router.post('/trader/watchlist/delete-batch', async (req, res) => {
+  try {
+    const raw = req.body.codes || '';
+    const codes = (Array.isArray(raw) ? raw : [raw]).map(c => (c || '').trim()).filter(Boolean);
+    if (codes.length === 0) {
+      return res.redirect('/admin/trader/watchlist?error=' + encodeURIComponent('未选择任何股票'));
+    }
+    let removed = 0;
+    for (const code of codes) {
+      const result = await watchlistModel.remove(code);
+      if (result.removed) removed++;
+    }
+    res.redirect('/admin/trader/watchlist?success=' + encodeURIComponent(`已批量移除 ${removed} 只`));
+  } catch (error) {
+    res.status(500).render('admin/error', {
+      title: '500 服务器错误',
+      status: 500,
+      active: 'trader',
+      message: '批量删除失败',
+      error,
+    });
+  }
+});
+
 // ── POST /admin/trader/watchlist/import ── 自选股批量导入（CSV/JSON） ──
 router.post('/trader/watchlist/import', async (req, res) => {
   try {
