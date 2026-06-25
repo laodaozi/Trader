@@ -164,7 +164,7 @@ def cmd_get_content(date):
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'init'
     if cmd == 'init':       cmd_init()
-    elif cmd == 'status':   cmd_status(sys.argv[2])
+    elif cmd == 'status':   cmd_status(sys.argv[2] if len(sys.argv)>2 else datetime.now().strftime('%Y-%m-%d'))
     elif cmd == 'upsert':   cmd_upsert(sys.argv[2], sys.argv[3], sys.argv[4])
     elif cmd == 'save_result': cmd_save_result(sys.argv[2], sys.argv[3], sys.argv[4])
     elif cmd == 'manual':   cmd_manual(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
