@@ -184,33 +184,60 @@ def _build_prompt(ctx: dict, weekly: bool) -> str:
 
     lines.append("")
     lines.append("## 输出要求")
-    lines.append("严格输出 JSON（无 markdown 围栏）：")
+    lines.append("严格输出 JSON（无 markdown 围栏）。必须只包含以下三条主线，不要新增第四个 section：")
     lines.append("""
 {
   "reflections": [
     {
-      "section": "事件驱动有效性回顾",
-      "content": "分析当前关键事件（标题+解读）与自选标的PnL/信号的因果关系链。哪些事件确实驱动了持仓涨跌？哪些被市场忽视？给出证据（引用具体标的+事件）。100-200字。",
-      "confidence": "high|medium|low"
+      "section": "事件驱动与选股验证",
+      "content": "围绕关键事件是否真正驱动自选股、alpha_latest signals 命中了哪些/漏了哪些，给出事件到股票命中率的简评。信号稀少时可以说明证据不足，但不要重复行业轮动或交易落地内容。100-200字。",
+      "confidence": "high|medium|low",
+      "hits": [
+        {
+          "code": "股票代码（如无则空字符串）",
+          "name": "股票名称",
+          "event": "驱动事件或事件主题",
+          "result": "命中/未命中/待验证，以及一句话结果说明"
+        }
+      ]
     },
     {
-      "section": "行业轮动因子质量",
-      "content": "评估行业轮动信号（sector_outlook）的合理性和一致性。是否存在矛盾信号？轮动方向是否与事件叙事一致？给出1-2个具体行业的操作建议。80-150字。",
-      "confidence": "high|medium|low"
+      "section": "行业轮动与因子研判",
+      "content": "围绕当前行业轮动信号质量、因子输出的操作方向/策略信号/板块方向进行研判。可以给出板块 ETF、行业方向或仓位建议。不要重复事件命中复盘，也不要替代第三部分的具体交易清单。80-150字。",
+      "confidence": "high|medium|low",
+      "signals": [
+        {
+          "sector": "行业或板块名称",
+          "direction": "buy|sell|neutral",
+          "vehicle": "ETF代码、行业方向或可操作载体描述",
+          "confidence_basis": "方向依据，例如因子强弱、信号一致性、风险约束"
+        }
+      ]
     },
     {
-      "section": "中短期标的关联",
-      "content": "分析top自选标的与当前事件/行业信号的关系。哪些标的受益于轮动？哪些面临逆风？NX信号与生命周期状态是否一致？给出调仓建议（具体标的）。100-200字。",
-      "confidence": "high|medium|low"
-    },
-    {
-      "section": "因子×思考结合点",
-      "content": "量化因子（NX/MA/Fib/lifecycle）输出与AI叙事判断的交叉验证。因子信号和事件解读在哪些标的上一致（高置信度）？在哪些标的上分歧？给出1-2个需要人工判断的临界案例。100-200字。",
-      "confidence": "high|medium|low"
+      "section": "交易落地标的",
+      "content": "给出可以落地执行或观察的具体标的清单，覆盖股票、ETF 或商品。必须说明标的选择与当前事件/行业/因子信号的关系。100-200字。",
+      "confidence": "high|medium|low",
+      "candidates": [
+        {
+          "code": "标的代码或商品代码",
+          "name": "标的名称",
+          "type": "stock|etf|commodity",
+          "action": "buy|hold|sell|watch",
+          "reason": "一句话理由，不超过30字"
+        }
+      ]
     }
   ],
   "summary": "一句话策略总结（30字内）：当前最值得关注的矛盾/机会/风险"
 }""")
+    lines.append("字段要求（必须遵守）：")
+    lines.append("1. reflections 必须且只能包含三项，section 名称固定为：事件驱动与选股验证、行业轮动与因子研判、交易落地标的。")
+    lines.append("2. hits：今日无事件命中则输出空数组 []，content 中说明原因。")
+    lines.append("3. signals：必须 1-3 个；即使信号稀少也至少给 1 个 neutral 信号，direction 只能是 buy/sell/neutral。")
+    lines.append("4. candidates：必须 1-3 个具体标的，不允许输出空数组或写'暂无推荐'，信号弱时 action 用 watch。")
+    lines.append("5. 股票/ETF/商品均可作为候选，type 分别用 stock/etf/commodity；铜金油等商品也算。")
+    lines.append("6. reason 必须是一句话不超过30字，code/name/action 必须完整填写。")
 
     return "\n".join(lines)
 

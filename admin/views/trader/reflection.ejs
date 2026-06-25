@@ -27,11 +27,11 @@
     <!-- ═══ LLM 策略反思（generate_strategy_reflection.py 产出） ═══ -->
     <% if (llmReflection && llmReflection.reflections && llmReflection.reflections.length > 0) { %>
     <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">🤖 AI 策略反思
+      <h3 class="dash-section-title">🤖 AI 策略反思 · 三条主线
         <span style="font-size:0.65em;font-weight:400;color:var(--text-muted);margin-left:8px"><%= llmReflection.model || '' %> · <%= llmReflection.period || '' %></span>
       </h3>
 
-      <!-- 核心摘要 -->
+      <!-- 核心判断 -->
       <% if (llmReflection.summary) { %>
       <div style="background:rgba(59,130,246,0.06);border-left:3px solid var(--primary);padding:12px 16px;margin:12px 0;border-radius:4px">
         <div style="font-weight:700;color:var(--primary);font-size:0.95em">💡 核心判断</div>
@@ -39,22 +39,99 @@
       </div>
       <% } %>
 
-      <!-- 反思卡片 -->
+      <!-- 三条主线卡片 -->
       <% const confColors = { high: '#22c55e', medium: '#f59e0b', low: '#9ca3af' }; %>
       <% llmReflection.reflections.forEach(r => {
-        let icon = '📰';
-        if (r.section.includes('轮动')) icon = '🔄';
-        else if (r.section.includes('标的')) icon = '🎯';
-        else if (r.section.includes('因子')) icon = '🔬';
-        else if (r.section.includes('事件')) icon = '📡';
+        const section = r.section || '';
+        let icon = '🧭';
+        if (section.includes('事件')) icon = '📡';
+        else if (section.includes('轮动') || section.includes('行业')) icon = '🔄';
+        else if (section.includes('交易') || section.includes('标的')) icon = '🎯';
         const conf = r.confidence || 'low';
+        const hits = Array.isArray(r.hits) ? r.hits : [];
+        const signals = Array.isArray(r.signals) ? r.signals : [];
+        const candidates = Array.isArray(r.candidates) ? r.candidates : [];
       %>
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin:10px 0">
-        <div style="font-weight:700;font-size:0.9em;color:var(--primary);margin-bottom:8px">
-          <%= icon %> <%= r.section %>
-          <span style="font-size:0.7em;color:<%= confColors[conf] || '#9ca3af' %>;margin-left:8px"><%= conf %></span>
+        <!-- 卡片标题 -->
+        <div style="font-weight:700;font-size:0.9em;color:var(--primary);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <%= icon %> <%= section %>
+          <span style="font-size:0.72em;color:<%= confColors[conf] || '#9ca3af' %>;font-weight:400;margin-left:4px"><%= conf === 'high' ? '高置信' : conf === 'medium' ? '中置信' : '低置信' %></span>
         </div>
-        <div style="font-size:0.88em;line-height:1.75;color:var(--text);white-space:pre-wrap"><%= r.content %></div>
+        <!-- 正文 -->
+        <div style="font-size:0.88em;line-height:1.75;color:var(--text);white-space:pre-wrap;margin-bottom:10px"><%= r.content %></div>
+
+        <!-- 主线一：事件命中列表 -->
+        <% if (section === '事件驱动与选股验证') { %>
+          <% if (hits.length > 0) { %>
+          <table class="data-table" style="font-size:0.82em;margin-top:6px">
+            <thead><tr><th>驱动事件</th><th>标的</th><th>验证结果</th></tr></thead>
+            <tbody>
+              <% hits.forEach(h => { %>
+              <tr>
+                <td><%= h.event || '-' %></td>
+                <td style="font-weight:600"><%= (h.code || '') %> <%= h.name || '-' %></td>
+                <td><%= h.result || '-' %></td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+          <% } else { %>
+          <div style="font-size:0.8em;color:var(--text-muted);padding:6px 0">今日无事件命中记录</div>
+          <% } %>
+        <% } %>
+
+        <!-- 主线二：行业轮动信号列表 -->
+        <% if (section === '行业轮动与因子研判') { %>
+          <% if (signals.length > 0) { %>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">
+            <% signals.forEach(sig => {
+              const dirColor = sig.direction === 'buy' ? '#16a34a' : sig.direction === 'sell' ? '#dc2626' : '#6b7280';
+              const dirBg   = sig.direction === 'buy' ? '#dcfce7' : sig.direction === 'sell' ? '#fee2e2' : '#f3f4f6';
+              const dirText = sig.direction === 'buy' ? '买入' : sig.direction === 'sell' ? '卖出' : '中性';
+            %>
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:rgba(0,0,0,0.02);border-radius:4px;border:1px solid var(--border)">
+              <span style="font-size:0.75em;font-weight:700;padding:2px 7px;border-radius:10px;background:<%= dirBg %>;color:<%= dirColor %>;white-space:nowrap;margin-top:1px"><%= dirText %></span>
+              <div>
+                <div style="font-weight:600;font-size:0.85em"><%= sig.sector || '未知板块' %></div>
+                <div style="font-size:0.8em;color:var(--text-muted)">载体：<%= sig.vehicle || '-' %></div>
+                <div style="font-size:0.78em;color:var(--text-muted)">依据：<%= sig.confidence_basis || '-' %></div>
+              </div>
+            </div>
+            <% }) %>
+          </div>
+          <% } else { %>
+          <div style="font-size:0.8em;color:var(--text-muted);padding:6px 0">暂无行业轮动信号（旧版数据）</div>
+          <% } %>
+        <% } %>
+
+        <!-- 主线三：交易落地候选 -->
+        <% if (section === '交易落地标的') { %>
+          <% if (candidates.length > 0) { %>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">
+            <% candidates.forEach(c => {
+              const actColor = c.action === 'buy' ? '#16a34a' : c.action === 'sell' ? '#dc2626' : c.action === 'hold' ? '#1d4ed8' : '#6b7280';
+              const actBg   = c.action === 'buy' ? '#dcfce7' : c.action === 'sell' ? '#fee2e2' : c.action === 'hold' ? '#dbeafe' : '#f3f4f6';
+              const actText = c.action === 'buy' ? '买入' : c.action === 'sell' ? '卖出' : c.action === 'hold' ? '持有' : '观察';
+              const typeLabel = c.type === 'etf' ? 'ETF' : c.type === 'commodity' ? '商品' : '股票';
+            %>
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:rgba(0,0,0,0.02);border-radius:4px;border:1px solid var(--border)">
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <span style="font-weight:700;font-size:0.9em"><%= c.code || '-' %></span>
+                  <span style="font-size:0.85em"><%= c.name || '-' %></span>
+                  <span style="font-size:0.7em;padding:1px 6px;border-radius:8px;background:var(--border);color:var(--text-muted)"><%= typeLabel %></span>
+                  <span style="font-size:0.75em;font-weight:700;padding:2px 8px;border-radius:10px;background:<%= actBg %>;color:<%= actColor %>"><%= actText %></span>
+                </div>
+                <div style="font-size:0.8em;color:var(--text-muted);margin-top:4px"><%= c.reason || '-' %></div>
+              </div>
+            </div>
+            <% }) %>
+          </div>
+          <% } else { %>
+          <div style="font-size:0.8em;color:var(--text-muted);padding:6px 0">旧版数据未包含候选标的字段</div>
+          <% } %>
+        <% } %>
       </div>
       <% }) %>
 
