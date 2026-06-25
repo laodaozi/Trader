@@ -6,8 +6,8 @@ const STATUS_LABEL = { healthy: '✅ HEALTHY', degraded: '⚠️ DEGRADED', crit
 const STATUS_CLASS = { healthy: 'status-healthy', degraded: 'status-degraded', critical: 'status-critical' };
 const CHECK_ICON  = { pass: '✓', warn: '⚠', fail: '✗' };
 const CHECK_CLASS = { pass: 'check-pass', warn: 'check-warn', fail: 'check-fail' };
-const DIM_LABEL   = { process: '进程', data: '数据新鲜度', cron: 'Cron 执行', system: '系统资源' };
-const DIM_ICON    = { process: '⚙️', data: '📂', cron: '🕐', system: '🖥️' };
+const DIM_LABEL   = { process: '进程', data: '数据新鲜度', cron: 'Cron 执行', system: '系统资源', pipeline: '信息管道' };
+const DIM_ICON    = { process: '⚙️', data: '📂', cron: '🕐', system: '🖥️', pipeline: '📡' };
 
 const s = health.status || 'critical';
 const sum = health.summary || { pass: 0, warn: 0, fail: 0 };
@@ -18,7 +18,7 @@ const byDim = {};
 checks.forEach(c => {
   (byDim[c.dim] = byDim[c.dim] || []).push(c);
 });
-const dims = ['process', 'data', 'cron', 'system'];
+const dims = ['process', 'data', 'cron', 'system', 'pipeline'];
 %>
 
 </head>

@@ -19,6 +19,44 @@
     <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
   </div>
 
+  <% if (conclusion) { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">📊 信号追踪结论 <span style="font-weight:400;font-size:12px;color:var(--cr-text-secondary)">来源：tracker_log.jsonl · 截至 <%= conclusion.latestDate || '—' %></span></h3>
+      <div class="dash-cards" style="justify-content:flex-start;gap:12px;flex-wrap:wrap">
+        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
+          <span style="font-size:26px;font-weight:700;color:<%= (conclusion.hitRate||0)>=60 ? 'var(--cr-positive)' : (conclusion.hitRate||0)>=40 ? 'var(--cr-warn,#f59e0b)' : 'var(--cr-negative)' %>">
+            <%= conclusion.hitRate != null ? conclusion.hitRate + '%' : '—' %>
+          </span>
+          <span class="dash-card-label">信号命中率</span>
+        </div>
+        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
+          <span style="font-size:26px;font-weight:700"><%= conclusion.totalDecisions %></span>
+          <span class="dash-card-label">总决策次数</span>
+        </div>
+        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
+          <span style="font-size:26px;font-weight:700;color:var(--cr-positive)"><%= conclusion.hits %></span>
+          <span class="dash-card-label">命中</span>
+        </div>
+        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
+          <span style="font-size:26px;font-weight:700;color:var(--cr-negative)"><%= conclusion.misses %></span>
+          <span class="dash-card-label">未命中</span>
+        </div>
+        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
+          <span style="font-size:26px;font-weight:700;color:var(--cr-text-secondary)"><%= conclusion.pending %></span>
+          <span class="dash-card-label">待验证</span>
+        </div>
+        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
+          <span style="font-size:26px;font-weight:700"><%= conclusion.stockCount %></span>
+          <span class="dash-card-label">覆盖标的数</span>
+        </div>
+      </div>
+      <p style="margin-top:10px;font-size:12px;color:var(--cr-text-secondary)">
+        ℹ️ 命中率排除无数据项（<%= conclusion.nodata %> 条），基于有效验证 <%= conclusion.totalDecisions - conclusion.nodata %> 次计算。
+        详细标的命中明细请见 <a href="/admin/trader/tracker" style="color:var(--cr-primary)">信号跟踪</a> 页面。
+      </p>
+    </div>
+  <% } %>
+
   <% if (reports && reports.length > 0) { %>
     <div class="dash-section" style="margin-top:20px">
       <h3 class="dash-section-title">📜 回测报告 (<%= reports.length %> 份)</h3>

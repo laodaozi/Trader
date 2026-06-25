@@ -355,12 +355,21 @@ function buildCrEventNarrative(en, hotEvents) {
     freshStr = diffH < 1 ? '刚刚生成' : diffH + '小时前生成';
   }
 
+  // Q10: 补全 global_conclusion 字段渲染（label / summary / key_watch）
+  var labelText  = gc.label   || '';
+  var summaryText = gc.summary || gc.key_thesis || '';
+  var keyWatch   = gc.key_watch || '';
+
   var headerHtml = '<div class="cr-en-header">' +
-    '<span class="cr-summary-regime ' + regime + '">' + regimeIcon + '</span>' +
-    (actionText ? '<span class="cr-summary-action ' + regime + '">' + _h(actionText) + '</span>' : '') +
-    (llmConf > 0 ? '<span class="cr-summary-conf ' + regime + '">置信度 ' + llmConf + '</span>' : '') +
-    (gc.key_thesis ? '<div class="cr-en-thesis">' + _h(gc.key_thesis) + '</div>' : '') +
-    (freshStr ? '<div class="cr-en-fresh">' + freshStr + '</div>' : '') +
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      '<span class="cr-summary-regime ' + regime + '">' + regimeIcon + '</span>' +
+      (actionText ? '<span class="cr-summary-action ' + regime + '">' + _h(actionText) + '</span>' : '') +
+      (llmConf ? '<span class="cr-summary-conf">置信度 ' + llmConf + '</span>' : '') +
+      (freshStr ? '<span class="cr-en-fresh">' + freshStr + '</span>' : '') +
+    '</div>' +
+    (labelText ? '<div style="font-size:13px;font-weight:700;color:var(--m-text);margin-top:8px">' + _h(labelText) + '</div>' : '') +
+    (summaryText ? '<div class="cr-en-thesis">' + _h(summaryText) + '</div>' : '') +
+    (keyWatch ? '<div style="margin-top:6px;font-size:11px;color:var(--m-warn);padding:6px 10px;background:rgba(245,158,11,0.08);border-radius:4px">👁 ' + _h(keyWatch) + '</div>' : '') +
     '</div>';
 
   // 风险警告行

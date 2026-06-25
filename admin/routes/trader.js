@@ -191,13 +191,42 @@ router.get('/trader/tracker/stock/:code', async (req, res) => {
 // ── /admin/trader/backtest ── 回测报告 ──
 router.get('/trader/backtest', async (req, res) => {
   try {
-    const reports = await backtestModel.listReports();
+    const [reports, trackerSummary, latestStrategy] = await Promise.all([
+      backtestModel.listReports(),
+      trackerModel.getTrackerSummary(),
+      strategyModel.getLatestStrategy(),
+    ]);
+
+    // 从 tracker 提炼回测结论
+    let conclusion = null;
+    if (trackerSummary) {
+      const stockSum = trackerSummary.stockSummary || [];
+      let totalDecisions = 0, hits = 0, misses = 0, pending = 0, nodata = 0;
+      for (const s of stockSum) {
+        totalDecisions += s.total || 0;
+        hits   += s.hit    || 0;
+        misses += s.miss   || 0;
+        pending += s.pending || 0;
+        nodata  += s.nodata  || 0;
+      }
+      const effective = totalDecisions - nodata;
+      const hitRate = effective > 0 ? Math.round((hits / effective) * 100) : null;
+      conclusion = {
+        totalDecisions,
+        hits, misses, pending, nodata,
+        hitRate,
+        latestDate: trackerSummary.latestDate || null,
+        stockCount: stockSum.length,
+        watchlistCount: latestStrategy ? latestStrategy.count : null,
+      };
+    }
 
     res.render('trader/backtest', {
       title: '策略回测',
       active: 'trader',
       subTab: 'backtest',
       reports,
+      conclusion,
       error: null,
     });
   } catch (error) {

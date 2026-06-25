@@ -360,6 +360,65 @@ check_system() {
 }
 
 # ════════════════════════════════════════════════
+# Dimension 5: 信息管道（RSS + Enrich）
+# ════════════════════════════════════════════════
+check_pipeline() {
+    local dim="pipeline"
+
+    # 5a. wewe-rss 进程
+    if pm2 list 2>/dev/null | grep -q "wewe-rss.*online"; then
+        record pass "$dim" "wewe-rss-process" "pm2 online"
+    else
+        record warn "$dim" "wewe-rss-process" "not running in pm2"
+    fi
+
+    # 5b. wewe-rss DB 文章新鲜度
+    local wewe_db="/opt/wewe-rss-deploy/data/wewe-rss.db"
+    if [ -f "$wewe_db" ]; then
+        local latest_ts
+        latest_ts=$(sqlite3 "$wewe_db" "SELECT MAX(publish_time) FROM articles;" 2>/dev/null || echo "0")
+        if [ -n "$latest_ts" ] && [ "$latest_ts" -gt 0 ]; then
+            local now_ts age_h
+            now_ts=$(date +%s)
+            age_h=$(( (now_ts - latest_ts) / 3600 ))
+            if [ "$age_h" -le 6 ]; then
+                record pass "$dim" "wewe-rss-articles" "最新文章 ${age_h}h 前"
+            elif [ "$age_h" -le 24 ]; then
+                record warn "$dim" "wewe-rss-articles" "最新文章 ${age_h}h 前（>6h，可能漏更新）"
+            else
+                record fail "$dim" "wewe-rss-articles" "最新文章 ${age_h}h 前（>24h，RSS 管道可能中断）"
+            fi
+            local feed_count article_count
+            feed_count=$(sqlite3 "$wewe_db" "SELECT COUNT(*) FROM feeds WHERE status=1;" 2>/dev/null || echo "?")
+            article_count=$(sqlite3 "$wewe_db" "SELECT COUNT(*) FROM articles;" 2>/dev/null || echo "?")
+            record pass "$dim" "wewe-rss-feeds" "${feed_count} 个订阅源 · ${article_count} 篇文章"
+        else
+            record warn "$dim" "wewe-rss-articles" "DB 存在但无文章记录"
+        fi
+    else
+        record fail "$dim" "wewe-rss-db" "DB 不存在: ${wewe_db}"
+    fi
+
+    # 5c. hot_enrichment.json 新鲜度
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local enrich_file="${script_dir}/../data/hot_enrichment.json"
+    if [ -f "$enrich_file" ]; then
+        local age_h
+        age_h=$(file_age_hours "$enrich_file")
+        local count
+        count=$(python3 -c "import json; d=json.load(open('${enrich_file}')); print(len(d))" 2>/dev/null || echo "?")
+        if [ "$age_h" -le 12 ]; then
+            record pass "$dim" "hot-enrichment" "${count} 条缓存，${age_h}h 前更新"
+        else
+            record warn "$dim" "hot-enrichment" "${count} 条缓存，${age_h}h 前更新（建议重跑 enrich_hot_events.py）"
+        fi
+    else
+        record warn "$dim" "hot-enrichment" "文件不存在，热点事件无 AI 解读"
+    fi
+}
+
+# ════════════════════════════════════════════════
 # Main
 # ════════════════════════════════════════════════
 
@@ -370,6 +429,7 @@ if [ "$OUTPUT_FORMAT" = "bare" ]; then
     check_data_freshness
     check_cron
     check_system
+    check_pipeline
     OUTPUT_FORMAT=bare
     if [ "$FAIL" -gt 0 ]; then
         echo "CRITICAL fail=${FAIL} warn=${WARN} pass=${PASS}"
@@ -399,6 +459,8 @@ check_data_freshness
 check_cron
 [ "$OUTPUT_FORMAT" = "text" ] && echo ""
 check_system
+[ "$OUTPUT_FORMAT" = "text" ] && echo ""
+check_pipeline
 
 # 汇总
 if [ "$OUTPUT_FORMAT" = "json" ]; then
