@@ -696,9 +696,11 @@ router.get('/m/api/cycleradar', async (req, res) => {
     const enrichedEvents = _enrichHotEvents(events || []);
 
     // Q11: 后端过滤——正文缺失且无标的、或纯非市场内容，不下发前端
-    const _badKws = ['正文缺失', '无法确认', '信息不完整', '但无正文', '但正文缺失'];
+    const _badKws = ['正文缺失', '无法确认', '信息不完整', '但无正文', '但正文缺失', '无法提取'];
     const filteredEvents = enrichedEvents.filter(e => {
       const thesis = e.thesis || '';
+      // 空 thesis 直接拦截
+      if (thesis.trim() === "") return false;
       if (thesis === '非市场分析内容') return false;
       const hasIncomplete = _badKws.some(kw => thesis.includes(kw));
       if (hasIncomplete && (e.tickers || []).length === 0) return false;
