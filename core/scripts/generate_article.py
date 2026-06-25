@@ -45,7 +45,13 @@ def load_hot_events():
     events = []
     bad_kws = ["正文缺失", "无法确认", "信息不完整", "但无正文", "但正文缺失", "无法提取"]
     
-    for title_hash, item in data.items():
+    items = []
+    if isinstance(data, list):
+        items = [(e.get("title", ""), e) for e in data]
+    elif isinstance(data, dict):
+        items = list(data.items())
+
+    for _key, item in items:
         if not isinstance(item, dict):
             continue
         thesis = item.get("thesis", "")

@@ -341,6 +341,75 @@ def enrich_from_db(db_path: Path, cache: dict, force: bool = False) -> list:
     return events
 
 
+
+
+def enrich_from_source_articles(cache: dict, force: bool = False) -> list:
+    """从 source_articles.db 直接创建 enrich 事件，独立于 wewe-rss。
+    用于 wewe-rss 抓不到的 S/A 级信源。"""
+    from datetime import datetime, timezone, timedelta
+    try:
+        from core.writing.source_registry import SOURCE_ROLES
+    except ImportError:
+        SOURCE_ROLES = {}
+
+    today_bj = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+    ingest_db_path = PROJECT_ROOT / "data" / "source_articles.db"
+    if not ingest_db_path.exists():
+        return []
+
+    conn = sqlite3.connect(str(ingest_db_path))
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        """SELECT source_id, source_name, tier, weight, title, content_text, content_len, url
+           FROM source_articles WHERE publish_date=? AND fetch_status='success' AND content_len>0
+           ORDER BY weight DESC""",
+        (today_bj,)
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        return []
+
+    # 查 wewe-rss 已覆盖的 mp_id，避免重复 enrich
+    covered = set()
+    wewe_path = str(PROJECT_ROOT / ".." / "wewe-rss-deploy" / "data" / "wewe-rss.db")
+    try:
+        wconn = sqlite3.connect(wewe_path)
+        since = int(time.time()) - 86400
+        wrows = wconn.execute(
+            "SELECT DISTINCT mp_id FROM articles WHERE publish_time >= ?", (since,)
+        ).fetchall()
+        covered = {r[0] for r in wrows}
+        wconn.close()
+    except Exception:
+        pass
+
+    events = []
+    for row in rows:
+        mp_id = row["source_id"]
+        if mp_id in covered:
+            continue  # wewe-rss 已覆盖，跳过避免重复
+
+        title = row["title"]
+        content = row["content_text"] or ""
+        meta = SOURCE_ROLES.get(mp_id, {})
+        weight = meta.get("weight", 0.5)
+
+        enrichment = enrich_one(title, cache, force, source=row["source_name"], content=content)
+        events.append({
+            "title": title,
+            "time": today_bj + "T08:00:00",
+            "source": row["source_name"],
+            "pic_url": "",
+            "thesis": enrichment.get("thesis", ""),
+            "tickers": enrichment.get("tickers", []),
+            "weight": weight,
+        })
+        print(f"  [source_articles] {row['source_name']}: {title[:30]} ({len(content)}字)", file=sys.stderr)
+
+    return events
+
+
 def main():
     parser = argparse.ArgumentParser(description="热点事件 LLM 增强")
     parser.add_argument("--title", help="增强单条标题（调试）")
@@ -378,7 +447,10 @@ def main():
     if not WEWE_DB.exists():
         print(f"❌ DB 不存在: {WEWE_DB}", file=sys.stderr)
         sys.exit(1)
-    events = enrich_from_db(WEWE_DB, cache, force=args.force)
+    events_db = enrich_from_db(WEWE_DB, cache, force=args.force)
+    events_sa = enrich_from_source_articles(cache, force=args.force)
+    events = events_db + events_sa
+    events.sort(key=lambda x: (x.get("weight", 0), x.get("time", "")), reverse=True)
 
     print(json.dumps(events, ensure_ascii=False, indent=2))
 
