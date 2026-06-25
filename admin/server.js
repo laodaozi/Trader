@@ -10,7 +10,8 @@ const articlesRouter = require('./routes/articles');
 const templatesRouter = require('./routes/templates');
 const recoverRouter = require('./routes/recover');
 const healthRouter = require('./routes/health');
-const schedulerRouter = require('./routes/scheduler');
+const schedulerRouter = require("./routes/scheduler");
+const ingestRouter = require("./routes/article_ingest");
 
 const app = express();
 const PORT = process.env.PORT || 3100;
@@ -39,7 +40,8 @@ app.use('/admin', articlesRouter);
 app.use('/admin', templatesRouter);
 app.use('/admin/recover', recoverRouter);
 app.use('/admin', healthRouter);
-app.use('/admin', schedulerRouter);
+app.use("/admin", schedulerRouter);
+app.use("/admin", ingestRouter);
 
 // 404 处理
 app.use((req, res) => {

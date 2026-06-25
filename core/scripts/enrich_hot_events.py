@@ -234,8 +234,35 @@ def enrich_one(title: str, cache: dict, force: bool = False, source: str = "", c
         return {"thesis": "", "tickers": [], "error": str(e)}
 
 
+def _load_ingest_content(today: str) -> dict:
+    """从 source_articles DB 加载当日人工投喂正文，返回 {source_id: content_text}。"""
+    ingest_db_path = PROJECT_ROOT / "data" / "source_articles.db"
+    if not ingest_db_path.exists():
+        return {}
+    try:
+        conn = sqlite3.connect(str(ingest_db_path))
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """SELECT source_id, content_text, content_len FROM source_articles
+               WHERE publish_date=? AND fetch_status='success' AND content_len>0""",
+            (today,)
+        ).fetchall()
+        conn.close()
+        result = {r["source_id"]: r["content_text"] for r in rows}
+        if result:
+            print(f"  [ingest] 加载投喂正文 {len(result)} 条: {list(result.keys())}", file=sys.stderr)
+        return result
+    except Exception as e:
+        print(f"  [ingest] 读取 source_articles 失败: {e}", file=sys.stderr)
+        return {}
+
+
 def enrich_from_db(db_path: Path, cache: dict, force: bool = False) -> list:
     """从 wewe-rss.db 读最近24h事件，按信源 tier 分配配额后增强。
+
+    正文优先级：
+      1. source_articles（人工投喂，质量最高）
+      2. wewe-rss content 字段（自动抓取，可能为空）
 
     配额规则（来自 source_registry.py）：
       S — 全量抓（叙事平权）
@@ -248,6 +275,11 @@ def enrich_from_db(db_path: Path, cache: dict, force: bool = False) -> list:
         from core.writing.source_registry import SOURCE_ROLES
     except ImportError:
         SOURCE_ROLES = {}
+
+    # 加载当日人工投喂正文（优先级最高）
+    from datetime import datetime, timezone, timedelta
+    today_bj = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+    ingest_content = _load_ingest_content(today_bj)
 
     since = int(time.time()) - 86400  # 24h
 
@@ -288,7 +320,12 @@ def enrich_from_db(db_path: Path, cache: dict, force: bool = False) -> list:
     events = []
     for weight, row in selected:
         title = row["title"]
-        content = row["content"] or ""
+        mp_id = row["mp_id"]
+        wewe_content = row["content"] or ""
+        # 优先用人工投喂正文；wewe-rss 正文为 fallback
+        content = ingest_content.get(mp_id) or wewe_content
+        if ingest_content.get(mp_id) and not wewe_content:
+            print(f"  [ingest] {mp_id[:12]} 用投喂正文({len(content)}字) 替代空 wewe-rss", file=sys.stderr)
         source_name = row["source"] or ""
         enrichment = enrich_one(title, cache, force, source=source_name, content=content)
         events.append({

@@ -419,6 +419,216 @@
           "rank": 10
         }
       ]
+    },
+    {
+      "date": "2026-06-24",
+      "top10": [
+        {
+          "name": "能源金属",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0543,
+          "fund_flow": 3622632314.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 1
+        },
+        {
+          "name": "半导体",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0374,
+          "fund_flow": 17605167503.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 2
+        },
+        {
+          "name": "电子",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0196,
+          "fund_flow": 24693318843.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 3
+        },
+        {
+          "name": "工业金属",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0043,
+          "fund_flow": 1323370829.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 4
+        },
+        {
+          "name": "有色金属",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0028,
+          "fund_flow": 1713850240.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 5
+        },
+        {
+          "name": "光学光电子",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0018,
+          "fund_flow": 1186312338.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 6
+        },
+        {
+          "name": "非金属材料",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": -0.003,
+          "fund_flow": 32542228.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 7
+        },
+        {
+          "name": "基础化工",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": -0.0044,
+          "fund_flow": 1286101773.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 8
+        },
+        {
+          "name": "航运港口",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": -0.0054,
+          "fund_flow": 1032845703.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 9
+        },
+        {
+          "name": "建筑材料",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": -0.0078,
+          "fund_flow": 2020403529.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 10
+        }
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "top10": [
+        {
+          "name": "证券",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0305,
+          "fund_flow": 4505465842.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 1
+        },
+        {
+          "name": "半导体",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0244,
+          "fund_flow": 6240026425.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 2
+        },
+        {
+          "name": "非银金融",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0223,
+          "fund_flow": 5055356241.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 3
+        },
+        {
+          "name": "机场",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0221,
+          "fund_flow": 39266532.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 4
+        },
+        {
+          "name": "电子",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0101,
+          "fund_flow": 14393301568.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 5
+        },
+        {
+          "name": "多元金融",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.005,
+          "fund_flow": 67638189.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 6
+        },
+        {
+          "name": "非金属材料",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0019,
+          "fund_flow": 313633655.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 7
+        },
+        {
+          "name": "影视院线",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": -0.0037,
+          "fund_flow": 184310245.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 8
+        },
+        {
+          "name": "光学光电子",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": -0.0061,
+          "fund_flow": 968017216.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 9
+        },
+        {
+          "name": "食品饮料行业",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": -0.0081,
+          "fund_flow": 1163103204.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 10
+        }
+      ]
     }
   ]
 }

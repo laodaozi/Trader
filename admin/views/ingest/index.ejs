@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f8f9fa; }
+    .tier-S { border-left: 4px solid #dc3545; }
+    .tier-A { border-left: 4px solid #fd7e14; }
+    .tier-B { border-left: 4px solid #0d6efd; }
+    .tier-C { border-left: 4px solid #6c757d; }
+    .status-success { color: #198754; font-weight: 600; }
+    .status-failed  { color: #dc3545; font-weight: 600; }
+    .status-pending { color: #fd7e14; font-weight: 600; }
+    .status-missing { color: #6c757d; }
+    .status-blocked { color: #6f42c1; font-weight: 600; }
+    .preview-text { font-size: 0.78rem; color: #555; background: #f1f3f5; border-radius: 4px; padding: 6px 10px; margin-top: 6px; white-space: pre-wrap; }
+    .source-card { background: white; border-radius: 8px; margin-bottom: 12px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+    .badge-tier { font-size: 0.7rem; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+    .badge-S { background:#dc3545; color:white; }
+    .badge-A { background:#fd7e14; color:white; }
+    .badge-B { background:#0d6efd; color:white; }
+    .badge-C { background:#6c757d; color:white; }
+    .url-input { font-size: 0.85rem; }
+    .spinner-border-sm { width: 1rem; height: 1rem; }
+    .alert-critical { background: #fff5f5; border: 1px solid #f5c2c7; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+<div class="container-fluid py-4" style="max-width:900px">
+
+  <!-- 顶部 -->
+  <div class="d-flex align-items-center mb-3">
+    <a href="/admin" class="btn btn-sm btn-outline-secondary me-3">← 返回</a>
+    <h5 class="mb-0 me-3">📡 信源正文投喂</h5>
+    <span class="text-muted" style="font-size:.85rem">日期：<%= date %></span>
+  </div>
+
+  <!-- 缺失预警 -->
+  <% if (missing_critical.length > 0) { %>
+  <div class="alert-critical">
+    <strong>⚠️ S/A 级信源正文缺失（<%= missing_critical.length %> 个）</strong>
+    <span class="text-muted ms-2" style="font-size:.85rem">今日 enrich 质量受影响，请优先补全</span>
+    <div class="mt-1">
+      <% missing_critical.forEach(s => { %>
+        <span class="badge bg-danger me-1"><%= s.name %></span>
+      <% }) %>
+    </div>
+  </div>
+  <% } else { %>
+  <div class="alert alert-success py-2 mb-3" style="font-size:.85rem">✅ 所有 S/A 级信源正文已就绪</div>
+  <% } %>
+
+  <!-- 信源列表 -->
+  <% statusList.forEach(function(src) { %>
+  <div class="source-card tier-<%= src.tier %>" id="card-<%= src.id %>">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <span class="badge-tier badge-<%= src.tier %>"><%= src.tier %></span>
+      <strong><%= src.name %></strong>
+      <span class="text-muted" style="font-size:.78rem">权重 <%= src.weight %></span>
+      <span class="ms-auto status-<%= src.status %>" id="status-<%= src.id %>">
+        <%= src.status === 'success' ? '✅ 已获取' :
+            src.status === 'pending' ? '⏳ 抓取中...' :
+            src.status === 'failed'  ? '❌ 抓取失败' :
+            src.status === 'blocked' ? '🚫 被拦截' :
+            src.status === 'deleted' ? '🗑️ 文章已删' :
+            '— 未投喂' %>
+        <% if (src.content_len > 0) { %>
+          <span class="text-muted fw-normal ms-1" style="font-size:.78rem">(<%= src.content_len.toLocaleString() %>字)</span>
+        <% } %>
+      </span>
+    </div>
+
+    <% if (src.article && src.article.title) { %>
+    <div style="font-size:.83rem; color:#333; margin-bottom:4px">📄 <em><%= src.article.title %></em></div>
+    <% } %>
+
+    <% if (src.article && src.article.fetch_error) { %>
+    <div class="text-danger" style="font-size:.78rem; margin-bottom:6px">错误：<%= src.article.fetch_error %></div>
+    <% } %>
+
+    <% if (src.preview) { %>
+    <div class="preview-text" id="preview-<%= src.id %>"><%= src.preview %>…</div>
+    <% } %>
+
+    <!-- URL 输入 -->
+    <div class="d-flex gap-2 mt-3" id="url-form-<%= src.id %>">
+      <input type="url" class="form-control url-input"
+             id="url-<%= src.id %>"
+             placeholder="粘贴 mp.weixin.qq.com 文章链接"
+             value="<%= src.article && src.article.url ? src.article.url : '' %>">
+      <button class="btn btn-primary btn-sm px-3" onclick="submitUrl('<%= src.id %>', '<%= date %>')">
+        <span id="btn-<%= src.id %>"><%= src.status === 'success' ? '重新抓取' : '抓取' %></span>
+      </button>
+      <% if (src.status === 'success') { %>
+      <button class="btn btn-outline-secondary btn-sm" onclick="showManual('<%= src.id %>')">手动补正文</button>
+      <% } %>
+    </div>
+
+    <!-- 手动正文区（折叠） -->
+    <div id="manual-<%= src.id %>" style="display:none; margin-top:10px">
+      <textarea class="form-control" rows="5" id="manual-text-<%= src.id %>"
+                placeholder="直接粘贴正文内容（URL 抓不到时的终极兜底）"></textarea>
+      <div class="mt-2 d-flex gap-2">
+        <button class="btn btn-warning btn-sm" onclick="submitManual('<%= src.id %>', '<%= date %>')">保存正文</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="hideManual('<%= src.id %>')">取消</button>
+      </div>
+    </div>
+  </div>
+  <% }) %>
+
+</div>
+
+<script>
+async function submitUrl(sourceId, date) {
+  const urlInput = document.getElementById('url-' + sourceId);
+  const btn = document.getElementById('btn-' + sourceId);
+  const statusEl = document.getElementById('status-' + sourceId);
+  const url = urlInput.value.trim();
+  if (!url) { alert('请输入 URL'); return; }
+
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+  statusEl.innerHTML = '<span class="status-pending">⏳ 抓取中...</span>';
+
+  try {
+    const resp = await fetch('/admin/ingest/url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source_id: sourceId, url, date })
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      // 轮询状态
+      pollStatus(sourceId, date, 0);
+    } else {
+      statusEl.innerHTML = '<span class="status-failed">❌ ' + (data.error || '提交失败') + '</span>';
+      btn.textContent = '重试';
+    }
+  } catch(e) {
+    statusEl.innerHTML = '<span class="status-failed">❌ 网络错误</span>';
+    btn.textContent = '重试';
+  }
+}
+
+async function pollStatus(sourceId, date, attempt) {
+  if (attempt > 20) return; // 最多等40秒
+  await new Promise(r => setTimeout(r, 2000));
+
+  try {
+    const resp = await fetch('/admin/ingest/status?date=' + date);
+    const data = await resp.json();
+    const src = data.sources.find(s => s.id === sourceId);
+    if (!src) return;
+
+    const statusEl = document.getElementById('status-' + sourceId);
+    const btn = document.getElementById('btn-' + sourceId);
+    const preview = document.getElementById('preview-' + sourceId) ||
+                    document.createElement('div');
+
+    if (src.status === 'success') {
+      statusEl.innerHTML = `<span class="status-success">✅ 已获取</span> <span class="text-muted fw-normal" style="font-size:.78rem">(${src.content_len.toLocaleString()}字)</span>`;
+      btn.textContent = '重新抓取';
+      if (src.preview) {
+        preview.className = 'preview-text';
+        preview.id = 'preview-' + sourceId;
+        preview.textContent = src.preview + '…';
+        const card = document.getElementById('card-' + sourceId);
+        const urlForm = document.getElementById('url-form-' + sourceId);
+        if (!document.getElementById('preview-' + sourceId)) {
+          card.insertBefore(preview, urlForm);
+        }
+      }
+      // 刷新页面检查 missing_critical
+      setTimeout(() => location.reload(), 1500);
+    } else if (src.status === 'pending') {
+      pollStatus(sourceId, date, attempt + 1);
+    } else {
+      // failed / blocked
+      statusEl.innerHTML = `<span class="status-failed">❌ ${src.status}</span>`;
+      if (src.article && src.article.fetch_error) {
+        statusEl.innerHTML += ` <small class="text-muted">${src.article.fetch_error}</small>`;
+      }
+      btn.textContent = '重新抓取';
+    }
+  } catch(e) {
+    pollStatus(sourceId, date, attempt + 1);
+  }
+}
+
+function showManual(sourceId) {
+  document.getElementById('manual-' + sourceId).style.display = 'block';
+}
+function hideManual(sourceId) {
+  document.getElementById('manual-' + sourceId).style.display = 'none';
+}
+
+async function submitManual(sourceId, date) {
+  const text = document.getElementById('manual-text-' + sourceId).value.trim();
+  if (!text || text.length < 50) { alert('正文至少 50 字'); return; }
+  const resp = await fetch('/admin/ingest/manual', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source_id: sourceId, content_text: text, date })
+  });
+  const data = await resp.json();
+  if (data.ok) { location.reload(); }
+  else { alert(data.error || '保存失败'); }
+}
+</script>
+</body>
+</html>

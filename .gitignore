@@ -10,3 +10,9 @@ daily/
 users/
 tracker/
 modules/
+*.bak
+.env
+&1
+metadata.db
+*.db
+admin_backup/
