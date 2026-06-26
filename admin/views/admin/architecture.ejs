@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>V6.4 技术架构 · CycleRadar Trader</title>
+<title>V6.5 技术架构 · CycleRadar Trader</title>
 <link rel="stylesheet" href="/style.css" />
 <style>
   /* ===== Style B: Engineering Document ===== */
@@ -604,7 +604,7 @@
 
   <!-- ===== TITLE BLOCK ===== -->
   <div class="diagram-title">
-    周期雷达 V6.4 — 策略库 7模型 + trackerHitCard修复 + hotEvents合并 <span class="status-badge">稳定运行</span>
+    周期雷达 V6.5 — 信源正文库 + enrich双路径(12事件) + /m文章tab + ingest看板 <span class="status-badge">稳定运行</span>
   </div>
   <div class="diagram-meta">
     <span>Style B / Engineering</span>
@@ -945,7 +945,7 @@
 
   <!-- ===== SECTION: V5.0→V6.2 里程碑 ===== -->
   <div class="section-card">
-    <div class="section-title">V5.0→V6.2 里程碑</div>
+    <div class="section-title">V5.0→V6.5 里程碑</div>
     <div class="priority-grid" style="grid-template-columns: repeat(4, 1fr);">
       <div class="priority-col">
         <h4 class="p0">✅ V5.0</h4>
@@ -1038,7 +1038,21 @@
         </ul>
       </div>
       <div class="priority-col" style="border: 2px solid #1565C0; background: #E3F2FD;">
-        <h4 style="color: #1565C0;">📋 V6.4 · 当前</h4>
+        <h4 style="color: #1565C0;">✅ V6.4</h4>
+        <div class="milestone-card">
+          <h4 style="color: #1565C0;">📋 V6.5 · 当前</h4>
+          <ul>
+            <li>source_articles.db — 9/9信源正文独立库，脱离wewe-rss覆盖限制</li>
+            <li>wechat_fetcher.py — httpx+BS直抓微信正文，无需登录</li>
+            <li>ingest_db.py — 7子命令Python管理DB</li>
+            <li>enrich双路径 — wewe-rss(5) + source_articles(7) = 12事件</li>
+            <li>/admin/ingest — 9信源状态看板 + URL投喂</li>
+            <li>generate_article.py — 7677字深度文章生成，list/dict格式兼容</li>
+            <li>/m 📝文章tab — 今日文章标题/预览/阅读全文</li>
+            <li>GitHub remote修正 — laodaozi/Trader</li>
+          </ul>
+        </div>
+
         <ul>
           <li>策略库 7模型卡片 ✅</li>
           <li>自选股批量导入 ✅</li>
