@@ -37,36 +37,51 @@ done
 
 # ── V4.2 降级守卫：无新文章则跳过 ──
 if ! $FORCE; then
-  # 取 articles 表最新时间
+  # 优先检查 source_articles.db（用户手动投喂，D日晚 → D+1早生成）
+  SOURCE_DB="/opt/cycleradar-trader/data/source_articles.db"
+  TODAY=$(date +%Y-%m-%d)
+  SOURCE_COUNT=$(python3.9 -c "
+import sqlite3, sys
+try:
+    con = sqlite3.connect('$SOURCE_DB')
+    n = con.execute("SELECT COUNT(*) FROM source_articles WHERE publish_date=?", ('$TODAY',)).fetchone()[0]
+    # 也检查昨天（D日晚投喂 → D+1早生成，publish_date 是昨天）
+    import datetime
+    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+    n2 = con.execute("SELECT COUNT(*) FROM source_articles WHERE publish_date=?", (yesterday,)).fetchone()[0]
+    print(max(n, n2))
+except: print(0)
+" 2>/dev/null || echo "0")
+
+  # 取 wewe-rss articles 表最新时间（辅助判断）
   DB_LAST_TS=$(sqlite3 "$DB_PATH" "SELECT COALESCE(MAX(publish_time), 0) FROM articles;" 2>/dev/null || echo "0")
 
-  # 取上次 enrichment 时间（从缓存文件中所有 enriched_at 取最大值）
+  # 取上次 enrichment 时间（兼容 list/dict 格式）
   ENRICH_LAST_TS=0
   if [ -f "$ENRICHMENT_PATH" ]; then
-    ENRICH_LAST_TS=$(python3 -c "
-import json
+    ENRICH_LAST_TS=$(python3.9 -c "
+import json, os
 try:
     data = json.load(open('$ENRICHMENT_PATH'))
-    max_ts = 0
-    for v in data.values():
-        if isinstance(v, dict) and 'enriched_at' in v:
-            ts = v['enriched_at']
-            max_ts = max(max_ts, int(ts) if isinstance(ts, (int, float)) else 0)
-    print(max_ts)
+    # 用文件修改时间作为最可靠的 enrich 时间
+    print(int(os.path.getmtime('$ENRICHMENT_PATH')))
 except: print(0)
 " 2>/dev/null || echo "0")
   fi
 
-  # 如果 DB 最新文章没比上次 enrich 更新，跳过
-  if [ "$DB_LAST_TS" != "0" ] && [ "$ENRICH_LAST_TS" != "0" ] && [ "$DB_LAST_TS" -le "$ENRICH_LAST_TS" ]; then
-    echo "[$(date)] RSS 无新文章 (DB最后: $(date -d @$DB_LAST_TS '+%m-%d %H:%M' 2>/dev/null || echo $DB_LAST_TS), 上次enrich: $(date -d @$ENRICH_LAST_TS '+%m-%d %H:%M' 2>/dev/null || echo $ENRICH_LAST_TS))，跳过 LLM 调用" | tee "$LOG_FILE"
+  # source_articles 有数据 → 直接跑（核心路径：D晚投喂 → D+1早生成）
+  if [ "$SOURCE_COUNT" != "0" ]; then
+    echo "[$(date)] source_articles 有 $SOURCE_COUNT 条记录，启动 enrichment"
+  # 降级：wewe-rss 有新文章
+  elif [ "$DB_LAST_TS" != "0" ] && [ "$ENRICH_LAST_TS" != "0" ] && [ "$DB_LAST_TS" -le "$ENRICH_LAST_TS" ]; then
+    echo "[$(date)] RSS 无新文章，跳过 LLM 调用" | tee "$LOG_FILE"
     exit 0
   elif [ "$DB_LAST_TS" = "0" ]; then
-    echo "[$(date)] RSS DB 无数据，跳过 LLM 调用" | tee "$LOG_FILE"
+    echo "[$(date)] RSS DB 无数据且 source_articles 为空，跳过" | tee "$LOG_FILE"
     exit 0
+  else
+    echo "[$(date)] wewe-rss 有新文章，启动 enrichment"
   fi
-
-  echo "[$(date)] DB 有新文章 (DB最后: $(date -d @$DB_LAST_TS '+%m-%d %H:%M' 2>/dev/null || echo $DB_LAST_TS) > 上次enrich: $(date -d @$ENRICH_LAST_TS '+%m-%d %H:%M' 2>/dev/null || echo $ENRICH_LAST_TS))，启动 enrichment"
 fi
 
 /usr/bin/python3.9 "$SCRIPT_DIR/enrich_hot_events.py" "${PYTHON_ARGS[@]}" 2>&1 | tee "$LOG_FILE"
