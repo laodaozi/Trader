@@ -5,7 +5,7 @@ const fs = require("fs/promises");
 const path = require("path");
 
 const router = express.Router();
-const articleDir = "/Users/scott/products/cycleradar-trader/output/article";
+const articleDir = path.join(__dirname, "../..", "data", "articles");
 
 router.get("/articles", async (req, res) => {
   try {
@@ -13,7 +13,7 @@ router.get("/articles", async (req, res) => {
 
     try {
       const entries = await fs.readdir(articleDir, { withFileTypes: true });
-      const htmlEntries = entries.filter((entry) => entry.isFile() && path.extname(entry.name) === ".html");
+      const htmlEntries = entries.filter((entry) => entry.isFile() && (path.extname(entry.name) === ".html" || path.extname(entry.name) === ".md"));
 
       articles = await Promise.all(
         htmlEntries.map(async (entry) => {
@@ -21,7 +21,7 @@ router.get("/articles", async (req, res) => {
           const stats = await fs.stat(filePath);
 
           return {
-            name: path.basename(entry.name, ".html"),
+            name: path.basename(entry.name, path.extname(entry.name)),
             path: filePath,
             mtime: stats.mtime,
           };
@@ -62,7 +62,7 @@ router.get('/articles/stats', async (req, res) => {
       enrichment = JSON.parse(raw);
     } catch (_) { /* optional */ }
 
-    const entries = Object.entries(enrichment);
+    const entries = Array.isArray(enrichment) ? enrichment.map((e,i) => [e.title||String(i), e]) : Object.entries(enrichment);
     const totalArticles = entries.length;
     const withTickers = entries.filter(([, e]) => e.tickers && e.tickers.length > 0);
     const articlesWithTickers = withTickers.length;
@@ -130,3 +130,27 @@ router.get('/articles/stats', async (req, res) => {
 });
 
 module.exports = router;
+
+// ── /admin/articles/:name/preview ── Markdown 文章预览
+router.get("/articles/:name/preview", async (req, res) => {
+  try {
+    const name = req.params.name.replace(/[^a-z0-9_\-]/gi, "");
+    const mdPath = path.join(articleDir, name + ".md");
+    const raw = await fs.readFile(mdPath, "utf8");
+    // Convert markdown to simple HTML
+    let html = raw
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+      .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+      .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/^> (.+)$/gm, "<blockquote>$1</blockquote>")
+      .replace(/^---$/gm, "<hr>")
+      .replace(/\n\n/g, "</p><p>")
+      .replace(/\n/g, "<br>");
+    res.send(`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title><style>body{max-width:720px;margin:40px auto;padding:0 20px;font-family:-apple-system,sans-serif;line-height:1.8;color:#1a1a1a}h1{font-size:24px;line-height:1.3;margin-bottom:8px}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15px;color:#555;margin:20px 0 6px}blockquote{border-left:3px solid #3b82f6;padding-left:12px;color:#555;margin:16px 0}hr{border:none;border-top:1px solid #eee;margin:24px 0}strong{color:#111}p{margin:12px 0}.back{display:inline-block;margin-bottom:20px;color:#3b82f6;text-decoration:none;font-size:13px}</style></head><body><a href="/admin/articles" class="back">← 返回文章列表</a><p>${html}</p></body></html>`);
+  } catch (err) {
+    res.status(404).send("文章不存在");
+  }
+});

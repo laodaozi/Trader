@@ -936,3 +936,27 @@ router.get('/m/api/watchlist', async (req, res) => {
 });
 
 module.exports = router;
+
+// ── /m/api/article ── 今日生成文章 API (V6.5)
+router.get("/m/api/article", async (req, res) => {
+  try {
+    const articlesDir = path.join(__dirname, "../../data/articles");
+    const files = await fs.readdir(articlesDir).catch(() => []);
+    const mdFiles = files.filter(f => f.endsWith(".md")).sort().reverse();
+    if (!mdFiles.length) return res.json({ articles: [] });
+
+    const articles = await Promise.all(mdFiles.slice(0, 7).map(async fname => {
+      const fullPath = path.join(articlesDir, fname);
+      const stat = await fs.stat(fullPath);
+      const raw = await fs.readFile(fullPath, "utf8");
+      const titleMatch = raw.match(/^#\s+(.+)/m);
+      const title = titleMatch ? titleMatch[1].trim() : fname.replace(".md","");
+      const preview = raw.replace(/^#.+\n+---\n*/m, "").replace(/[#*`_>\-]/g," ").trim().slice(0, 200);
+      const date = fname.replace("article_","").replace(".md","");
+      return { fname, date, title, preview, mtime: stat.mtime, wordCount: raw.length };
+    }));
+    res.json({ articles });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});

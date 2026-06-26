@@ -17,6 +17,7 @@ function loadTab(name) {
   if (name === 'overview') loadOverview();
   else if (name === 'watchlist') loadWatchlist();
   else if (name === 'cycleradar') loadCycleradar();
+  else if (name === 'article') loadArticle();
 }
 loadOverview(); // initial load
 
@@ -928,4 +929,34 @@ function refreshAll() {
   document.getElementById('cr-loading').style.display = 'block';
   var active = document.querySelector('.m-tab.active');
   if (active) loadTab(active.dataset.tab);
+}
+
+// ====== Article Tab (V6.5) ======
+async function loadArticle() {
+  const loading = document.getElementById('art-loading');
+  const content = document.getElementById('art-content');
+  try {
+    const res = await fetch('/m/api/article');
+    const data = await res.json();
+    if (loading) loading.style.display = 'none';
+    if (!content) return;
+    content.style.display = 'block';
+    if (!data.articles || !data.articles.length) {
+      content.innerHTML = '<div class="card"><p style="color:var(--m-text-2);text-align:center;padding:24px">暂无文章</p></div>';
+      return;
+    }
+    content.innerHTML = data.articles.map(a => {
+      const kb = Math.round(a.wordCount / 500) * 0.5;
+      return '<div class="card" style="margin-bottom:14px">' +
+        '<div style="font-size:11px;color:var(--m-text-3);margin-bottom:6px">' + a.date + ' · ' + kb + 'k字</div>' +
+        '<div style="font-size:15px;font-weight:700;color:var(--m-text);line-height:1.4;margin-bottom:8px">' + a.title + '</div>' +
+        '<div style="font-size:12px;color:var(--m-text-2);line-height:1.6;margin-bottom:10px">' + a.preview + '…</div>' +
+        '<a href="/admin/articles/' + a.fname.replace(".md","") + '/preview" target="_blank" ' +
+        'style="font-size:12px;color:var(--m-primary);text-decoration:none;font-weight:600">阅读全文 →</a>' +
+        '</div>';
+    }).join('');
+  } catch(e) {
+    if (loading) loading.style.display = 'none';
+    if (content) { content.style.display = 'block'; content.innerHTML = '<div class="card" style="color:var(--m-negative)">文章加载失败</div>'; }
+  }
 }

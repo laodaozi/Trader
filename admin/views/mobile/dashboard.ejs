@@ -320,12 +320,13 @@
 <body>
 <div class="app-header">
   <span class="app-title">☀️ <%= title %></span>
-  <span class="app-version"><%= appVersion || 'V6.4' %></span>
+  <span class="app-version"><%= appVersion || 'V6.5' %></span>
 </div>
 <div class="m-tabs">
   <div class="m-tab active" data-tab="overview">📊 概览</div>
   <div class="m-tab" data-tab="watchlist">📱 自选</div>
   <div class="m-tab" data-tab="cycleradar">📡 信号</div>
+  <div class="m-tab" data-tab="article">📝 文章</div>
 </div>
 <div class="m-content">
   <div class="m-panel active" id="p-overview">
@@ -339,6 +340,10 @@
   <div class="m-panel" id="p-cycleradar">
     <div id="cr-loading" class="loading"><div class="spin"></div></div>
     <div id="cr-content" style="display:none"></div>
+  </div>
+  <div class="m-panel" id="p-article">
+    <div id="art-loading" class="loading"><div class="spin"></div></div>
+    <div id="art-content" style="display:none"></div>
   </div>
 </div>
 <div class="refresh-bar">数据更新 <span onclick="refreshAll()">🔄 刷新</span></div>
