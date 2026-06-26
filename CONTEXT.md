@@ -1,6 +1,6 @@
 # CycleRadar Trader · CONTEXT
 
-> 最后更新：2026-06-20 · **V6.1.1**  | wanjun screener 上线 + tracker_closer OHLC 闭环 + RSS 财经早餐第 9 源 + 批量导入/排序/文章统计
+> 最后更新：2026-06-26 · **V6.5.0**  | 信源正文库 + enrich 双路径 + /m 文章 tab + ingest 看板 + 文章预览
 
 ---
 
@@ -30,7 +30,10 @@ cycleradar-trader/
 │   │   ├── wanjun_screener.py     # V6.1: 万军选股模型 2/8/10 (wanjun_models → upstream_signals.jsonl)
 │   │   └── tracker_closer.py      # V6.1: 日频 OHLC 裁决引擎 (腾讯 API, HOLD→WIN/LOSE)
 │   ├── scripts/
-│   │   ├── enrich_hot_events.py   # LLM 热点事件增强 (289行)
+│   │   ├── enrich_hot_events.py   # LLM 热点事件增强；双路径：wewe-rss + source_articles 独立路径，12 事件
+│   │   ├── generate_article.py    # 文章生成，输出 data/articles/article_YYYYMMDD.md
+│   │   ├── wechat_fetcher.py      # httpx+BS 直抓微信正文，无需登录
+│   │   ├── ingest_db.py           # source_articles.db Python 管理器，7 子命令
 │   │   └── enrich_morning.js      # LLM 日报增强 (289行)
 │   ├── signals/
 │   │   ├── upstream_signals.py    # 信号写入/读取

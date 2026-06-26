@@ -1,5 +1,30 @@
 # Changelog · CycleRadar Trader
 
+## [6.5.0] — 2026-06-26
+
+### Added
+- **source_articles 信源正文库**：`data/source_articles.db` UNIQUE(source_id, publish_date)，脱离 wewe-rss 覆盖限制，9/9 信源独立存储正文（787-7389字）
+- **ingest_db.py 7 子命令**：`init/upsert/status/list/content/clear/stats`，Python 管理 DB 避开 better-sqlite3 跨平台问题
+- **wechat_fetcher.py**：httpx+BeautifulSoup 直抓微信公众号正文（`#js_content`），无需登录，Playwright 仅兜底
+- **/admin/ingest 信源看板**：9 信源状态卡 + URL 投喂 + 自动轮询，nav.ejs 📥信源 入口
+- **/m 📝 文章 tab**：懒加载 `/m/api/article`，展示今日深度文章标题/预览/字数，阅读全文跳预览页
+- **/admin/articles/:name/preview**：Markdown 渲染预览，无需额外依赖
+
+### Changed
+- **enrich_hot_events.py 双路径**：`enrich_from_db`（wewe-rss 5篇）+ `enrich_from_source_articles`（7篇独立路径）→ 合并 12 事件，叙事平权等 S 级信源不再依赖 wewe-rss
+- **generate_article.py**：兼容 list/dict 两种 enrich 格式
+- **articles.js**：articleDir 指向 `data/articles/`，支持 .md 文件，stats 兼容 list 格式 enrichment
+- **版本号 V6.4 → V6.5**
+
+### Fixed
+- `ingest_db.py status` 无参数崩溃：默认取当天日期
+- GitHub remote 修正：`scottpeng7/cycleradar-trader`（账号已不存在）→ `laodaozi/Trader`
+
+### Metrics
+- 信源覆盖率：2/9（wewe-rss 仅当日）→ **9/9**（source_articles 独立库）
+- 文章生成 enrich 事件：~2 条有效 → **12 条**
+- 今日生成文章：7677字，三件支撑 + 双叙事对冲 + 思考题
+
 ## [6.1.1] — 2026-06-20
 
 ### Added
