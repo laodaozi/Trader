@@ -109,19 +109,34 @@ def _hash(title: str) -> str:
 
 
 def _load_cache() -> dict:
-    """加载增强缓存 {hash: {thesis, tickers, enriched_at}}"""
+    """加载增强缓存 {hash: {title, thesis, tickers, ...}}，兼容旧 list 格式。
+    
+    磁盘始终存 list，load 时转 dict (hash→item) 便于 O(1) 查找，
+    save 时转回 list 保证消费者兼容。
+    """
     try:
         if CACHE_FILE.exists():
-            return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+            raw = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+            if isinstance(raw, list):
+                result = {}
+                for item in raw:
+                    if isinstance(item, dict) and "title" in item:
+                        h = _hash(item["title"])
+                        result[h] = item.copy()
+                print(f"  [cache] list→dict: {len(raw)} 条", file=sys.stderr)
+                return result
+            return raw
     except Exception:
         pass
     return {}
 
 
 def _save_cache(cache: dict):
-    """保存增强缓存"""
+    """保存增强缓存（内存 dict → 磁盘 list，保证消费者兼容）"""
     CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
+    items = list(cache.values())
+    print(f"  [cache] dict→list: {len(items)} 条写入", file=sys.stderr)
+    CACHE_FILE.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _call_llm(title: str, source: str = "", content: str = "") -> dict:
@@ -225,6 +240,7 @@ def enrich_one(title: str, cache: dict, force: bool = False, source: str = "", c
     try:
         result = _call_llm(title, source, content)
         result["enriched_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        result["title"] = title
         cache[h] = result
         _save_cache(cache)
         print(f"  ✅ [{source}] {title[:40]}... → thesis={result.get('thesis','')[:30]}...", file=sys.stderr)
@@ -235,23 +251,29 @@ def enrich_one(title: str, cache: dict, force: bool = False, source: str = "", c
 
 
 def _load_ingest_content(today: str) -> dict:
-    """从 source_articles DB 加载当日人工投喂正文，返回 {source_id: content_text}。"""
+    """从 source_articles DB 加载投喂正文，查今天或昨天（D日晚投喂→D+1早生成），返回 {source_id: content_text}。"""
+    from datetime import datetime, timedelta
     ingest_db_path = PROJECT_ROOT / "data" / "source_articles.db"
     if not ingest_db_path.exists():
         return {}
     try:
+        yesterday = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
         conn = sqlite3.connect(str(ingest_db_path))
         conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            """SELECT source_id, content_text, content_len FROM source_articles
-               WHERE publish_date=? AND fetch_status='success' AND content_len>0""",
-            (today,)
-        ).fetchall()
+        # 优先今天，没有则取昨天（D日晚投喂，publish_date=D，D+1早上生成时 today=D+1）
+        for date in (today, yesterday):
+            rows = conn.execute(
+                """SELECT source_id, content_text, content_len FROM source_articles
+                   WHERE publish_date=? AND fetch_status='success' AND content_len>0""",
+                (date,)
+            ).fetchall()
+            if rows:
+                conn.close()
+                result = {r["source_id"]: r["content_text"] for r in rows}
+                print(f"  [ingest] 加载投喂正文 {len(result)} 条 (publish_date={date}): {list(result.keys())}", file=sys.stderr)
+                return result
         conn.close()
-        result = {r["source_id"]: r["content_text"] for r in rows}
-        if result:
-            print(f"  [ingest] 加载投喂正文 {len(result)} 条: {list(result.keys())}", file=sys.stderr)
-        return result
+        return {}
     except Exception as e:
         print(f"  [ingest] 读取 source_articles 失败: {e}", file=sys.stderr)
         return {}
@@ -359,12 +381,20 @@ def enrich_from_source_articles(cache: dict, force: bool = False) -> list:
 
     conn = sqlite3.connect(str(ingest_db_path))
     conn.row_factory = sqlite3.Row
-    rows = conn.execute(
-        """SELECT source_id, source_name, tier, weight, title, content_text, content_len, url
-           FROM source_articles WHERE publish_date=? AND fetch_status='success' AND content_len>0
-           ORDER BY weight DESC""",
-        (today_bj,)
-    ).fetchall()
+    # D日晚投喂 → publish_date=D，D+1早生成时 today_bj=D+1，需往前看1天
+    from datetime import datetime, timedelta
+    yesterday_bj = (datetime.strptime(today_bj, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    rows = []
+    for date in (today_bj, yesterday_bj):
+        rows = conn.execute(
+            """SELECT source_id, source_name, tier, weight, title, content_text, content_len, url
+               FROM source_articles WHERE publish_date=? AND fetch_status='success' AND content_len>0
+               ORDER BY weight DESC""",
+            (date,)
+        ).fetchall()
+        if rows:
+            print(f"  [source_articles] 使用 publish_date={date} 的 {len(rows)} 条数据", file=sys.stderr)
+            break
     conn.close()
 
     if not rows:
