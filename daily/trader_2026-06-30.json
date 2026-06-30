@@ -1,0 +1,63 @@
+{
+  "date": "2026-06-30",
+  "timing": {
+    "date": "2026-06-30",
+    "temperature": 73.8,
+    "phase": "回调",
+    "index_direction": "下跌",
+    "allow_trade": true,
+    "recommended_position": 0.4,
+    "position_min": 0.3,
+    "position_max": 0.5,
+    "message": "市场处于回调阶段，适宜分批减仓",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-06-30",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 3054,
+          "total_down_num": 2364,
+          "total_flat_num": 90,
+          "total_stop_num": 20,
+          "limit_up_num": 170,
+          "limit_down_num": 20
+        },
+        "trading_volume": {
+          "trade_balance": 3273757672027.0,
+          "trade_balance_display": "3.27万亿元",
+          "increment_trade_balance": -243996096814.0,
+          "increment_trade_balance_display": "-2439.96亿元",
+          "increment_trade_balance_rate": "-6.94%"
+        }
+      }
+    },
+    "haoyun_position": 0.4,
+    "haoyun_flags": [
+      "✅ 无触发条件，维持原仓位 40%"
+    ]
+  },
+  "scan": {
+    "date": "2026-06-30",
+    "candidate_count": 28,
+    "hits": {
+      "向上缺口": [
+        {
+          "code": "002371",
+          "name": "北方华创",
+          "model": "向上缺口",
+          "label": "顺势·短线",
+          "entry": "T+1 开盘附近（今收 884.56）",
+          "reasons": [
+            "跳空高开 3.5%（缺口 860.19→890.00）",
+            "缺口未回补（今低 873.53 > 昨收 860.19）",
+            "盘中最高涨幅 5.3%",
+            "下影线 1.25%"
+          ],
+          "note": "收盘涨幅 2.8% | 缺口支撑: 860.19"
+        }
+      ]
+    },
+    "total_hits": 1,
+    "summary": "扫描28只 | 向上缺口 1只"
+  }
+}
