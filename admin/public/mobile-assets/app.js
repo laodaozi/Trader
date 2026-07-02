@@ -100,91 +100,127 @@ function buildTimingCard(t, n, snap) {
 }
 
 // V7.1b: Top5 共振标的 — 每行点击展开入场/止损/逻辑详情
-function buildTop5Card(snap, cr) {
-  if (!cr) return '';
-  const alpha = cr.alpha || [];
-  const etf = cr.etf || [];
-  const snapDir = snap ? (snap.direction || '') : '';
+// V7.4: Top5共振标的 — 优先使用 strategy.stocks (stock_agent，有完整入场/止损/行业)
+// 轮动快照方向 × 行业匹配 加权排序，取Top5
+function buildTop5Card(snap, cr, strategy) {
+  // strategy.stocks: 今日 stock_agent 选出的标的（有 score/entry_low/stop_loss/weekly_dir/signal_type）
+  var stocks = (strategy && strategy.stocks) ? strategy.stocks : [];
 
-  // 关键词提取
-  const keywords = ['半导体','芯片','科技','AI','算力','医药','军工','有色','消费','地产','新能源','储能','光伏','汽车','银行','券商'];
-  const matchKw = keywords.filter(kw => snapDir.includes(kw));
+  // 轮动快照关键词（"半导体切换？" → ["半导体"]）
+  var snapDir = snap ? (snap.direction || '') : '';
+  var snapConf = snap ? (snap.confidence || 0) : 0;
+  var KEYWORDS = ['半导体','芯片','AI','算力','科技','军工','医药','新能源','消费','银行','券商','有色','光伏','汽车','储能','化工','地产'];
+  var matchKw = KEYWORDS.filter(function(kw){ return snapDir.includes(kw); });
 
-  // 信号评分
-  const STRAT_WEIGHT = {'report_agent':1.4,'scanner':1.2,'ma_signals':1.3,'wanjun_models':1.1,'stock_agent':1.0,'rotation_factor':1.2};
-  function scoreSignal(s) {
-    const base = (s.confidence || 0) * (STRAT_WEIGHT[s.strategy] || 1.0);
-    const meta = s.metadata || {};
-    const name = meta.stock_name || meta.sector || s.asset || '';
-    const kwBonus = matchKw.some(kw => name.includes(kw) || (meta.sector||'').includes(kw)) ? 1.3 : 1.0;
-    return base * kwBonus;
+  // 行业匹配：weekly_dir(行业字段) 或 model_hits 里包含关键词
+  function sectorMatch(s) {
+    var sector = s.weekly_dir || s.source || '';
+    var hits = (s.model_hits || []).join(' ');
+    return matchKw.some(function(kw){ return sector.includes(kw) || hits.includes(kw); });
   }
 
-  const all = [...alpha.filter(s=>s.direction==='long'), ...etf.filter(s=>s.direction==='long'||s.direction==='neutral')];
-  const scored = all.map(s => ({...s, _score: scoreSignal(s)}))
-    .sort((a,b) => b._score - a._score)
-    .slice(0, 5);
+  // 综合评分：base=score，行业共振+20，进攻信号+10
+  function compositeScore(s) {
+    var base = s.score || 0;
+    if (sectorMatch(s)) base += 20;
+    if ((s.signal_type || '').includes('进攻')) base += 10;
+    return base;
+  }
 
-  if (!scored.length) return '';
+  // 有效标的：有入场价和止损
+  var valid = stocks.filter(function(s){ return s.entry_low && s.stop_loss; });
+  if (!valid.length) valid = stocks; // 全部没有也展示
 
-  const STRAT_LABEL = {'report_agent':'事件','scanner':'形态','ma_signals':'并购','wanjun_models':'量化','stock_agent':'AI','rotation_factor':'轮动','commodity_radar':'商品'};
+  var sorted = valid.slice().sort(function(a,b){ return compositeScore(b) - compositeScore(a); });
+  var top5 = sorted.slice(0, 5);
 
-  const rows = scored.map((s, i) => {
-    const meta = s.metadata || {};
-    const al = s._alphaLatest || {};
-    const name = meta.stock_name || meta.sector || s.asset;
-    const conf = Math.round((s.confidence||0)*100);
-    const strat = STRAT_LABEL[s.strategy] || s.strategy;
-    const confColor = conf >= 80 ? 'var(--m-positive)' : conf >= 60 ? 'var(--m-primary)' : 'var(--m-warn)';
-    const isLast = i === scored.length - 1;
+  if (!top5.length) {
+    // 降级：用 cr.alpha 里的高置信股票信号
+    var alphaStocks = (cr && cr.alpha || []).filter(function(s){ return s.direction==='long' && (s.metadata||{}).tier==='S'; });
+    if (!alphaStocks.length) alphaStocks = (cr && cr.alpha || []).filter(function(s){ return s.direction==='long'; });
+    alphaStocks = alphaStocks.slice(0,5);
+    if (!alphaStocks.length) return '';
 
-    // 信号强度色条（左侧3px竖线颜色）
-    const barColor = conf >= 80 ? 'var(--m-positive)' : conf >= 60 ? 'var(--m-primary)' : 'var(--m-warn)';
+    var STRAT_LABEL = {'report_agent':'事件','ma_signals':'并购','wanjun_models':'量化','stock_agent':'AI','rotation_factor':'轮动','commodity_radar':'商品'};
+    var fallbackRows = alphaStocks.map(function(s, i) {
+      var meta = s.metadata || {};
+      var name = meta.stock_name || s.asset;
+      var conf = Math.round((s.confidence||0)*100);
+      var clr = conf>=80?'var(--m-positive)':conf>=60?'var(--m-primary)':'var(--m-warn)';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:'+(i<alphaStocks.length-1?'1px solid var(--m-border)':'none')+'">' +
+        '<div style="width:3px;height:28px;border-radius:2px;background:'+clr+';flex-shrink:0"></div>' +
+        '<div style="font-size:12px;font-weight:700;color:var(--m-text-3);width:14px">'+(i+1)+'</div>' +
+        '<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--m-text)">' + _h(name) + '<span style="font-size:10px;color:var(--m-text-3);margin-left:5px">'+s.asset+'</span></div>' +
+        '<div style="font-size:10px;color:var(--m-text-3)">'+(STRAT_LABEL[s.strategy]||s.strategy)+(meta.tier?' · '+meta.tier+'级':'')+'</div></div>' +
+        '<div style="font-size:15px;font-weight:800;color:'+clr+'">'+conf+'%</div></div>';
+    }).join('');
+    return '<div class="card" style="border-left:3px solid var(--m-primary)">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+        '<div class="card-title" style="margin-bottom:0">📡 Alpha Top5</div>' +
+        '<div style="font-size:10px;color:var(--m-text-3)">信号驱动排序</div></div>' +
+      fallbackRows + '</div>';
+  }
 
-    // 展开详情内容
-    const entry  = al.entry_price  != null ? al.entry_price.toFixed(2)  : (meta.entry  != null ? (+meta.entry).toFixed(2)  : '—');
-    const target = al.target_price != null ? al.target_price.toFixed(2) : (meta.target != null ? (+meta.target).toFixed(2) : '—');
-    const stop   = al.stop_loss    != null ? al.stop_loss.toFixed(2)    : (meta.stop   != null ? (+meta.stop).toFixed(2)   : '—');
-    const thesis = al.thesis || meta.thesis || meta.industry_hint || '';
-    const reasons = meta.reasons || meta.active_factors || [];
-    const reasonTags = reasons.slice(0,3).map(r =>
-      `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:rgba(var(--m-primary-rgb),0.12);color:var(--m-primary)">${_h(r)}</span>`
-    ).join('');
+  // 是否有轮动快照加持
+  var hasSnap = snap && snapDir && snapConf >= 30;
+  var titleSuffix = matchKw.length ? ' · ' + matchKw.slice(0,2).join('/') : (hasSnap ? ' · ' + snapDir.slice(0,8) : '');
+  var snapBadge = hasSnap
+    ? '<span style="font-size:10px;padding:2px 8px;border-radius:8px;background:rgba(var(--m-primary-rgb),.15);color:var(--m-primary)">轮动 '+snapConf+'%置信</span>'
+    : '<span style="font-size:10px;color:var(--m-text-3)">轮动方向未设定</span>';
 
-    const detailHtml = `<div class="top5-detail">
-      <div style="display:flex;gap:12px;margin-bottom:6px">
-        <div><div style="font-size:9px;color:var(--m-text-3);text-transform:uppercase;letter-spacing:.5px">入场</div><div style="font-size:13px;font-weight:700;color:var(--m-text)">${entry}</div></div>
-        <div><div style="font-size:9px;color:var(--m-text-3);text-transform:uppercase;letter-spacing:.5px">目标</div><div style="font-size:13px;font-weight:700;color:var(--m-positive)">${target}</div></div>
-        <div><div style="font-size:9px;color:var(--m-text-3);text-transform:uppercase;letter-spacing:.5px">止损</div><div style="font-size:13px;font-weight:700;color:var(--m-negative)">${stop}</div></div>
-      </div>
-      ${thesis ? `<div style="font-size:11px;color:var(--m-text-2);line-height:1.5;margin-bottom:5px">${_h(thesis)}</div>` : ''}
-      ${reasonTags ? `<div style="display:flex;flex-wrap:wrap;gap:3px">${reasonTags}</div>` : ''}
-    </div>`;
+  var rows = top5.map(function(s, i) {
+    var isMatch = sectorMatch(s);
+    var sector = s.weekly_dir || '—';
+    var entry = s.entry_low ? (+s.entry_low).toFixed(2) : '—';
+    var stop  = s.stop_loss  ? (+s.stop_loss).toFixed(2)  : '—';
+    var tp    = s.take_profit && s.take_profit[0] ? (+s.take_profit[0]).toFixed(2) : '—';
+    var rr    = (s.stop_loss && s.entry_low && s.take_profit && s.take_profit[0])
+      ? ((s.take_profit[0]-s.entry_low) / (s.entry_low-s.stop_loss)).toFixed(1) + 'x' : '—';
+    var sigColor = (s.signal_type||'').includes('进攻') ? 'var(--m-positive)' : 'var(--m-primary)';
+    var score = compositeScore(s);
+    var scoreColor = score >= 80 ? 'var(--m-positive)' : score >= 65 ? 'var(--m-primary)' : 'var(--m-warn)';
+    var isLast = i === top5.length - 1;
 
-    return `<div class="top5-row" onclick="this.classList.toggle('open')" style="padding:10px 0;border-bottom:${isLast?'none':'1px solid var(--m-border)'}">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="width:3px;height:32px;border-radius:2px;background:${barColor};flex-shrink:0"></div>
-        <div style="font-size:12px;font-weight:700;color:var(--m-text-3);width:14px;flex-shrink:0">${i+1}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:700;color:var(--m-text);line-height:1.2">${_h(name)}<span style="font-size:10px;color:var(--m-text-3);font-family:var(--m-mono);margin-left:5px">${s.asset}</span></div>
-          <div style="font-size:10px;color:var(--m-text-3);margin-top:2px">${strat}${meta.tier ? ' · '+meta.tier+'级' : ''}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:15px;font-weight:800;color:${confColor}">${conf}%</div>
-          <span class="top5-chevron" style="color:var(--m-text-3)">▼</span>
-        </div>
-      </div>
-      ${detailHtml}
-    </div>`;
+    return '<div class="top5-row" onclick="this.classList.toggle(\'open\')" style="padding:10px 0;border-bottom:'+(isLast?'none':'1px solid var(--m-border)')+';cursor:pointer">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        '<div style="width:3px;height:36px;border-radius:2px;background:'+sigColor+';flex-shrink:0"></div>' +
+        '<div style="font-size:12px;font-weight:700;color:var(--m-text-3);width:14px;flex-shrink:0">'+(i+1)+'</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--m-text);line-height:1.2">' + _h(s.name) +
+            '<span style="font-size:10px;color:var(--m-text-3);font-family:var(--m-mono);margin-left:5px">'+s.code+'</span>' +
+            (isMatch ? '<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:rgba(var(--m-primary-rgb),.15);color:var(--m-primary);margin-left:4px">共振</span>' : '') +
+          '</div>' +
+          '<div style="font-size:10px;color:var(--m-text-3);margin-top:2px">'+_h(sector)+(s.source?' · '+s.source:'')+'</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0">' +
+          '<div style="font-size:15px;font-weight:800;color:'+scoreColor+'">'+score+'</div>' +
+          '<span class="top5-chevron" style="font-size:10px;color:var(--m-text-3)">▼</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="top5-detail">' +
+        '<div style="display:flex;gap:16px;margin-bottom:6px">' +
+          '<div><div style="font-size:9px;color:var(--m-text-3);letter-spacing:.5px">入场</div><div style="font-size:13px;font-weight:700;color:var(--m-text)">'+entry+'</div></div>' +
+          '<div><div style="font-size:9px;color:var(--m-text-3);letter-spacing:.5px">目标</div><div style="font-size:13px;font-weight:700;color:var(--m-positive)">'+tp+'</div></div>' +
+          '<div><div style="font-size:9px;color:var(--m-text-3);letter-spacing:.5px">止损</div><div style="font-size:13px;font-weight:700;color:var(--m-negative)">'+stop+'</div></div>' +
+          '<div><div style="font-size:9px;color:var(--m-text-3);letter-spacing:.5px">R:R</div><div style="font-size:13px;font-weight:700;color:var(--m-text-2)">'+rr+'</div></div>' +
+        '</div>' +
+        ((s.model_hits||[]).length ? '<div style="display:flex;flex-wrap:wrap;gap:3px">' +
+          s.model_hits.slice(0,4).map(function(h){ return '<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:rgba(var(--m-primary-rgb),.1);color:var(--m-primary)">'+_h(h)+'</span>'; }).join('') +
+        '</div>' : '') +
+      '</div>' +
+    '</div>';
   }).join('');
 
-  const title = matchKw.length ? `共振 Top5 · ${matchKw.slice(0,2).join('/')}` : '共振 Top5';
-  return `<div class="card" style="border-left:3px solid var(--m-primary)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <div class="card-title" style="margin-bottom:0">📡 ${title}</div>
-      <div style="font-size:10px;color:var(--m-text-3)">${scored.length} 个信号</div>
-    </div>
-    ${rows}
+  return '<div class="card" style="border-left:3px solid var(--m-primary)">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<div class="card-title" style="margin-bottom:0">📡 共振 Top5' + titleSuffix + '</div>' +
+      snapBadge +
+    '</div>' +
+    rows +
+  '</div>';
+}
+
+
   </div>`;
 }
 
@@ -302,7 +338,7 @@ async function loadOverview() {
     // V7.2: 择时 + Top5 先渲染，自选提醒异步追加
     el.innerHTML =
       buildTimingCard(d.timing, d.event_narrative, d.rotation_snapshot) +
-      buildTop5Card(d.rotation_snapshot, cr);
+      buildTop5Card(d.rotation_snapshot, cr, d.strategy);
     el.style.display = 'block';
     document.getElementById('overview-loading').style.display = 'none';
     // 自选提醒：有止损/买入才渲染，异步追加不阻塞主渲染

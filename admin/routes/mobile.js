@@ -747,10 +747,33 @@ router.get('/m/api/cycleradar', async (req, res) => {
       };
     }
 
+    // ── V7.4: timing 字段（从 timing_history.json 读最新有效记录）──
+    let timingOut = null;
+    try {
+      const timingRaw = await fs.readFile(TIMING_PATH, 'utf8');
+      const timingData = JSON.parse(timingRaw);
+      if (timingData && timingData.history && timingData.history.length > 0) {
+        const validHistory = timingData.history.filter(h => h.temperature > 0);
+        const lastT = validHistory.length > 0 ? validHistory[validHistory.length - 1] : null;
+        if (lastT) {
+          const ph = lastT.phase || '';
+          const tmp = lastT.temperature || 0;
+          let advice = '';
+          if (ph.includes('上涨') || ph.includes('进攻')) advice = '趋势向上，积极操作';
+          else if (ph.includes('回调') && tmp > 60) advice = '回调中，控制仓位';
+          else if (ph.includes('回调')) advice = '回调较深，观望为主';
+          else if (ph.includes('震荡')) advice = '震荡市，高抛低吸';
+          else advice = '信号不明，轻仓观望';
+          timingOut = { phase: ph, temperature: Math.round(tmp), indexDirection: lastT.index_direction || '', advice, date: lastT.date };
+        }
+      }
+    } catch (_) {}
+
     res.json({
       summary,
       byStrategy,
       byAssetType,
+      timing: timingOut,
       // V4.1.0 四分类 + V4.1.2 LLM 增强
       hotEvents: enrichedEvents || [],
       dataFreshness: rssHealth,  // V4.2: RSS 数据管路健康度（hotEvents 用）

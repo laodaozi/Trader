@@ -18,6 +18,7 @@ def _read_json(p):
 def generate_alpha():
     signals = []
     date_str = None
+    latest_date = None  # 取最新记录日期，而非第一条（trader_strategy.jsonl 按时间追加，最新在末尾）
     if TRADER_STRATEGY.exists():
         with open(TRADER_STRATEGY) as f:
             for line in f:
@@ -25,8 +26,9 @@ def generate_alpha():
                 if not line: continue
                 try: s = json.loads(line)
                 except: continue
-                if date_str is None:
-                    date_str = s.get("date", "")
+                row_date = s.get("date", "")
+                if row_date and (latest_date is None or row_date > latest_date):
+                    latest_date = row_date
                 signals.append({
                     "signal_id": f"ALPHA-{s.get('date','')}-{len(signals)+1:03d}",
                     "stock": {"code": s.get("code",""), "name": s.get("name","")},
@@ -41,8 +43,7 @@ def generate_alpha():
                     "sector_context": s.get("sector_context",""),
                     "enhanced_nx": s.get("nx","")
                 })
-    if not date_str:
-        date_str = datetime.now().strftime("%Y-%m-%d")
+    date_str = latest_date or datetime.now().strftime("%Y-%m-%d")
     alpha = {"date": date_str, "signals": signals}
     morning = _read_json(MORNING_JSON)
     if morning:
