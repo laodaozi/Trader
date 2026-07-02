@@ -221,7 +221,9 @@ async function buildWatchlistAlertCard(container) {
     var close = s.close != null ? (+s.close).toFixed(2) : '—';
     var stop  = s.stop_loss != null ? (+s.stop_loss).toFixed(2) : '—';
     var pnlHtml = '';
-    if (s.pnl_pct != null) {
+    // entry_price>=900 是占位默认值（999.16），pnl无意义，不展示
+    var validEntry = s.entry_price != null && s.entry_price < 900;
+    if (validEntry && s.pnl_pct != null) {
       var pnlClr = s.pnl_pct >= 0 ? 'var(--m-positive)' : 'var(--m-negative)';
       pnlHtml = '<span style="font-size:12px;font-weight:700;font-family:var(--m-mono);color:' + pnlClr + '">' + (s.pnl_pct >= 0 ? '+' : '') + s.pnl_pct.toFixed(1) + '%</span>';
     }
@@ -541,16 +543,18 @@ async function loadWatchlist() {
       var stop   = s.stop_loss   != null ? (+s.stop_loss).toFixed(2)   : '—';
 
       var pnlHtml = '';
-      if (s.pnl_pct != null) {
+      // entry_price>=900 是占位默认值，pnl无效，不渲染
+      var validEntry = s.entry_price != null && s.entry_price < 900;
+      if (validEntry && s.pnl_pct != null) {
         var pnlClr  = s.pnl_pct >= 0 ? 'var(--m-positive)' : 'var(--m-negative)';
         var pnlSign = s.pnl_pct >= 0 ? '+' : '';
         pnlHtml = '<span style="font-size:13px;font-weight:700;font-family:var(--m-mono);color:' + pnlClr + '">' + pnlSign + s.pnl_pct.toFixed(1) + '%</span>';
       }
 
-      // 价格区：市价 / 成本 / 止损（有值才显示）
+      // 价格区：市价 / 成本（占位值不显示）/ 止损
       var priceItems = [];
       if (close !== '—') priceItems.push('<span class="wl-zone-item"><span class="wl-zone-label">市价</span><span class="wl-zone-val">' + close + '</span></span>');
-      if (entry !== '—') priceItems.push('<span class="wl-zone-item"><span class="wl-zone-label">成本</span><span class="wl-zone-val">' + entry + '</span></span>');
+      if (entry !== '—' && validEntry) priceItems.push('<span class="wl-zone-item"><span class="wl-zone-label">成本</span><span class="wl-zone-val">' + entry + '</span></span>');
       if (stop  !== '—') priceItems.push('<span class="wl-zone-item"><span class="wl-zone-label">止损</span><span class="wl-zone-val" style="color:var(--m-negative)">' + stop + '</span></span>');
 
       return '<div style="display:flex;align-items:stretch;gap:0;padding:10px 0;border-bottom:1px solid var(--m-border);cursor:pointer" onclick="openStockModal(\'' + (s.code||'') + '\')">' +
@@ -633,10 +637,10 @@ async function loadCycleradar() {
     var d = await crRes.json();
     var hy = hyRes.ok ? await hyRes.json() : null;
     var trk = trkRes.ok ? await trkRes.json() : null;
-    // V7.2: 事件叙事第一，统计栏合并好运指数+多空综述，移除独立好运哥卡和市场综述卡
+    // V7.3: 统计栏置顶（决策数字优先），叙事折叠，胜率从tracker实算
     document.getElementById('cr-content').innerHTML =
+      buildCrStatsBar(d.summary, d.event_narrative, trk, hy) +
       buildCrEventNarrative(d.event_narrative, d.hotEvents) +
-      buildCrStatsBar(d.summary, d.event_narrative, d.daily_pnl, hy) +
       buildStrategyWinRateCard(trk, d.byStrategy) +
       buildCrCategorySections(d.hotEvents, d.alpha, d.etf, d.commodity, d.alpha_latest);
     attachCrExpandHandlers();
@@ -647,30 +651,37 @@ async function loadCycleradar() {
   }
 }
 
-// ── V7.2 信号Tab统计栏：合并好运指数 + 多空综述 ──
-function buildCrStatsBar(summary, en, dailyPnl, hy) {
-  var gc = (en && en.global_conclusion) || {};
+// ── V7.3 信号Tab统计栏：统计栏置顶，胜率从tracker实算，好运指数读真实字段 ──
+function buildCrStatsBar(summary, en, trk, hy) {
   var sigCount = summary ? (summary.active || 0) : 0;
   var l = summary ? (summary.longCount || 0) : 0;
   var s = summary ? (summary.shortCount || 0) : 0;
 
-  // 30日胜率
+  // 30日胜率：从 tracker records 实算（5日维度，最接近"短线胜率"）
   var winRate = null;
-  if (dailyPnl && dailyPnl.win_rate != null) winRate = dailyPnl.win_rate;
-  else if (gc.win_rate != null) winRate = gc.win_rate;
+  if (trk && trk.records && trk.records.length) {
+    var w5 = 0, l5 = 0;
+    trk.records.forEach(function(r) {
+      if ((r.horizon || 5) !== 5) return;
+      var v = (r.verdict || '').toUpperCase();
+      if (v === 'WIN') w5++;
+      else if (v === 'LOSE') l5++;
+    });
+    if (w5 + l5 > 0) winRate = Math.round(w5 / (w5 + l5) * 100);
+  }
 
-  // 好运指数：来自 haoyunge API（posture.score 或 position_pct）
+  // 好运指数：haoyunge API 实际字段 grade / posture / maxPosition
+  // grade: 0=均衡, 正=看多, 负=看空 → 映射为百分比显示
   var hyScore = null;
   var hyLabel = '';
   var hyColor = 'var(--m-text-2)';
   if (hy) {
-    // posture 字段或直接的 position_pct
-    var pos = hy.position_pct || hy.posture_pct || null;
-    if (pos != null) {
-      hyScore = Math.round(pos);
-      hyColor = hyScore >= 70 ? 'var(--m-positive)' : hyScore >= 40 ? 'var(--m-warn)' : 'var(--m-negative)';
-      hyLabel = hy.posture || hy.regime || '';
+    // grade 范围一般 -3~+3，映射到 0-100%
+    if (hy.grade != null) {
+      hyScore = Math.round((hy.grade + 3) / 6 * 100);
+      hyColor = hyScore >= 60 ? 'var(--m-positive)' : hyScore >= 40 ? 'var(--m-warn)' : 'var(--m-negative)';
     }
+    hyLabel = hy.maxPosition || hy.posture || hy.regime || '';
   }
 
   // 多空比文字
@@ -740,7 +751,7 @@ function buildStrategyWinRateCard(trk, byStrategy) {
       if (!stratStats[key]) stratStats[key] = { hit: 0, lose: 0, expire: 0, total: 0 };
       stratStats[key].total++;
       var v = (r.verdict || '').toUpperCase();
-      if (v === 'HIT')    stratStats[key].hit++;
+      if (v === 'WIN' || v === 'HIT')    stratStats[key].hit++;
       else if (v === 'LOSE' || v === 'MISS') stratStats[key].lose++;
       else if (v === 'EXPIRE') stratStats[key].expire++;
     });
@@ -787,7 +798,7 @@ function buildStrategyWinRateCard(trk, byStrategy) {
   return '<div class="cr-section" style="margin-bottom:12px">' +
     '<details>' +
       '<summary style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--m-surface-2);border-radius:8px;cursor:pointer;list-style:none;user-select:none">' +
-        '<span style="font-size:12px;font-weight:700;color:var(--m-text)">📊 策略有效性</span>' +
+        '<span style="font-size:12px;font-weight:700;color:var(--m-text)">📊 持有周期胜率</span>' +
         '<span style="font-size:10px;color:var(--m-text-3);margin-left:auto">' + (trk ? trk.totalDecisions : 0) + '条历史 · 点击展开</span>' +
         '<span style="font-size:10px;color:var(--m-text-3)">▼</span>' +
       '</summary>' +
