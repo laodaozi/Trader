@@ -189,36 +189,79 @@ function buildTop5Card(snap, cr) {
 }
 
 // V7.1: 自选池异动卡 — 只展示有买卖信号的
-function buildWatchlistAlertCard(d) {
-  const stocks = (d.strategy && d.strategy.stocks) || [];
-  // 只取进攻/买入信号，按 score 排序，最多5条
-  const alerts = stocks.filter(s => s.signal_type && (s.signal_type.includes('进攻') || s.signal_type.includes('买入')))
-    .sort((a,b) => (b.score||0) - (a.score||0))
-    .slice(0, 5);
-  if (!alerts.length) return '';
+// V7.2: 概览Tab自选买卖提醒 — 从watchlist信号推导，有买入/止损才展示
+async function buildWatchlistAlertCard(container) {
+  var signals = [];
+  try {
+    var res = await fetch('/m/api/watchlist');
+    var data = await res.json();
+    signals = (data && data.signals) ? data.signals : [];
+  } catch(e) { return; }
 
-  const rows = alerts.map(s => {
-    const score = s.score || 0;
-    const scoreColor = score >= 70 ? 'var(--m-positive)' : score >= 50 ? 'var(--m-warn)' : 'var(--m-text-2)';
-    const ep = s.entry_low ? s.entry_low.toFixed(2) : '—';
-    const sl = s.stop_loss ? s.stop_loss.toFixed(2) : '—';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--m-border)">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:var(--m-text)">${_h(s.name||s.code)} <span style="font-size:10px;color:var(--m-text-3);font-family:var(--m-mono)">${s.code}</span></div>
-        <div style="font-size:10px;color:var(--m-text-3);margin-top:2px">入场 ${ep} · 止损 ${sl}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:20px;font-weight:800;color:${scoreColor}">${score}</div>
-        <div style="font-size:9px;color:var(--m-text-3)">评分</div>
-      </div>
-    </div>`;
-  }).join('');
+  // 推导结论（复用自选Tab逻辑）
+  function deriveConclusion(s) {
+    var nx = s.nx_signal || '';
+    var lc = s.lifecycle || '';
+    if (nx === 'buy' || nx === 'rising')    return 'buy';
+    if (nx === 'sell' || lc === '灭·出局') return 'stop';
+    if (lc === '坏·注意')                  return 'warn';
+    return 'hold';
+  }
 
-  return `<div class="card" style="border-left:3px solid var(--m-positive)">
-    <div class="card-title" style="margin-bottom:4px">✅ 自选池信号</div>
-    <div style="font-size:11px;color:var(--m-text-3);margin-bottom:10px">${alerts.length} 支有买入信号</div>
-    ${rows}
-  </div>`;
+  var buys  = signals.filter(function(s){ return deriveConclusion(s) === 'buy'; });
+  var stops = signals.filter(function(s){ return deriveConclusion(s) === 'stop'; });
+  var warns = signals.filter(function(s){ return deriveConclusion(s) === 'warn'; });
+
+  // 没有任何买入/止损/注意 → 不渲染
+  if (!buys.length && !stops.length && !warns.length) return;
+
+  function alertRow(s, type) {
+    var color = type === 'buy' ? 'var(--m-positive)' : type === 'stop' ? 'var(--m-negative)' : 'var(--m-warn)';
+    var tag   = type === 'buy' ? '买入' : type === 'stop' ? '止损' : '注意';
+    var close = s.close != null ? (+s.close).toFixed(2) : '—';
+    var stop  = s.stop_loss != null ? (+s.stop_loss).toFixed(2) : '—';
+    var pnlHtml = '';
+    if (s.pnl_pct != null) {
+      var pnlClr = s.pnl_pct >= 0 ? 'var(--m-positive)' : 'var(--m-negative)';
+      pnlHtml = '<span style="font-size:12px;font-weight:700;font-family:var(--m-mono);color:' + pnlClr + '">' + (s.pnl_pct >= 0 ? '+' : '') + s.pnl_pct.toFixed(1) + '%</span>';
+    }
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--m-border)">' +
+      '<div style="width:3px;align-self:stretch;border-radius:2px;background:' + color + ';flex-shrink:0"></div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<span style="font-size:13px;font-weight:700;color:var(--m-text)">' + _h(s.name || s.code) + '</span>' +
+        '<span style="font-size:10px;color:var(--m-text-3);font-family:var(--m-mono);margin-left:5px">' + (s.code||'') + '</span>' +
+        (type === 'stop' && stop !== '—' ? '<div style="font-size:10px;color:var(--m-negative);margin-top:2px">止损价 ' + stop + ' · 现价 ' + close + '</div>' : '') +
+        (type === 'buy' ? '<div style="font-size:10px;color:var(--m-text-3);margin-top:2px">现价 ' + close + '</div>' : '') +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">' +
+        '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,.2);color:' + color + '">' + tag + '</span>' +
+        pnlHtml +
+      '</div>' +
+    '</div>';
+  }
+
+  var html = '';
+  if (stops.length || warns.length) {
+    var stopRows = stops.map(function(s){ return alertRow(s, 'stop'); }).join('') +
+                  warns.map(function(s){ return alertRow(s, 'warn'); }).join('');
+    html += '<div style="margin-bottom:10px">' +
+      '<div style="font-size:10px;font-weight:700;color:var(--m-negative);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">⚠ 需要处理</div>' +
+      stopRows + '</div>';
+  }
+  if (buys.length) {
+    var buyRows = buys.map(function(s){ return alertRow(s, 'buy'); }).join('');
+    html += '<div>' +
+      '<div style="font-size:10px;font-weight:700;color:var(--m-positive);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">✅ 买入信号</div>' +
+      buyRows + '</div>';
+  }
+
+  var card = '<div class="card" style="border-left:3px solid ' + (stops.length ? 'var(--m-negative)' : 'var(--m-positive)') + '">' +
+    '<div class="card-title" style="margin-bottom:8px">🔔 自选股提醒</div>' +
+    html +
+    '<div style="font-size:10px;color:var(--m-text-3);margin-top:8px;text-align:right"><a href="#" onclick="loadTab(\'watchlist\');return false" style="color:var(--m-primary)">查看全部自选 →</a></div>' +
+    '</div>';
+
+  container.insertAdjacentHTML('beforeend', card);
 }
 
 function buildRotationSnapshotCard(snap) {
@@ -254,13 +297,14 @@ async function loadOverview() {
     const d = await sumRes.json();
     const cr = crRes.ok ? await crRes.json() : null;
     const el = document.getElementById('overview-content');
-    // V7.1: 概览 = 4张卡，结论优先，无冗余
+    // V7.2: 择时 + Top5 先渲染，自选提醒异步追加
     el.innerHTML =
       buildTimingCard(d.timing, d.event_narrative, d.rotation_snapshot) +
-      buildTop5Card(d.rotation_snapshot, cr) +
-      buildWatchlistAlertCard(d);
+      buildTop5Card(d.rotation_snapshot, cr);
     el.style.display = 'block';
     document.getElementById('overview-loading').style.display = 'none';
+    // 自选提醒：有止损/买入才渲染，异步追加不阻塞主渲染
+    buildWatchlistAlertCard(el);
   } catch(e) {
     document.getElementById('overview-loading').innerHTML = '<div class="nodata">加载失败: ' + e.message + '</div>';
   }
@@ -587,12 +631,11 @@ async function loadCycleradar() {
     ]);
     var d = await crRes.json();
     var hy = hyRes.ok ? await hyRes.json() : null;
+    // V7.2: 事件叙事第一，统计栏合并好运指数+多空综述，移除独立好运哥卡和市场综述卡
     document.getElementById('cr-content').innerHTML =
-      buildCrStatsBar(d.summary, d.event_narrative, d.daily_pnl) +
       buildCrEventNarrative(d.event_narrative, d.hotEvents) +
-      buildCrMarketSummary(d.summary, d.hotEvents, d.alpha, d.etf, d.commodity) +
-      buildCrCategorySections(d.hotEvents, d.alpha, d.etf, d.commodity, d.alpha_latest) +
-      buildHaoYunCard(hy);
+      buildCrStatsBar(d.summary, d.event_narrative, d.daily_pnl, hy) +
+      buildCrCategorySections(d.hotEvents, d.alpha, d.etf, d.commodity, d.alpha_latest);
     attachCrExpandHandlers();
     document.getElementById('cr-content').style.display = 'block';
     document.getElementById('cr-loading').style.display = 'none';
@@ -601,33 +644,73 @@ async function loadCycleradar() {
   }
 }
 
-// ── V5.1 信号Tab顶部统计栏（参考图: 信源/条数/LLM置信/胜率）──
-function buildCrStatsBar(summary, en, dailyPnl) {
+// ── V7.2 信号Tab统计栏：合并好运指数 + 多空综述 ──
+function buildCrStatsBar(summary, en, dailyPnl, hy) {
   var gc = (en && en.global_conclusion) || {};
-  var srcCount = summary ? (summary.strategyCount || 0) : 0;
   var sigCount = summary ? (summary.active || 0) : 0;
-  var llmConf = gc.confidence || 0;
+  var l = summary ? (summary.longCount || 0) : 0;
+  var s = summary ? (summary.shortCount || 0) : 0;
 
-  // V6.5: 30日胜率优先用 daily_pnl (calc_30d_winrate.py 回溯计算), 次选 gc.win_rate
+  // 30日胜率
   var winRate = null;
-  if (dailyPnl && dailyPnl.win_rate != null) {
-    winRate = dailyPnl.win_rate;
-  } else if (gc.win_rate != null) {
-    winRate = gc.win_rate;
+  if (dailyPnl && dailyPnl.win_rate != null) winRate = dailyPnl.win_rate;
+  else if (gc.win_rate != null) winRate = gc.win_rate;
+
+  // 好运指数：来自 haoyunge API（posture.score 或 position_pct）
+  var hyScore = null;
+  var hyLabel = '';
+  var hyColor = 'var(--m-text-2)';
+  if (hy) {
+    // posture 字段或直接的 position_pct
+    var pos = hy.position_pct || hy.posture_pct || null;
+    if (pos != null) {
+      hyScore = Math.round(pos);
+      hyColor = hyScore >= 70 ? 'var(--m-positive)' : hyScore >= 40 ? 'var(--m-warn)' : 'var(--m-negative)';
+      hyLabel = hy.posture || hy.regime || '';
+    }
   }
 
-  var items = [
-    { label: '信源', value: srcCount + '/16' },
-    { label: '条数', value: sigCount + '条' },
-    { label: 'LLM置信', value: llmConf },
-    { label: '30日胜率', value: winRate !== null ? winRate + '%' : '—' }
-  ];
+  // 多空比文字
+  var lsRatio = s > 0 ? (l / s).toFixed(1) + 'x' : (l > 0 ? '全多' : '—');
+  var lsColor = l >= s ? 'var(--m-positive)' : 'var(--m-negative)';
 
-  var html = items.map(function(it) {
-    return '<span class="cr-stat-item"><span class="cr-stat-val">' + it.value + '</span><span class="cr-stat-label">' + it.label + '</span></span>';
-  }).join('<span class="cr-stat-sep">·</span>');
+  // 市场体制一句话（来自信号分布）
+  var regime = '';
+  if (l > 0 || s > 0) {
+    var ratio = l / Math.max(s, 1);
+    if (ratio >= 2.5)     regime = '强势做多';
+    else if (ratio >= 2)  regime = '进攻偏多';
+    else if (l >= s)      regime = '均衡偏多';
+    else if (ratio >= 0.4) regime = '偏空防御';
+    else                   regime = '强势避险';
+  }
 
-  return '<div class="cr-stats-bar">' + html + '</div>';
+  // 顶行：4格核心数据
+  var topRow = '<div style="display:flex;border-bottom:1px solid var(--m-border)">' +
+    _statCell(sigCount + '条', '活跃信号', 'var(--m-primary)', true) +
+    _statCell(lsRatio, '多空比', lsColor, false) +
+    _statCell(winRate !== null ? winRate + '%' : '—', '30日胜率', winRate >= 60 ? 'var(--m-positive)' : winRate !== null && winRate < 45 ? 'var(--m-negative)' : 'var(--m-text-2)', false) +
+    (hyScore !== null ? _statCell(hyScore + '%', '好运指数', hyColor, false) : _statCell('—', '好运指数', 'var(--m-text-3)', false)) +
+    '</div>';
+
+  // 底行：体制标签 + 好运指数说明
+  var bottomParts = [];
+  if (regime) bottomParts.push('<span style="font-size:11px;font-weight:700;color:' + lsColor + '">' + regime + '</span>');
+  if (hyLabel) bottomParts.push('<span style="font-size:11px;color:var(--m-text-3)">· 好运哥建议 <b style="color:' + hyColor + '">' + hyLabel + '</b></span>');
+  if (l > 0 || s > 0) bottomParts.push('<span style="font-size:11px;color:var(--m-text-3)">多 ' + l + ' · 空 ' + s + '</span>');
+
+  var bottomRow = bottomParts.length
+    ? '<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;flex-wrap:wrap">' + bottomParts.join('') + '</div>'
+    : '';
+
+  return '<div class="cr-stats-bar" style="background:var(--m-surface-2);border-radius:10px;margin-bottom:12px;overflow:hidden">' + topRow + bottomRow + '</div>';
+}
+
+function _statCell(val, label, color, first) {
+  return '<div style="flex:1;text-align:center;padding:10px 4px' + (first ? '' : ';border-left:1px solid var(--m-border)') + '">' +
+    '<div style="font-size:16px;font-weight:800;color:' + color + ';line-height:1.2">' + val + '</div>' +
+    '<div style="font-size:10px;color:var(--m-text-3);margin-top:2px">' + label + '</div>' +
+    '</div>';
 }
 
 // ── V5.0 事件叙事解读（信号Tab顶部，event_narrative_latest.json 驱动）──

@@ -1,4 +1,21 @@
 <%- include('../partials/layout-top') %>
+
+<style>
+  .status-cards { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .status-card { flex: 1; min-width: 200px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; }
+  .status-card .label { font-size: .8rem; color: #64748b; margin-bottom: .25rem; }
+  .status-card .value { font-size: 1.5rem; font-weight: 700; }
+  .status-card.enrich .value { color: #2563eb; }
+  .status-card.ticker .value { color: #16a34a; }
+  .status-card.gen .value { color: #9333ea; }
+  .status-card .hint { font-size: .75rem; color: #94a3b8; margin-top: .25rem; }
+  .gen-bar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+  .btn-generate { padding: .5rem 1.25rem; background: #1e293b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: .9rem; }
+  .btn-generate:hover { background: #334155; }
+  .btn-generate:disabled { opacity: .5; cursor: not-allowed; }
+  .flash-ok { background: #dcfce7; color: #166534; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem; }
+  .flash-info { background: #e0f2fe; color: #075985; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem; }
+</style>
 </head>
 <body>
 <%- include('../partials/nav', { active: 'articles' }) %>
@@ -8,8 +25,90 @@
 
   <div class="subnav">
     <a href="/admin/articles" class="subnav-tab active">文章列表</a>
+    <a href="/admin/articles/sources" class="subnav-tab">信源管理</a>
     <a href="/admin/articles/stats" class="subnav-tab">数据统计</a>
+    <a href="/admin/templates" class="subnav-tab">📝 模板管理</a>
   </div>
+
+  <!-- 添加信源表单 -->
+  <details style="margin-bottom: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+    <summary style="cursor: pointer; font-weight: 600; color: #1e293b; user-select: none;">
+      ➕ 添加信源（手动提交 URL / 文章内容）
+    </summary>
+    <% if (locals.flash && locals.flash.error) { %>
+      <div style="margin-top: .5rem; background: #fef2f2; color: #b91c1c; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem;"><%= locals.flash.error %></div>
+    <% } %>
+    <% if (locals.flash && locals.flash.submitted) { %>
+      <div style="margin-top: .5rem; background: #dcfce7; color: #166534; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem;">✅ 信源已提交，待 22:30 晚间增强处理</div>
+    <% } %>
+    <form method="POST" action="/admin/articles/submit" style="margin-top: .75rem; display: flex; flex-direction: column; gap: .5rem;">
+      <input type="url" name="url" placeholder="原文 URL（选填）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem;" />
+      <input type="text" name="title" placeholder="文章标题（选填，会自动推断）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem;" />
+      <textarea name="content" rows="6" placeholder="粘贴文章全文...（必填）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem; font-family: inherit; resize: vertical;" required></textarea>
+      <button type="submit" style="align-self: flex-start; padding: .5rem 1.25rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: .85rem;">提交信源</button>
+    </form>
+  </details>
+
+  <!-- Plan C: 状态卡片 + 生成按钮 -->
+  <% if (locals.enrichmentStatus) { %>
+  <div class="status-cards">
+    <div class="status-card enrich">
+      <div class="label">📋 今日标注</div>
+      <div class="value"><%= locals.enrichmentStatus.today || 0 %></div>
+      <div class="hint">累计 <%= locals.enrichmentStatus.total || 0 %> 条</div>
+    </div>
+    <div class="status-card ticker">
+      <div class="label">🎯 有标的</div>
+      <div class="value"><%= locals.enrichmentStatus.todayWithTickers || 0 %></div>
+      <div class="hint">今日标注中可交易</div>
+    </div>
+    <div class="status-card gen">
+      <div class="label">📄 今日生成</div>
+      <div class="value"><%= (locals.pipelineStatus && locals.pipelineStatus.generated) || 0 %></div>
+      <div class="hint"><%= (locals.pipelineStatus && locals.pipelineStatus.run_at) ? '最近: ' + locals.pipelineStatus.run_at.slice(0,16) : '尚未生成' %></div>
+    </div>
+  </div>
+
+  <div class="gen-bar">
+    <form method="POST" action="/admin/articles/generate" style="display:inline">
+      <button type="submit" class="btn-generate"
+              <%= (!locals.enrichmentStatus || locals.enrichmentStatus.today === 0) ? 'disabled' : '' %>>
+        🚀 生成今日日报
+      </button>
+    </form>
+    <% if (locals.flash && locals.flash.generated > 0) { %>
+      <span class="flash-ok">✅ 已生成 <%= locals.flash.generated %> 篇</span>
+    <% } else if (locals.flash && locals.flash.generated === 0) { %>
+      <span class="flash-info">ℹ️ 本日无已标注文章，跳过生成</span>
+    <% } %>
+  </div>
+  <% } %>
+
+  <!-- ── 公众号发文卡片 ── -->
+  <% if (articles && articles.length > 0) { %>
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <div>
+        <span style="font-size:14px;font-weight:700;color:#f1f5f9">📲 公众号发文</span>
+        <span style="font-size:11px;color:#64748b;margin-left:8px"><%= articles.length %> 篇已生成，可选择推送草稿</span>
+      </div>
+      <a href="/admin/articles/stats" style="font-size:11px;color:#3b82f6;text-decoration:none">查看统计 →</a>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <% articles.slice(0, 5).forEach(a => { %>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0f172a;border-radius:6px;border:1px solid #1e293b">
+        <span style="font-size:12px;color:#94a3b8;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= a.name %></span>
+        <span style="font-size:11px;color:#475569;flex-shrink:0"><%= new Date(a.mtime).toLocaleDateString('zh-CN') %></span>
+        <a href="/article/<%= a.name %>.html" target="_blank"
+           style="font-size:11px;padding:3px 10px;border-radius:4px;background:#1e3a5f;color:#60a5fa;text-decoration:none;flex-shrink:0">预览</a>
+      </div>
+      <% }) %>
+      <% if (articles.length > 5) { %>
+      <div style="font-size:11px;color:#475569;text-align:center;padding-top:4px">还有 <%= articles.length - 5 %> 篇 · 查看文章列表</div>
+      <% } %>
+    </div>
+  </div>
+  <% } %>
 
   <div class="dash-section">
     <h3 class="dash-section-title">生成文章列表</h3>
@@ -26,9 +125,10 @@
     <% } else { %>
       <div class="article-empty">
         <p>📝 暂无生成文章</p>
-        <p>运行 V3.9.6 文章生成 Pipeline 后文章将在此列出 (output/article/)</p>
+        <p>运行「生成今日日报」后文章将在此列出 (output/article/)</p>
       </div>
-  <% } %>
+    <% } %>
+  </div>
 </div>
 
 <%- include('../partials/layout-bottom') %>

@@ -33,9 +33,13 @@
 
   <!-- 顶部 -->
   <div class="d-flex align-items-center mb-3">
-    <a href="/admin" class="btn btn-sm btn-outline-secondary me-3">← 返回</a>
-    <h5 class="mb-0 me-3">📡 信源正文投喂</h5>
+    <a href="/admin/dashboard" class="btn btn-sm btn-outline-secondary me-3">← 返回</a>
+    <h5 class="mb-0 me-3">📡 信源管理</h5>
     <span class="text-muted" style="font-size:.85rem">日期：<%= date %></span>
+    <div class="ms-auto d-flex gap-2">
+      <a href="/admin" class="btn btn-sm btn-outline-primary">🗂 RSS 订阅管理</a>
+      <a href="/admin/articles/sources" class="btn btn-sm btn-outline-secondary">📋 信源列表</a>
+    </div>
   </div>
 
   <!-- 缺失预警 -->

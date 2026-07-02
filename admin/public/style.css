@@ -1,28 +1,28 @@
-/* CycleRadar Admin — Design Tokens V1 */
+/* CycleRadar Admin — Design Tokens V7.0 TradingView Dark */
 /* tokens source: admin/design-tokens.md */
 :root {
-  --cr-primary: #3B82F6;
-  --cr-accent: #F59E0B;
-  --cr-bg: #F1F5F9;
-  --cr-surface: #FFFFFF;
-  --cr-surface-alt: #F8FAFC;
-  --cr-surface-dark: #1E293B;
-  --cr-text: #0F172A;
-  --cr-text-secondary: #64748B;
-  --cr-text-inverse: #E2E8F0;
-  --cr-border: #E2E8F0;
-  --cr-border-light: #F1F5F9;
-  --cr-positive: #16A34A;
-  --cr-negative: #DC2626;
-  --cr-warn: #D97706;
-  --cr-info: #6366F1;
-  --cr-bg-attack: #fef2f2;
-  --cr-bg-buy: #f0fdf4;
+  --cr-primary: #2962ff;
+  --cr-accent: #f59e0b;
+  --cr-bg: #131722;
+  --cr-surface: #1e222d;
+  --cr-surface-alt: #1a1e2e;
+  --cr-surface-dark: #0e1117;
+  --cr-text: #d1d4dc;
+  --cr-text-secondary: #787b86;
+  --cr-text-inverse: #d1d4dc;
+  --cr-border: #2a2e39;
+  --cr-border-light: #1e222d;
+  --cr-positive: #26a69a;
+  --cr-negative: #ef5350;
+  --cr-warn: #f59e0b;
+  --cr-info: #a78bfa;
+  --cr-bg-attack: rgba(239,83,80,0.08);
+  --cr-bg-buy: rgba(38,166,154,0.08);
   --cr-radius-sm: 6px;
   --cr-radius: 8px;
   --cr-radius-lg: 12px;
-  --cr-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  --cr-shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+  --cr-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --cr-shadow-md: 0 2px 8px rgba(0,0,0,0.4);
   --cr-transition: 0.15s ease;
 
   /* health 页面专用 tokens（暗色主题，复用 /m 色板语义） */
@@ -119,10 +119,10 @@ select:focus, input:focus { outline: none; border-color: var(--cr-primary); }
 .btn-link { border: none; background: transparent; color: var(--cr-primary); }
 .btn-link:hover { background: transparent; text-decoration: underline; }
 .btn-sm { padding: 4px 9px; font-size: 12px; }
-.btn-warn { color: #92600a; border-color: #f0c14b; background: #fff8e8; }
-.btn-warn:hover { background: #fdeec2; }
-.btn-danger { color: #b42318; border-color: #f3b4ad; background: #fef2f1; }
-.btn-danger:hover { background: #fcdcd8; }
+.btn-warn { color: var(--cr-warn); border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.08); }
+.btn-warn:hover { background: rgba(245,158,11,0.14); }
+.btn-danger { color: var(--cr-negative); border-color: rgba(239,83,80,0.4); background: rgba(239,83,80,0.08); }
+.btn-danger:hover { background: rgba(239,83,80,0.14); }
 .inline { display: inline; margin: 0; }
 
 /* 表格 */
@@ -148,7 +148,7 @@ select:focus, input:focus { outline: none; border-color: var(--cr-primary); }
   text-transform: none;
 }
 .data-table tbody tr:nth-child(even) { background: var(--cr-surface-alt); }
-.data-table tbody tr:hover { background: #f0f6ff; }
+.data-table tbody tr:hover { background: rgba(41,98,255,0.06); }
 .data-table .name { font-weight: 600; }
 .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .data-table .empty { text-align: center; color: var(--cr-text-secondary); padding: 28px; }
@@ -171,8 +171,8 @@ select:focus, input:focus { outline: none; border-color: var(--cr-primary); }
   display: inline-block;
   padding: 2px 9px;
   border-radius: 10px;
-  background: #eef2ff;
-  color: #3730a3;
+  background: rgba(167,139,250,0.12);
+  color: var(--cr-info);
   font-size: 12px;
 }
 
@@ -191,11 +191,11 @@ select:focus, input:focus { outline: none; border-color: var(--cr-primary); }
 /* 状态色标 */
 .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .status .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-.status-active { color: #197d3a; }
+.status-active { color: var(--cr-positive); }
 .status-active .dot { background: var(--cr-positive); }
-.status-paused { color: #92600a; }
+.status-paused { color: var(--cr-warn); }
 .status-paused .dot { background: var(--cr-warn); }
-.status-error { color: #b42318; }
+.status-error { color: var(--cr-negative); }
 .status-error .dot { background: var(--cr-negative); }
 
 /* 卡片/表单 */
@@ -236,6 +236,8 @@ select:focus, input:focus { outline: none; border-color: var(--cr-primary); }
 .nav-tab:hover { color: var(--cr-text-inverse); }
 .nav-tab.active { color: var(--cr-text-inverse); border-bottom-color: var(--cr-primary); font-weight: 500; }
 .nav-ver { margin-left: auto; font-size: 11px; color: var(--cr-text-secondary); background: rgba(255,255,255,0.08); padding: 3px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
+/* V7.2: 导航分组分隔线 */
+.nav-divider { width: 1px; height: 18px; background: var(--cr-border); margin: 0 4px; flex-shrink: 0; }
 
 /* 子导航 */
 .subnav { display: flex; gap: 4px; margin: 16px 0 0; border-bottom: 1px solid var(--cr-border); }
@@ -282,8 +284,8 @@ select:focus, input:focus { outline: none; border-color: var(--cr-primary); }
 .sig-table td { padding: 8px 10px; border-bottom: 1px solid var(--cr-border-light); }
 .sig-table tbody tr:hover { background: var(--cr-surface-alt); }
 .sig-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-.sig-badge.long { background: #dcfce7; color: var(--cr-positive); }
-.sig-badge.short { background: #fce4ec; color: var(--cr-negative); }
+.sig-badge.long { background: rgba(38,166,154,0.15); color: var(--cr-positive); }
+.sig-badge.short { background: rgba(239,83,80,0.15); color: var(--cr-negative); }
 
 /* 策略分布 */
 .strategy-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--cr-border-light); transition: background var(--cr-transition); }
@@ -297,8 +299,8 @@ select:focus, input:focus { outline: none; border-color: var(--cr-primary); }
 .heatmap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .heatmap-table th { text-align: left; padding: 6px 10px; border-bottom: 2px solid var(--cr-border); color: var(--cr-text-secondary); font-size: 11px; }
 .heatmap-cell { text-align: center; padding: 6px 10px; border-bottom: 1px solid var(--cr-border-light); font-weight: 700; }
-.heatmap-hot { background: #dcfce7; color: var(--cr-positive); }
-.heatmap-warm { background: #fef9c3; color: #854d0e; }
+.heatmap-hot { background: rgba(38,166,154,0.15); color: var(--cr-positive); }
+.heatmap-warm { background: rgba(245,158,11,0.12); color: var(--cr-warn); }
 .heatmap-cold { background: var(--cr-surface-alt); color: var(--cr-text-secondary); }
 
 /* 交易员工作台 */
@@ -315,7 +317,7 @@ select:focus, input:focus { outline: none; border-color: var(--cr-primary); }
 /* 文章看板 */
 .article-list { display: flex; flex-direction: column; gap: 8px; }
 .article-item { display: flex; align-items: center; gap: 16px; padding: 10px 12px; background: var(--cr-surface-alt); border-radius: var(--cr-radius-sm); }
-.article-item:hover { background: #f0f6ff; }
+.article-item:hover { background: rgba(41,98,255,0.06); }
 .article-name { font-weight: 600; font-size: 13px; flex: 1; color: var(--cr-text); }
 .article-mtime { font-size: 12px; color: var(--cr-text-secondary); }
 .article-link { font-size: 12px; color: var(--cr-primary); text-decoration: none; }
