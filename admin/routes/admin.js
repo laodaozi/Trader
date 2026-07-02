@@ -24,12 +24,35 @@ router.get('/', (req, res) => {
   });
 });
 
-// GET /architecture — 技术架构图
+// GET /architecture — 技术架构图（动态渲染 Markdown 源文件）
 router.get('/architecture', (req, res) => {
-  res.render('admin/architecture', {
-    title: '技术架构',
-    active: 'admin',
-  });
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const { marked } = require('marked');
+
+    // Configure marked for safe rendering
+    marked.setOptions({ gfm: true, breaks: true });
+
+    const mdPath = path.resolve(__dirname, '../../docs/architecture-v6.1.md');
+    const raw = fs.readFileSync(mdPath, 'utf-8');
+
+    // Extract version from title (# CycleRadar Trader · 系统架构 V6.5)
+    const versionMatch = raw.match(/系统架构\s+(V\d+\.\d+)/);
+    const version = versionMatch ? versionMatch[1] : 'V6';
+
+    const html = marked.parse(raw);
+
+    res.render('admin/architecture', {
+      title: `${version} 技术架构 · CycleRadar Trader`,
+      active: 'admin',
+      body: html,
+      version,
+    });
+  } catch (err) {
+    console.error('[architecture] failed to render:', err.message);
+    res.status(500).send('架构图渲染失败，请检查 docs/architecture-v6.1.md 是否存在');
+  }
 });
 
 // GET /accounts/new — 新增页（放在 :id 之前，避免被参数路由捕获）

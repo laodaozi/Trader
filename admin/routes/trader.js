@@ -18,14 +18,17 @@ const TIMING_PATH = path.join(__dirname, '..', '..', 'data', 'timing_history.jso
 // V4.0.1: 对齐 core/daily.py XDG 标准，告别越级相对路径
 const POSITIONS_PATH = path.join(os.homedir(), '交易员', 'data', 'positions.json');
 
+const ROTATION_PATH = path.join(__dirname, '..', '..', 'data', 'rotation_snapshot.json');
+
 // ── /admin/trader ── 工作台首页：概览仪表盘 ──
 router.get('/trader', async (req, res) => {
   try {
-    const [strategyDateList, latestStrategy, trackerSummary, backtestReports] = await Promise.all([
+    const [strategyDateList, latestStrategy, trackerSummary, backtestReports, globalWinRates] = await Promise.all([
       strategyModel.getAvailableDates(),
       strategyModel.getLatestStrategy(),
       trackerModel.getTrackerSummary(),
       backtestModel.listReports(),
+      trackerModel.globalWinRateByStrategy(),
     ]);
 
     // 市场体温数据
@@ -42,6 +45,39 @@ router.get('/trader', async (req, res) => {
       account = JSON.parse(raw);
     } catch (_) { /* optional */ }
 
+    // 轮动快照（工作流引导条用）
+    let rotationSnapshot = null;
+    try {
+      rotationSnapshot = JSON.parse(await fs.readFile(ROTATION_PATH, 'utf8'));
+    } catch (_) { /* optional */ }
+
+    // 今日运营摘要：各管线日志最近修改时间
+    const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+    const LOGS_DIR = path.join(DATA_DIR, 'logs');
+    const today = new Date().toISOString().slice(0, 10);
+    async function _logStatus(pattern) {
+      try {
+        const files = await fs.readdir(LOGS_DIR);
+        const matched = files.filter(f => f.includes(pattern)).sort().reverse();
+        if (!matched.length) return { ran: false };
+        const stat = await fs.stat(path.join(LOGS_DIR, matched[0]));
+        const ranToday = stat.mtime.toISOString().slice(0, 10) === today;
+        return { ran: ranToday, file: matched[0], mtime: stat.mtime.toISOString() };
+      } catch { return { ran: false }; }
+    }
+    const [scannerLog, maLog, reflectionLog, stockAgentLog] = await Promise.all([
+      _logStatus('scanner_signals_cron'),
+      _logStatus('ma_signals_cron'),
+      _logStatus('strategy_reflection_cron'),
+      _logStatus('stock_agent_cron'),
+    ]);
+    const ops = {
+      scanner:    { label: 'Scanner 14模型', ...scannerLog },
+      ma_signals: { label: '兼并重组信号',   ...maLog },
+      reflection: { label: 'LLM策略反思',    ...reflectionLog },
+      stock_agent:{ label: 'Stock Agent',    ...stockAgentLog },
+    };
+
     res.render('trader/index', {
       title: '交易员工作台',
       active: 'trader',
@@ -52,6 +88,9 @@ router.get('/trader', async (req, res) => {
       backtestReports,
       timing,
       account,
+      globalWinRates,
+      ops,
+      rotationSnapshot,
       error: null,
     });
   } catch (error) {
@@ -111,7 +150,10 @@ router.get('/trader/tracker', async (req, res) => {
   try {
     const dateParam = req.query.date;
     const horizonParam = parseInt(req.query.horizon) || 5;
-    const trackerSummary = await trackerModel.getTrackerSummary();
+    const [trackerSummary, globalWinRates] = await Promise.all([
+      trackerModel.getTrackerSummary(),
+      trackerModel.globalWinRateByStrategy(),
+    ]);
 
     if (!trackerSummary) {
       return res.render('trader/tracker', {
@@ -122,6 +164,7 @@ router.get('/trader/tracker', async (req, res) => {
         currentDate: null,
         currentHorizon: horizonParam,
         records: [],
+        globalWinRates: [],
         error: '暂无跟踪数据',
       });
     }
@@ -137,6 +180,7 @@ router.get('/trader/tracker', async (req, res) => {
       currentDate,
       currentHorizon: horizonParam,
       records,
+      globalWinRates,
       error: null,
     });
   } catch (error) {
@@ -191,42 +235,13 @@ router.get('/trader/tracker/stock/:code', async (req, res) => {
 // ── /admin/trader/backtest ── 回测报告 ──
 router.get('/trader/backtest', async (req, res) => {
   try {
-    const [reports, trackerSummary, latestStrategy] = await Promise.all([
-      backtestModel.listReports(),
-      trackerModel.getTrackerSummary(),
-      strategyModel.getLatestStrategy(),
-    ]);
-
-    // 从 tracker 提炼回测结论
-    let conclusion = null;
-    if (trackerSummary) {
-      const stockSum = trackerSummary.stockSummary || [];
-      let totalDecisions = 0, hits = 0, misses = 0, pending = 0, nodata = 0;
-      for (const s of stockSum) {
-        totalDecisions += s.total || 0;
-        hits   += s.hit    || 0;
-        misses += s.miss   || 0;
-        pending += s.pending || 0;
-        nodata  += s.nodata  || 0;
-      }
-      const effective = totalDecisions - nodata;
-      const hitRate = effective > 0 ? Math.round((hits / effective) * 100) : null;
-      conclusion = {
-        totalDecisions,
-        hits, misses, pending, nodata,
-        hitRate,
-        latestDate: trackerSummary.latestDate || null,
-        stockCount: stockSum.length,
-        watchlistCount: latestStrategy ? latestStrategy.count : null,
-      };
-    }
+    const reports = await backtestModel.listReports();
 
     res.render('trader/backtest', {
       title: '策略回测',
       active: 'trader',
       subTab: 'backtest',
       reports,
-      conclusion,
       error: null,
     });
   } catch (error) {
@@ -426,31 +441,6 @@ router.post('/trader/watchlist/delete', async (req, res) => {
   }
 });
 
-// ── POST /admin/trader/watchlist/delete-batch ── 自选股批量删除 ──
-router.post('/trader/watchlist/delete-batch', async (req, res) => {
-  try {
-    const raw = req.body.codes || '';
-    const codes = (Array.isArray(raw) ? raw : [raw]).map(c => (c || '').trim()).filter(Boolean);
-    if (codes.length === 0) {
-      return res.redirect('/admin/trader/watchlist?error=' + encodeURIComponent('未选择任何股票'));
-    }
-    let removed = 0;
-    for (const code of codes) {
-      const result = await watchlistModel.remove(code);
-      if (result.removed) removed++;
-    }
-    res.redirect('/admin/trader/watchlist?success=' + encodeURIComponent(`已批量移除 ${removed} 只`));
-  } catch (error) {
-    res.status(500).render('admin/error', {
-      title: '500 服务器错误',
-      status: 500,
-      active: 'trader',
-      message: '批量删除失败',
-      error,
-    });
-  }
-});
-
 // ── POST /admin/trader/watchlist/import ── 自选股批量导入（CSV/JSON） ──
 router.post('/trader/watchlist/import', async (req, res) => {
   try {
@@ -534,101 +524,6 @@ router.post('/trader/watchlist/import', async (req, res) => {
   }
 });
 
-// ── /admin/trader/article-stats ── 微信文章统计 ──
-router.get('/trader/article-stats', async (req, res) => {
-  try {
-    const enrichPath = path.join(__dirname, '..', '..', 'data', 'hot_enrichment.json');
-    let enrichment = {};
-    try {
-      const raw = await fs.readFile(enrichPath, 'utf8');
-      enrichment = JSON.parse(raw);
-    } catch (_) { /* optional */ }
-
-    const entries = Object.entries(enrichment);
-    const totalArticles = entries.length;
-    const withTickers = entries.filter(([, e]) => e.tickers && e.tickers.length > 0);
-    const articlesWithTickers = withTickers.length;
-    const zeroTickerCount = totalArticles - articlesWithTickers;
-
-    const allTickers = [];
-    for (const [, e] of entries) {
-      if (e.tickers && Array.isArray(e.tickers)) {
-        allTickers.push(...e.tickers);
-      }
-    }
-    const totalTickers = allTickers.length;
-    const uniqueCodes = new Set(allTickers.map((t) => t.code));
-    const uniqueTickers = uniqueCodes.size;
-    const avgTickers = totalArticles > 0 ? (totalTickers / totalArticles).toFixed(1) : '0.0';
-    const signalRatio = totalArticles > 0 ? Math.round((articlesWithTickers / totalArticles) * 100) + '%' : '0%';
-
-    let earliestEnrich = null;
-    let latestEnrich = null;
-    for (const [, e] of entries) {
-      if (e.enriched_at) {
-        if (!earliestEnrich || e.enriched_at < earliestEnrich) earliestEnrich = e.enriched_at;
-        if (!latestEnrich || e.enriched_at > latestEnrich) latestEnrich = e.enriched_at;
-      }
-    }
-
-    const tickerCountMap = {};
-    for (const t of allTickers) {
-      const key = t.code;
-      if (!tickerCountMap[key]) tickerCountMap[key] = { code: t.code, name: t.name, count: 0 };
-      tickerCountMap[key].count++;
-    }
-    const topTickers = Object.values(tickerCountMap)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 15);
-
-    const dailyMap = {};
-    for (const [, e] of entries) {
-      if (!e.enriched_at) continue;
-      const date = e.enriched_at.slice(0, 10);
-      if (!dailyMap[date]) dailyMap[date] = { total: 0, withTickers: 0, tickerCount: 0, zeroCount: 0 };
-      dailyMap[date].total++;
-      if (e.tickers && e.tickers.length > 0) {
-        dailyMap[date].withTickers++;
-        dailyMap[date].tickerCount += e.tickers.length;
-      } else {
-        dailyMap[date].zeroCount++;
-      }
-    }
-    const dailyCounts = Object.entries(dailyMap)
-      .map(([date, d]) => ({ date, ...d }))
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 30);
-
-    res.render('trader/article-stats', {
-      title: '微信文章统计',
-      active: 'trader',
-      subTab: 'article-stats',
-      stats: {
-        totalArticles,
-        articlesWithTickers,
-        signalRatio,
-        totalTickers,
-        uniqueTickers,
-        avgTickers,
-        earliestEnrich,
-        latestEnrich,
-        zeroTickerCount,
-        topTickers,
-        dailyCounts,
-      },
-      error: null,
-    });
-  } catch (error) {
-    res.status(500).render('admin/error', {
-      title: '500 服务器错误',
-      status: 500,
-      active: 'trader',
-      message: '文章统计数据加载失败',
-      error,
-    });
-  }
-});
-
 // ── /admin/trader/drawdown ── 回撤统计（双池：自动选股 + 自选股） ──
 router.get('/trader/drawdown', async (req, res) => {
   try {
@@ -692,6 +587,12 @@ router.get('/trader/reflection', async (req, res) => {
       }).filter(Boolean);
     } catch (_) { /* optional */ }
 
+    // 读取轮动快照
+    let rotationSnapshot = null;
+    try {
+      rotationSnapshot = JSON.parse(await fs.readFile(ROTATION_PATH, 'utf8'));
+    } catch (_) { /* optional */ }
+
     // 汇总统计
     const stats = {
       totalReflections: reflections.length,
@@ -707,7 +608,8 @@ router.get('/trader/reflection', async (req, res) => {
       active: 'trader',
       subTab: 'reflection',
       stats,
-      llmReflection,           // LLM 策略反思（generate_strategy_reflection.py 产出）
+      llmReflection,
+      rotationSnapshot,
       reflections: reflections.slice(-20).reverse(),
       strategies: strategies.slice(-10).reverse(),
       scannerEntries: scannerEntries.slice(-5).reverse(),
@@ -719,6 +621,33 @@ router.get('/trader/reflection', async (req, res) => {
       status: 500,
       active: 'trader',
       message: '策略反思数据加载失败',
+      error,
+    });
+  }
+});
+
+// ── POST /admin/trader/reflection/rotation-snapshot ── 轮动快照写入 ──
+router.post('/trader/reflection/rotation-snapshot', async (req, res) => {
+  try {
+    const { direction, confidence, catalyst, evidence, lead_signals, watchlist, doubt } = req.body;
+    const snapshot = {
+      updated_at: new Date().toISOString(),
+      direction: (direction || '').trim(),
+      confidence: parseInt(confidence) || 0,
+      catalyst: (catalyst || '').trim(),
+      evidence: (evidence || '').trim(),
+      lead_signals: (lead_signals || '').trim(),
+      watchlist: (watchlist || '').trim(),
+      doubt: (doubt || '').trim(),
+    };
+    await fs.writeFile(ROTATION_PATH, JSON.stringify(snapshot, null, 2), 'utf8');
+    res.redirect('/admin/trader/reflection#rotation-snapshot');
+  } catch (error) {
+    res.status(500).render('admin/error', {
+      title: '500 服务器错误',
+      status: 500,
+      active: 'trader',
+      message: '轮动快照写入失败',
       error,
     });
   }

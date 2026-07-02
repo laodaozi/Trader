@@ -304,7 +304,7 @@ async function loadOverview() {
     el.style.display = 'block';
     document.getElementById('overview-loading').style.display = 'none';
     // 自选提醒：有止损/买入才渲染，异步追加不阻塞主渲染
-    buildWatchlistAlertCard(el);
+    buildWatchlistAlertCard(el).catch(function() {/* 静默失败，不影响概览主体 */});
   } catch(e) {
     document.getElementById('overview-loading').innerHTML = '<div class="nodata">加载失败: ' + e.message + '</div>';
   }
@@ -625,16 +625,19 @@ function closeModal() { document.getElementById('stock-modal').classList.remove(
 // ====== Cycleradar Tab ======
 async function loadCycleradar() {
   try {
-    const [crRes, hyRes] = await Promise.all([
+    const [crRes, hyRes, trkRes] = await Promise.all([
       fetch('/m/api/cycleradar'),
-      fetch('/m/api/haoyunge')
+      fetch('/m/api/haoyunge'),
+      fetch('/m/api/tracker/all')
     ]);
     var d = await crRes.json();
     var hy = hyRes.ok ? await hyRes.json() : null;
+    var trk = trkRes.ok ? await trkRes.json() : null;
     // V7.2: 事件叙事第一，统计栏合并好运指数+多空综述，移除独立好运哥卡和市场综述卡
     document.getElementById('cr-content').innerHTML =
       buildCrEventNarrative(d.event_narrative, d.hotEvents) +
       buildCrStatsBar(d.summary, d.event_narrative, d.daily_pnl, hy) +
+      buildStrategyWinRateCard(trk, d.byStrategy) +
       buildCrCategorySections(d.hotEvents, d.alpha, d.etf, d.commodity, d.alpha_latest);
     attachCrExpandHandlers();
     document.getElementById('cr-content').style.display = 'block';
@@ -713,7 +716,92 @@ function _statCell(val, label, color, first) {
     '</div>';
 }
 
-// ── V5.0 事件叙事解读（信号Tab顶部，event_narrative_latest.json 驱动）──
+// ── V7.2 策略胜率排行卡（信号有效性检验）──
+function buildStrategyWinRateCard(trk, byStrategy) {
+  // byStrategy: 当前活跃信号分布（来自 cycleradar API）
+  // trk: tracker 历史数据（hits/misses/records）
+  var STRAT_LABEL = {
+    'report_agent': '事件驱动', 'scanner': '形态扫描',
+    'ma_signals': '均线信号', 'wanjun_models': '量化模型',
+    'stock_agent': 'AI研判', 'rotation_factor': '轮动因子',
+    'commodity_radar': '商品雷达'
+  };
+
+  // 从 tracker records 统计每策略胜率
+  var stratStats = {};
+  if (trk && trk.records) {
+    trk.records.forEach(function(r) {
+      // signal 字段如 "✅ 买入"，strategy 字段从 byStrategy 映射不到，用 signal 类型代替
+      // verdict: HIT / LOSE / EXPIRE / pending/null
+      var sig = r.signal || '';
+      // 用 horizon 作为维度：5日/10日/20日
+      var h = r.horizon || 5;
+      var key = h + '日';
+      if (!stratStats[key]) stratStats[key] = { hit: 0, lose: 0, expire: 0, total: 0 };
+      stratStats[key].total++;
+      var v = (r.verdict || '').toUpperCase();
+      if (v === 'HIT')    stratStats[key].hit++;
+      else if (v === 'LOSE' || v === 'MISS') stratStats[key].lose++;
+      else if (v === 'EXPIRE') stratStats[key].expire++;
+    });
+  }
+
+  // 当前活跃信号分布
+  var activeRows = '';
+  if (byStrategy && byStrategy.length) {
+    activeRows = byStrategy.slice(0,6).map(function(s) {
+      var label = STRAT_LABEL[s.strategy] || s.strategy;
+      var longPct = s.count > 0 ? Math.round(s.long / s.count * 100) : 0;
+      var barColor = longPct >= 70 ? 'var(--m-positive)' : longPct >= 40 ? 'var(--m-primary)' : 'var(--m-negative)';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--m-border)">' +
+        '<div style="flex:1;font-size:11px;color:var(--m-text)">' + label + '</div>' +
+        '<div style="font-size:11px;color:var(--m-text-3);flex-shrink:0">' + s.count + '条</div>' +
+        '<div style="width:60px;height:4px;background:var(--m-border);border-radius:2px;flex-shrink:0">' +
+          '<div style="width:' + longPct + '%;height:100%;background:' + barColor + ';border-radius:2px"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;color:' + barColor + ';font-weight:700;width:28px;text-align:right;flex-shrink:0">' + longPct + '%多</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // 胜率统计（horizon维度）
+  var winRateRows = '';
+  var horizons = Object.keys(stratStats).sort();
+  if (horizons.length) {
+    winRateRows = horizons.map(function(h) {
+      var st = stratStats[h];
+      var decided = st.hit + st.lose;
+      var wr = decided > 0 ? Math.round(st.hit / decided * 100) : null;
+      var wrColor = wr === null ? 'var(--m-text-3)' : wr >= 60 ? 'var(--m-positive)' : wr >= 45 ? 'var(--m-warn)' : 'var(--m-negative)';
+      var wrText = wr !== null ? wr + '%' : '待验证';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--m-border)">' +
+        '<div style="flex:1;font-size:11px;color:var(--m-text)">' + h + '跟踪</div>' +
+        '<div style="font-size:10px;color:var(--m-text-3)">' + st.total + '条 · 已判' + decided + '</div>' +
+        '<div style="font-size:13px;font-weight:800;color:' + wrColor + ';min-width:44px;text-align:right">' + wrText + '</div>' +
+      '</div>';
+    }).join('');
+  } else {
+    winRateRows = '<div style="font-size:11px;color:var(--m-text-3);padding:8px 0">暂无已判定记录，信号验证中</div>';
+  }
+
+  return '<div class="cr-section" style="margin-bottom:12px">' +
+    '<details>' +
+      '<summary style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--m-surface-2);border-radius:8px;cursor:pointer;list-style:none;user-select:none">' +
+        '<span style="font-size:12px;font-weight:700;color:var(--m-text)">📊 策略有效性</span>' +
+        '<span style="font-size:10px;color:var(--m-text-3);margin-left:auto">' + (trk ? trk.totalDecisions : 0) + '条历史 · 点击展开</span>' +
+        '<span style="font-size:10px;color:var(--m-text-3)">▼</span>' +
+      '</summary>' +
+      '<div style="padding:4px 14px 0">' +
+        '<div style="font-size:10px;font-weight:700;color:var(--m-text-3);text-transform:uppercase;letter-spacing:.8px;margin:10px 0 4px">胜率验证（按持有周期）</div>' +
+        winRateRows +
+        '<div style="font-size:10px;font-weight:700;color:var(--m-text-3);text-transform:uppercase;letter-spacing:.8px;margin:10px 0 4px">当前活跃信号分布</div>' +
+        activeRows +
+      '</div>' +
+    '</details>' +
+  '</div>';
+}
+
+
 function buildCrEventNarrative(en, hotEvents) {
   if (!en) return '';
   var gc = en.global_conclusion || {};

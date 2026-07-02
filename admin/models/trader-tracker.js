@@ -148,4 +148,38 @@ function _uniqSorted(arr) {
   return [...new Set(arr)].filter(Boolean).sort().reverse();
 }
 
-module.exports = { getAvailableDates, getTrackerSummary, getTrackerByDateHorizon, getStockTrackingHistory };
+// ── 全局胜率（按策略类型分组，供 Admin tracker 页面诊断卡使用）──
+async function globalWinRateByStrategy() {
+  const records = await _readAll();
+  const groups = {};
+  for (const r of records) {
+    const strat = r.strategy || '未知';
+    if (!groups[strat]) groups[strat] = { win: 0, lose: 0, hold: 0, hitStop: 0,
+      maxReturnSum: 0, maxDdSum: 0, finalReturnSum: 0, count: 0 };
+    const g = groups[strat];
+    const res = r.result || '';
+    if (res === 'WIN') g.win++;
+    else if (res === 'LOSE') g.lose++;
+    else g.hold++;
+    if (r.hit_stop) g.hitStop++;
+    if (r.max_return != null) { g.maxReturnSum += r.max_return; g.count++; }
+    if (r.max_dd != null)     g.maxDdSum     += r.max_dd;
+    if (r.final_return != null) g.finalReturnSum += r.final_return;
+  }
+  return Object.entries(groups).map(([strat, g]) => {
+    const closed = g.win + g.lose;
+    const winRate = closed > 0 ? Math.round(g.win / closed * 100) : null;
+    const hitStopRate = g.lose > 0 ? Math.round(g.hitStop / g.lose * 100) : null;
+    return {
+      strategy: strat,
+      win: g.win, lose: g.lose, hold: g.hold, closed,
+      winRate,
+      hitStopRate,   // LOSE 中止损触发比例（越高说明止损线问题）
+      avgMaxReturn:  g.count > 0 ? Math.round(g.maxReturnSum / g.count * 1000) / 10 : null,
+      avgMaxDd:      g.count > 0 ? Math.round(g.maxDdSum     / g.count * 1000) / 10 : null,
+      avgFinalReturn:g.count > 0 ? Math.round(g.finalReturnSum / g.count * 1000) / 10 : null,
+    };
+  }).sort((a, b) => (b.closed - a.closed));
+}
+
+module.exports = { getAvailableDates, getTrackerSummary, getTrackerByDateHorizon, getStockTrackingHistory, globalWinRateByStrategy };

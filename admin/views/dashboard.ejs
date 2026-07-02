@@ -6,21 +6,21 @@
   <title><%= title %></title>
   <style>
     :root {
-      --m-bg: #0a0e1a;
-      --m-surface: #111827;
-      --m-surface-2: #1e293b;
-      --m-border: #1e293b;
-      --m-primary: #3b82f6;
-      --m-positive: #10b981;
-      --m-negative: #ef4444;
+      --m-bg: #131722;
+      --m-surface: #1e222d;
+      --m-surface-2: #2a2e39;
+      --m-border: #2a2e39;
+      --m-primary: #2962ff;
+      --m-positive: #26a69a;
+      --m-negative: #ef5350;
       --m-warn: #f59e0b;
-      --m-text: #e2e8f0;
-      --m-text-2: #94a3b8;
-      --m-text-3: #64748b;
+      --m-text: #d1d4dc;
+      --m-text-2: #787b86;
+      --m-text-3: #4c5057;
       --m-etf: #a78bfa;
-      --m-primary-rgb: 59,130,246;
-      --m-positive-rgb: 16,185,129;
-      --m-negative-rgb: 239,68,68;
+      --m-primary-rgb: 41,98,255;
+      --m-positive-rgb: 38,166,154;
+      --m-negative-rgb: 239,83,80;
       --m-warn-rgb: 245,158,11;
       --m-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
     }
@@ -325,30 +325,74 @@
     .ev-stock.expanded { background: rgba(var(--m-primary-rgb), 0.15); border-color: var(--m-primary); }
     .ev-stock-more { font-size: 10px; color: var(--m-primary); padding: 2px 6px; align-self: center; }
     .ev-stock-reason { display: none; font-size: 10px; color: var(--m-text-2); margin-top: 3px; padding: 3px 6px; background: rgba(var(--m-primary-rgb), 0.08); border-left: 2px solid var(--m-primary); border-radius: 0 3px 3px 0; box-sizing: border-box; }
+    .rotation-snap-card { border-left: 3px solid var(--m-primary); }
+    .snap-header { display:flex; align-items:baseline; gap:12px; margin:8px 0 6px; }
+    .snap-direction { font-size:20px; font-weight:700; color:var(--m-primary); }
+    .snap-conf { font-size:13px; color:var(--m-text-2); }
+    .snap-row { font-size:13px; margin:3px 0; color:var(--m-text); }
+    .snap-label { font-size:10px; color:var(--m-text-3); font-weight:600; min-width:48px; display:inline-block; }
+    .snap-doubt { color:var(--m-warn); }
+    .snap-updated { font-size:10px; color:var(--m-text-3); margin-top:6px; }
+    .top5-last { border-bottom:none !important; padding-bottom:0; }
+
+    /* ── V7.1 交互感增强 ── */
+    /* 呼吸状态圆点 */
+    @keyframes pulse-green { 0%,100%{box-shadow:0 0 0 0 rgba(38,166,154,0.5)} 50%{box-shadow:0 0 0 5px rgba(38,166,154,0)} }
+    @keyframes pulse-orange { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.5)} 50%{box-shadow:0 0 0 5px rgba(245,158,11,0)} }
+    @keyframes pulse-red { 0%,100%{box-shadow:0 0 0 0 rgba(239,83,80,0.5)} 50%{box-shadow:0 0 0 5px rgba(239,83,80,0)} }
+    .market-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:7px; flex-shrink:0; }
+    .market-dot.bull { background:var(--m-positive); animation:pulse-green 2s ease-in-out infinite; }
+    .market-dot.neutral { background:var(--m-warn); animation:pulse-orange 2s ease-in-out infinite; }
+    .market-dot.bear { background:var(--m-negative); animation:pulse-red 2s ease-in-out infinite; }
+
+    /* header 二行布局 */
+    .app-header { flex-direction:column; align-items:flex-start; gap:6px; padding:16px 16px 12px; }
+    .app-header-row1 { display:flex; align-items:center; justify-content:space-between; width:100%; }
+    .app-header-verdict { font-size:13px; font-weight:700; color:var(--m-text-2); padding-left:2px; min-height:16px; transition:color 0.3s; }
+
+    /* 手风琴卡片 */
+    .accordion-card { cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; }
+    .accordion-card .accordion-body { max-height:0; overflow:hidden; transition:max-height 0.35s ease, opacity 0.25s ease; opacity:0; }
+    .accordion-card.open .accordion-body { max-height:200px; opacity:1; }
+    .accordion-chevron { font-size:10px; color:var(--m-text-3); transition:transform 0.3s; display:inline-block; margin-left:6px; }
+    .accordion-card.open .accordion-chevron { transform:rotate(180deg); }
+
+    /* Top5 展开行 */
+    .top5-row { cursor:pointer; -webkit-tap-highlight-color:transparent; border-radius:8px; transition:background 0.12s; }
+    .top5-row:active { background:rgba(var(--m-primary-rgb),0.06); }
+    .top5-detail { display:none; padding:8px 0 4px 22px; }
+    .top5-row.open .top5-detail { display:block; }
+    .top5-chevron { font-size:9px; color:var(--m-text-3); transition:transform 0.25s; display:inline-block; margin-left:4px; }
+    .top5-row.open .top5-chevron { transform:rotate(180deg); }
     </style>
 </head>
 <body>
 <div class="app-header">
-  <span class="app-title">☀️ <%= title %></span>
-  <span class="app-version"><%= appVersion || 'V6.4' %></span>
+  <div class="app-header-row1">
+    <span class="app-title" style="display:flex;align-items:center">
+      <span class="market-dot neutral" id="market-dot"></span><%= title %>
+    </span>
+    <span class="app-version"><%= appVersion || 'V6.4' %></span>
+  </div>
+  <div class="app-header-verdict" id="header-verdict">加载中...</div>
 </div>
 <div class="m-tabs">
   <div class="m-tab active" data-tab="overview">📊 概览</div>
-  <div class="m-tab" data-tab="watchlist">📱 自选</div>
   <div class="m-tab" data-tab="cycleradar">📡 信号</div>
+  <div class="m-tab" data-tab="watchlist">📱 自选</div>
 </div>
 <div class="m-content">
   <div class="m-panel active" id="p-overview">
     <div id="overview-loading" class="loading"><div class="spin"></div></div>
     <div id="overview-content" style="display:none"></div>
   </div>
-  <div class="m-panel" id="p-watchlist">
-    <div id="wl-loading" class="loading"><div class="spin"></div></div>
-    <div id="wl-content" style="display:none"></div>
-  </div>
   <div class="m-panel" id="p-cycleradar">
     <div id="cr-loading" class="loading"><div class="spin"></div></div>
     <div id="cr-content" style="display:none"></div>
+  </div>
+  <div class="m-panel" id="p-watchlist">
+    <div id="wl-loading" class="loading"><div class="spin"></div></div>
+    <div id="wl-content" style="display:none"></div>
   </div>
 </div>
 <div class="refresh-bar">数据更新 <span onclick="refreshAll()">🔄 刷新</span></div>

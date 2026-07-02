@@ -253,7 +253,7 @@ def analyze_one(code: str, name: str, date: str) -> dict:
         entry_mid = round((entry_low + entry_high) / 2, 2)
 
         # 止损：只用入场下方的 MA 做参考，否则用入场×0.95
-        stop_candidates = [round(entry_mid * 0.95, 2)]
+        stop_candidates = [round(entry_mid * 0.92, 2)]
         if ma.get("ma10") and ma["ma10"] < entry_mid:
             stop_candidates.append(round(ma["ma10"] * 0.97, 2))
         if ma.get("ma20") and ma["ma20"] < entry_mid:

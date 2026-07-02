@@ -15,6 +15,13 @@
   .btn-generate:disabled { opacity: .5; cursor: not-allowed; }
   .flash-ok { background: #dcfce7; color: #166534; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem; }
   .flash-info { background: #e0f2fe; color: #075985; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem; }
+  .mp-row { display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0f172a;border-radius:6px;border:1px solid #1e293b;margin-bottom:6px }
+  .mp-filename { font-size:12px;color:#94a3b8;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+  .mp-date { font-size:11px;color:#475569;flex-shrink:0 }
+  .btn-preview { font-size:11px;padding:3px 10px;border-radius:4px;background:#1e3a5f;color:#60a5fa;text-decoration:none;flex-shrink:0 }
+  .btn-push { font-size:11px;padding:3px 12px;border-radius:4px;background:#166534;color:#86efac;border:none;cursor:pointer;flex-shrink:0 }
+  .btn-push:disabled { opacity:.5;cursor:not-allowed }
+  .push-status { font-size:11px;flex-shrink:0 }
 </style>
 </head>
 <body>
@@ -86,29 +93,73 @@
 
   <!-- ── 公众号发文卡片 ── -->
   <% if (articles && articles.length > 0) { %>
-  <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem">
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem" id="mp-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
       <div>
         <span style="font-size:14px;font-weight:700;color:#f1f5f9">📲 公众号发文</span>
-        <span style="font-size:11px;color:#64748b;margin-left:8px"><%= articles.length %> 篇已生成，可选择推送草稿</span>
+        <span style="font-size:11px;color:#64748b;margin-left:8px" id="mp-cfg-hint">检查配置中...</span>
       </div>
       <a href="/admin/articles/stats" style="font-size:11px;color:#3b82f6;text-decoration:none">查看统计 →</a>
     </div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <% articles.slice(0, 5).forEach(a => { %>
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0f172a;border-radius:6px;border:1px solid #1e293b">
-        <span style="font-size:12px;color:#94a3b8;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= a.name %></span>
-        <span style="font-size:11px;color:#475569;flex-shrink:0"><%= new Date(a.mtime).toLocaleDateString('zh-CN') %></span>
-        <a href="/article/<%= a.name %>.html" target="_blank"
-           style="font-size:11px;padding:3px 10px;border-radius:4px;background:#1e3a5f;color:#60a5fa;text-decoration:none;flex-shrink:0">预览</a>
+    <div id="mp-list">
+      <% articles.slice(0, 8).forEach(a => { %>
+      <div class="mp-row">
+        <span class="mp-filename"><%= a.name %></span>
+        <span class="mp-date"><%= new Date(a.mtime).toLocaleDateString('zh-CN') %></span>
+        <a href="/article/<%= a.name %>.html" target="_blank" class="btn-preview">预览</a>
+        <button class="btn-push" data-filename="<%= a.name %>" onclick="pushDraft(this)">推送草稿</button>
+        <span class="push-status" id="status-<%= a.name.replace(/[^a-z0-9]/gi,'_') %>"></span>
       </div>
       <% }) %>
-      <% if (articles.length > 5) { %>
-      <div style="font-size:11px;color:#475569;text-align:center;padding-top:4px">还有 <%= articles.length - 5 %> 篇 · 查看文章列表</div>
+      <% if (articles.length > 8) { %>
+      <div style="font-size:11px;color:#475569;text-align:center;padding-top:4px">还有 <%= articles.length - 8 %> 篇 · 见下方列表</div>
       <% } %>
     </div>
   </div>
   <% } %>
+
+  <script>
+  // 检查公众号配置
+  fetch('/admin/articles/mp-status').then(r=>r.json()).then(function(d){
+    var hint = document.getElementById('mp-cfg-hint');
+    if (!hint) return;
+    if (d.configured) {
+      hint.textContent = 'AppID: ' + d.appId + ' · 已配置';
+      hint.style.color = '#86efac';
+    } else {
+      hint.textContent = '未配置 WECHAT_APPID/APPSECRET，推送不可用';
+      hint.style.color = '#fca5a5';
+      document.querySelectorAll('.btn-push').forEach(function(b){ b.disabled = true; });
+    }
+  }).catch(function(){});
+
+  function pushDraft(btn) {
+    var filename = btn.dataset.filename;
+    var statusEl = document.getElementById('status-' + filename.replace(/[^a-z0-9]/gi,'_'));
+    btn.disabled = true;
+    btn.textContent = '推送中...';
+    if (statusEl) statusEl.textContent = '';
+    fetch('/admin/articles/mp-draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: filename })
+    }).then(function(r){ return r.json(); }).then(function(d) {
+      if (d.ok) {
+        btn.textContent = '✅ 已推送';
+        btn.style.background = '#14532d';
+        if (statusEl) { statusEl.textContent = 'media_id: ' + (d.media_id||'').slice(0,12) + '...'; statusEl.style.color = '#86efac'; }
+      } else {
+        btn.textContent = '推送草稿';
+        btn.disabled = false;
+        if (statusEl) { statusEl.textContent = '❌ ' + (d.error||'失败'); statusEl.style.color = '#fca5a5'; }
+      }
+    }).catch(function(e) {
+      btn.textContent = '推送草稿';
+      btn.disabled = false;
+      if (statusEl) { statusEl.textContent = '❌ 网络错误'; statusEl.style.color = '#fca5a5'; }
+    });
+  }
+  </script>
 
   <div class="dash-section">
     <h3 class="dash-section-title">生成文章列表</h3>

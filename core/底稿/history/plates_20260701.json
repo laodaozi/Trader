@@ -1,0 +1,405 @@
+{
+  "date": "2026-07-01",
+  "plates": [
+    {
+      "plate_name": "化学制药",
+      "price_change_rate": 0.0574,
+      "major_net_flow_in": 1897646794.0,
+      "limit_rise_count": null,
+      "rise_count": 147,
+      "fall_count": 5
+    },
+    {
+      "plate_name": "农林牧渔",
+      "price_change_rate": 0.0489,
+      "major_net_flow_in": 1455239867.0,
+      "limit_rise_count": null,
+      "rise_count": 108,
+      "fall_count": 4
+    },
+    {
+      "plate_name": "证券",
+      "price_change_rate": 0.0484,
+      "major_net_flow_in": 9398009710.0,
+      "limit_rise_count": null,
+      "rise_count": 49,
+      "fall_count": 0
+    },
+    {
+      "plate_name": "非银金融",
+      "price_change_rate": 0.0481,
+      "major_net_flow_in": 11244702149.0,
+      "limit_rise_count": null,
+      "rise_count": 77,
+      "fall_count": 0
+    },
+    {
+      "plate_name": "医药",
+      "price_change_rate": 0.0453,
+      "major_net_flow_in": 3486809679.0,
+      "limit_rise_count": null,
+      "rise_count": 479,
+      "fall_count": 21
+    },
+    {
+      "plate_name": "生物制品",
+      "price_change_rate": 0.0433,
+      "major_net_flow_in": 730165753.0,
+      "limit_rise_count": null,
+      "rise_count": 58,
+      "fall_count": 3
+    },
+    {
+      "plate_name": "多元金融",
+      "price_change_rate": 0.0425,
+      "major_net_flow_in": 323525030.0,
+      "limit_rise_count": null,
+      "rise_count": 23,
+      "fall_count": 0
+    },
+    {
+      "plate_name": "影视院线",
+      "price_change_rate": 0.0345,
+      "major_net_flow_in": 212844567.0,
+      "limit_rise_count": null,
+      "rise_count": 20,
+      "fall_count": 2
+    },
+    {
+      "plate_name": "煤炭采选",
+      "price_change_rate": 0.0322,
+      "major_net_flow_in": 643119005.0,
+      "limit_rise_count": null,
+      "rise_count": 37,
+      "fall_count": 2
+    },
+    {
+      "plate_name": "商贸零售",
+      "price_change_rate": 0.0316,
+      "major_net_flow_in": 708971014.0,
+      "limit_rise_count": null,
+      "rise_count": 96,
+      "fall_count": 9
+    },
+    {
+      "plate_name": "社会服务",
+      "price_change_rate": 0.0298,
+      "major_net_flow_in": 432567409.0,
+      "limit_rise_count": null,
+      "rise_count": 69,
+      "fall_count": 8
+    },
+    {
+      "plate_name": "公用事业",
+      "price_change_rate": 0.0286,
+      "major_net_flow_in": -16606414.0,
+      "limit_rise_count": null,
+      "rise_count": 57,
+      "fall_count": 2
+    },
+    {
+      "plate_name": "纺服行业",
+      "price_change_rate": 0.0285,
+      "major_net_flow_in": 78649271.0,
+      "limit_rise_count": null,
+      "rise_count": 79,
+      "fall_count": 9
+    },
+    {
+      "plate_name": "交通运输",
+      "price_change_rate": 0.0283,
+      "major_net_flow_in": 195902569.0,
+      "limit_rise_count": null,
+      "rise_count": 125,
+      "fall_count": 9
+    },
+    {
+      "plate_name": "食品饮料行业",
+      "price_change_rate": 0.0283,
+      "major_net_flow_in": 101611641.0,
+      "limit_rise_count": null,
+      "rise_count": 119,
+      "fall_count": 8
+    },
+    {
+      "plate_name": "美容护理",
+      "price_change_rate": 0.028,
+      "major_net_flow_in": 74397021.0,
+      "limit_rise_count": null,
+      "rise_count": 33,
+      "fall_count": 1
+    },
+    {
+      "plate_name": "出版",
+      "price_change_rate": 0.028,
+      "major_net_flow_in": 166450861.0,
+      "limit_rise_count": null,
+      "rise_count": 27,
+      "fall_count": 1
+    },
+    {
+      "plate_name": "基础化工",
+      "price_change_rate": 0.0274,
+      "major_net_flow_in": 881922665.0,
+      "limit_rise_count": null,
+      "rise_count": 358,
+      "fall_count": 86
+    },
+    {
+      "plate_name": "石油石化",
+      "price_change_rate": 0.0272,
+      "major_net_flow_in": 120670735.0,
+      "limit_rise_count": null,
+      "rise_count": 42,
+      "fall_count": 6
+    },
+    {
+      "plate_name": "钢铁",
+      "price_change_rate": 0.0271,
+      "major_net_flow_in": 493243414.0,
+      "limit_rise_count": null,
+      "rise_count": 43,
+      "fall_count": 3
+    },
+    {
+      "plate_name": "房地产",
+      "price_change_rate": 0.0269,
+      "major_net_flow_in": 402719352.0,
+      "limit_rise_count": null,
+      "rise_count": 90,
+      "fall_count": 8
+    },
+    {
+      "plate_name": "IT服务",
+      "price_change_rate": 0.0264,
+      "major_net_flow_in": 2567948060.0,
+      "limit_rise_count": null,
+      "rise_count": 110,
+      "fall_count": 18
+    },
+    {
+      "plate_name": "计算机",
+      "price_change_rate": 0.0253,
+      "major_net_flow_in": 2056664684.0,
+      "limit_rise_count": null,
+      "rise_count": 316,
+      "fall_count": 53
+    },
+    {
+      "plate_name": "轻工制造",
+      "price_change_rate": 0.0245,
+      "major_net_flow_in": -433058961.0,
+      "limit_rise_count": null,
+      "rise_count": 164,
+      "fall_count": 20
+    },
+    {
+      "plate_name": "环保",
+      "price_change_rate": 0.0235,
+      "major_net_flow_in": -78597768.0,
+      "limit_rise_count": null,
+      "rise_count": 108,
+      "fall_count": 16
+    },
+    {
+      "plate_name": "建筑工程",
+      "price_change_rate": 0.0225,
+      "major_net_flow_in": 1036165469.0,
+      "limit_rise_count": null,
+      "rise_count": 137,
+      "fall_count": 27
+    },
+    {
+      "plate_name": "文化传媒",
+      "price_change_rate": 0.0219,
+      "major_net_flow_in": 270914801.0,
+      "limit_rise_count": null,
+      "rise_count": 114,
+      "fall_count": 14
+    },
+    {
+      "plate_name": "机场",
+      "price_change_rate": 0.0216,
+      "major_net_flow_in": -27825299.0,
+      "limit_rise_count": null,
+      "rise_count": 5,
+      "fall_count": 0
+    },
+    {
+      "plate_name": "能源金属",
+      "price_change_rate": 0.0212,
+      "major_net_flow_in": 1459804910.0,
+      "limit_rise_count": null,
+      "rise_count": 11,
+      "fall_count": 2
+    },
+    {
+      "plate_name": "铁路公路",
+      "price_change_rate": 0.0203,
+      "major_net_flow_in": -18613062.0,
+      "limit_rise_count": null,
+      "rise_count": 37,
+      "fall_count": 3
+    },
+    {
+      "plate_name": "航运港口",
+      "price_change_rate": 0.0199,
+      "major_net_flow_in": -375329666.0,
+      "limit_rise_count": null,
+      "rise_count": 35,
+      "fall_count": 5
+    },
+    {
+      "plate_name": "汽车整车",
+      "price_change_rate": 0.0198,
+      "major_net_flow_in": 70873193.0,
+      "limit_rise_count": null,
+      "rise_count": 32,
+      "fall_count": 7
+    },
+    {
+      "plate_name": "家用电器",
+      "price_change_rate": 0.0188,
+      "major_net_flow_in": 341889166.0,
+      "limit_rise_count": null,
+      "rise_count": 74,
+      "fall_count": 24
+    },
+    {
+      "plate_name": "交运设备",
+      "price_change_rate": 0.0186,
+      "major_net_flow_in": 1508113799.0,
+      "limit_rise_count": null,
+      "rise_count": 276,
+      "fall_count": 63
+    },
+    {
+      "plate_name": "电机",
+      "price_change_rate": 0.0182,
+      "major_net_flow_in": 77553224.0,
+      "limit_rise_count": null,
+      "rise_count": 23,
+      "fall_count": 2
+    },
+    {
+      "plate_name": "通用设备",
+      "price_change_rate": 0.018,
+      "major_net_flow_in": 591257343.0,
+      "limit_rise_count": null,
+      "rise_count": 213,
+      "fall_count": 64
+    },
+    {
+      "plate_name": "电子化学品",
+      "price_change_rate": 0.0177,
+      "major_net_flow_in": -3267359666.0,
+      "limit_rise_count": null,
+      "rise_count": 16,
+      "fall_count": 12
+    },
+    {
+      "plate_name": "机械设备",
+      "price_change_rate": 0.0151,
+      "major_net_flow_in": -5412580248.0,
+      "limit_rise_count": null,
+      "rise_count": 423,
+      "fall_count": 157
+    },
+    {
+      "plate_name": "国防军工",
+      "price_change_rate": 0.014,
+      "major_net_flow_in": 171553039.0,
+      "limit_rise_count": null,
+      "rise_count": 108,
+      "fall_count": 30
+    },
+    {
+      "plate_name": "工业金属",
+      "price_change_rate": 0.0131,
+      "major_net_flow_in": 1295631020.0,
+      "limit_rise_count": null,
+      "rise_count": 37,
+      "fall_count": 23
+    },
+    {
+      "plate_name": "专用设备",
+      "price_change_rate": 0.0116,
+      "major_net_flow_in": -1965473956.0,
+      "limit_rise_count": null,
+      "rise_count": 137,
+      "fall_count": 58
+    },
+    {
+      "plate_name": "建筑材料",
+      "price_change_rate": 0.0115,
+      "major_net_flow_in": -1168265957.0,
+      "limit_rise_count": null,
+      "rise_count": 57,
+      "fall_count": 23
+    },
+    {
+      "plate_name": "有色金属",
+      "price_change_rate": 0.0114,
+      "major_net_flow_in": 817958594.0,
+      "limit_rise_count": null,
+      "rise_count": 95,
+      "fall_count": 55
+    },
+    {
+      "plate_name": "小金属",
+      "price_change_rate": 0.0092,
+      "major_net_flow_in": -1743328370.0,
+      "limit_rise_count": null,
+      "rise_count": 15,
+      "fall_count": 8
+    },
+    {
+      "plate_name": "银行",
+      "price_change_rate": 0.009,
+      "major_net_flow_in": 682264429.0,
+      "limit_rise_count": null,
+      "rise_count": 34,
+      "fall_count": 7
+    },
+    {
+      "plate_name": "电新行业",
+      "price_change_rate": 0.0076,
+      "major_net_flow_in": -3005825046.0,
+      "limit_rise_count": null,
+      "rise_count": 292,
+      "fall_count": 135
+    },
+    {
+      "plate_name": "电力设备",
+      "price_change_rate": 0.0056,
+      "major_net_flow_in": -1398105326.0,
+      "limit_rise_count": null,
+      "rise_count": 67,
+      "fall_count": 27
+    },
+    {
+      "plate_name": "通信",
+      "price_change_rate": 0.0038,
+      "major_net_flow_in": -21669164944.0,
+      "limit_rise_count": null,
+      "rise_count": 75,
+      "fall_count": 41
+    },
+    {
+      "plate_name": "贵金属",
+      "price_change_rate": 0.0018,
+      "major_net_flow_in": 17440981.0,
+      "limit_rise_count": null,
+      "rise_count": 6,
+      "fall_count": 8
+    },
+    {
+      "plate_name": "光学光电子",
+      "price_change_rate": 0.0005,
+      "major_net_flow_in": -8969122160.0,
+      "limit_rise_count": null,
+      "rise_count": 46,
+      "fall_count": 53
+    }
+  ]
+}

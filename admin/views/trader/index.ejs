@@ -19,6 +19,42 @@
     <a href="/admin/trader/reflection" class="subnav-tab <%= subTab === 'reflection' ? 'active' : '' %>">策略反思</a>
   </div>
 
+  <!-- ── V7.1 今日工作流引导条 ── -->
+  <div style="display:flex;align-items:stretch;gap:0;margin-top:20px;border:1px solid var(--cr-border);border-radius:var(--cr-radius);overflow:hidden;background:var(--cr-surface)">
+    <a href="/admin/trader/reflection" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:14px 10px;text-decoration:none;border-right:1px solid var(--cr-border);transition:background var(--cr-transition);color:inherit" onmouseover="this.style.background='rgba(41,98,255,0.06)'" onmouseout="this.style.background=''">
+      <span style="font-size:18px;margin-bottom:4px">📝</span>
+      <span style="font-size:11px;font-weight:700;color:var(--cr-text)">更新轮动判断</span>
+      <span style="font-size:10px;color:var(--cr-text-secondary);margin-top:2px">reflection</span>
+      <% if (rotationSnapshot && rotationSnapshot.updated_at) { %>
+        <span style="font-size:10px;color:var(--cr-positive);margin-top:4px;font-weight:600">✓ <%= rotationSnapshot.updated_at.slice(5,16).replace('T',' ') %></span>
+      <% } else { %>
+        <span style="font-size:10px;color:var(--cr-warn);margin-top:4px">待更新</span>
+      <% } %>
+    </a>
+    <div style="display:flex;align-items:center;padding:0 6px;color:var(--cr-text-secondary);font-size:16px;flex-shrink:0">→</div>
+    <a href="/admin/trader/tracker" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:14px 10px;text-decoration:none;border-right:1px solid var(--cr-border);transition:background var(--cr-transition);color:inherit" onmouseover="this.style.background='rgba(41,98,255,0.06)'" onmouseout="this.style.background=''">
+      <span style="font-size:18px;margin-bottom:4px">🔍</span>
+      <span style="font-size:11px;font-weight:700;color:var(--cr-text)">检查信号质量</span>
+      <span style="font-size:10px;color:var(--cr-text-secondary);margin-top:2px">tracker</span>
+      <% if (trackerSummary) { %>
+        <% const hr5 = trackerSummary.allByHorizon && trackerSummary.allByHorizon[5]; %>
+        <% if (hr5 && hr5.total > 0) { %>
+          <% const hitPct = Math.round((hr5.verdicts && hr5.verdicts.HIT || 0) / hr5.total * 100); %>
+          <span style="font-size:10px;color:<%= hitPct >= 50 ? 'var(--cr-positive)' : 'var(--cr-negative)' %>;margin-top:4px;font-weight:600">5日胜率 <%= hitPct %>%</span>
+        <% } else { %>
+          <span style="font-size:10px;color:var(--cr-text-secondary);margin-top:4px"><%= (trackerSummary.totalRecords||0) %> 条记录</span>
+        <% } %>
+      <% } %>
+    </a>
+    <div style="display:flex;align-items:center;padding:0 6px;color:var(--cr-text-secondary);font-size:16px;flex-shrink:0">→</div>
+    <a href="/m" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:14px 10px;text-decoration:none;transition:background var(--cr-transition);color:inherit" onmouseover="this.style.background='rgba(41,98,255,0.06)'" onmouseout="this.style.background=''">
+      <span style="font-size:18px;margin-bottom:4px">📱</span>
+      <span style="font-size:11px;font-weight:700;color:var(--cr-text)">查看 Mobile</span>
+      <span style="font-size:10px;color:var(--cr-text-secondary);margin-top:2px">输出验证</span>
+      <span style="font-size:10px;color:var(--cr-primary);margin-top:4px;font-weight:600">→ /m</span>
+    </a>
+  </div>
+
   <!-- ── 概览卡片行 ── -->
   <div class="dash-cards" style="margin-top:20px">
     <div class="dash-card">
@@ -38,6 +74,24 @@
       <span class="dash-card-label">总资金</span>
     </div>
   </div>
+
+  <% if (ops) { %>
+  <!-- ── 今日运营摘要 ── -->
+  <div class="dash-section" style="margin-top:24px">
+    <h3 class="dash-section-title">🔧 今日运营摘要</h3>
+    <div class="dash-cards" style="justify-content:flex-start;gap:12px;flex-wrap:wrap">
+      <% Object.entries(ops).forEach(function([key, o]) { %>
+      <div class="dash-card" style="flex:0 0 auto;min-width:150px;padding:12px 16px">
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px"><%= o.label %></div>
+        <div style="font-size:24px;font-weight:700;color:<%= o.ran ? 'var(--success)' : 'var(--danger)' %>"><%= o.ran ? '✅ 已运行' : '❌ 未运行' %></div>
+        <% if (o.ran && o.mtime) { %>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:3px"><%= o.mtime.slice(11, 16) %></div>
+        <% } %>
+      </div>
+      <% }); %>
+    </div>
+  </div>
+  <% } %>
 
   <% if (account) { %>
   <!-- ── 账户快照 ── -->

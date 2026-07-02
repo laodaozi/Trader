@@ -109,34 +109,19 @@ def _hash(title: str) -> str:
 
 
 def _load_cache() -> dict:
-    """加载增强缓存 {hash: {title, thesis, tickers, ...}}，兼容旧 list 格式。
-    
-    磁盘始终存 list，load 时转 dict (hash→item) 便于 O(1) 查找，
-    save 时转回 list 保证消费者兼容。
-    """
+    """加载增强缓存 {hash: {thesis, tickers, enriched_at}}"""
     try:
         if CACHE_FILE.exists():
-            raw = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
-            if isinstance(raw, list):
-                result = {}
-                for item in raw:
-                    if isinstance(item, dict) and "title" in item:
-                        h = _hash(item["title"])
-                        result[h] = item.copy()
-                print(f"  [cache] list→dict: {len(raw)} 条", file=sys.stderr)
-                return result
-            return raw
+            return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
     except Exception:
         pass
     return {}
 
 
 def _save_cache(cache: dict):
-    """保存增强缓存（内存 dict → 磁盘 list，保证消费者兼容）"""
+    """保存增强缓存"""
     CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    items = list(cache.values())
-    print(f"  [cache] dict→list: {len(items)} 条写入", file=sys.stderr)
-    CACHE_FILE.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+    CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _call_llm(title: str, source: str = "", content: str = "") -> dict:
@@ -231,7 +216,7 @@ def _repair_truncated_json(text: str) -> str:
     return repaired
 
 
-def enrich_one(title: str, cache: dict, force: bool = False, source: str = "", content: str = "") -> dict:
+def enrich_one(title: str, cache: dict, force: bool = False, source: str = "", content: str = "", source_date: str = "") -> dict:
     """增强单条标题，优先读缓存（content 用于 LLM 但不参与缓存 key）"""
     h = _hash(title)
     if not force and h in cache:
@@ -240,7 +225,9 @@ def enrich_one(title: str, cache: dict, force: bool = False, source: str = "", c
     try:
         result = _call_llm(title, source, content)
         result["enriched_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        result["source_date"] = source_date or time.strftime("%Y-%m-%d")
         result["title"] = title
+        result["source"] = source
         cache[h] = result
         _save_cache(cache)
         print(f"  ✅ [{source}] {title[:40]}... → thesis={result.get('thesis','')[:30]}...", file=sys.stderr)
@@ -250,41 +237,8 @@ def enrich_one(title: str, cache: dict, force: bool = False, source: str = "", c
         return {"thesis": "", "tickers": [], "error": str(e)}
 
 
-def _load_ingest_content(today: str) -> dict:
-    """从 source_articles DB 加载投喂正文，查今天或昨天（D日晚投喂→D+1早生成），返回 {source_id: content_text}。"""
-    from datetime import datetime, timedelta
-    ingest_db_path = PROJECT_ROOT / "data" / "source_articles.db"
-    if not ingest_db_path.exists():
-        return {}
-    try:
-        yesterday = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-        conn = sqlite3.connect(str(ingest_db_path))
-        conn.row_factory = sqlite3.Row
-        # 优先今天，没有则取昨天（D日晚投喂，publish_date=D，D+1早上生成时 today=D+1）
-        for date in (today, yesterday):
-            rows = conn.execute(
-                """SELECT source_id, content_text, content_len FROM source_articles
-                   WHERE publish_date=? AND fetch_status='success' AND content_len>0""",
-                (date,)
-            ).fetchall()
-            if rows:
-                conn.close()
-                result = {r["source_id"]: r["content_text"] for r in rows}
-                print(f"  [ingest] 加载投喂正文 {len(result)} 条 (publish_date={date}): {list(result.keys())}", file=sys.stderr)
-                return result
-        conn.close()
-        return {}
-    except Exception as e:
-        print(f"  [ingest] 读取 source_articles 失败: {e}", file=sys.stderr)
-        return {}
-
-
 def enrich_from_db(db_path: Path, cache: dict, force: bool = False) -> list:
     """从 wewe-rss.db 读最近24h事件，按信源 tier 分配配额后增强。
-
-    正文优先级：
-      1. source_articles（人工投喂，质量最高）
-      2. wewe-rss content 字段（自动抓取，可能为空）
 
     配额规则（来自 source_registry.py）：
       S — 全量抓（叙事平权）
@@ -297,11 +251,6 @@ def enrich_from_db(db_path: Path, cache: dict, force: bool = False) -> list:
         from core.writing.source_registry import SOURCE_ROLES
     except ImportError:
         SOURCE_ROLES = {}
-
-    # 加载当日人工投喂正文（优先级最高）
-    from datetime import datetime, timezone, timedelta
-    today_bj = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
-    ingest_content = _load_ingest_content(today_bj)
 
     since = int(time.time()) - 86400  # 24h
 
@@ -342,14 +291,10 @@ def enrich_from_db(db_path: Path, cache: dict, force: bool = False) -> list:
     events = []
     for weight, row in selected:
         title = row["title"]
-        mp_id = row["mp_id"]
-        wewe_content = row["content"] or ""
-        # 优先用人工投喂正文；wewe-rss 正文为 fallback
-        content = ingest_content.get(mp_id) or wewe_content
-        if ingest_content.get(mp_id) and not wewe_content:
-            print(f"  [ingest] {mp_id[:12]} 用投喂正文({len(content)}字) 替代空 wewe-rss", file=sys.stderr)
+        content = row["content"] or ""
         source_name = row["source"] or ""
-        enrichment = enrich_one(title, cache, force, source=source_name, content=content)
+        pub_date = time.strftime("%Y-%m-%d", time.gmtime(row["publish_time"]))
+        enrichment = enrich_one(title, cache, force, source=source_name, content=content, source_date=pub_date)
         events.append({
             "title": title,
             "time": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(row["publish_time"])),
@@ -359,83 +304,6 @@ def enrich_from_db(db_path: Path, cache: dict, force: bool = False) -> list:
             "tickers": enrichment.get("tickers", []),
             "weight": weight,
         })
-
-    return events
-
-
-
-
-def enrich_from_source_articles(cache: dict, force: bool = False) -> list:
-    """从 source_articles.db 直接创建 enrich 事件，独立于 wewe-rss。
-    用于 wewe-rss 抓不到的 S/A 级信源。"""
-    from datetime import datetime, timezone, timedelta
-    try:
-        from core.writing.source_registry import SOURCE_ROLES
-    except ImportError:
-        SOURCE_ROLES = {}
-
-    today_bj = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
-    ingest_db_path = PROJECT_ROOT / "data" / "source_articles.db"
-    if not ingest_db_path.exists():
-        return []
-
-    conn = sqlite3.connect(str(ingest_db_path))
-    conn.row_factory = sqlite3.Row
-    # D日晚投喂 → publish_date=D，D+1早生成时 today_bj=D+1，需往前看1天
-    from datetime import datetime, timedelta
-    yesterday_bj = (datetime.strptime(today_bj, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-    rows = []
-    for date in (today_bj, yesterday_bj):
-        rows = conn.execute(
-            """SELECT source_id, source_name, tier, weight, title, content_text, content_len, url
-               FROM source_articles WHERE publish_date=? AND fetch_status='success' AND content_len>0
-               ORDER BY weight DESC""",
-            (date,)
-        ).fetchall()
-        if rows:
-            print(f"  [source_articles] 使用 publish_date={date} 的 {len(rows)} 条数据", file=sys.stderr)
-            break
-    conn.close()
-
-    if not rows:
-        return []
-
-    # 查 wewe-rss 已覆盖的 mp_id，避免重复 enrich
-    covered = set()
-    wewe_path = str(PROJECT_ROOT / ".." / "wewe-rss-deploy" / "data" / "wewe-rss.db")
-    try:
-        wconn = sqlite3.connect(wewe_path)
-        since = int(time.time()) - 86400
-        wrows = wconn.execute(
-            "SELECT DISTINCT mp_id FROM articles WHERE publish_time >= ?", (since,)
-        ).fetchall()
-        covered = {r[0] for r in wrows}
-        wconn.close()
-    except Exception:
-        pass
-
-    events = []
-    for row in rows:
-        mp_id = row["source_id"]
-        if mp_id in covered:
-            continue  # wewe-rss 已覆盖，跳过避免重复
-
-        title = row["title"]
-        content = row["content_text"] or ""
-        meta = SOURCE_ROLES.get(mp_id, {})
-        weight = meta.get("weight", 0.5)
-
-        enrichment = enrich_one(title, cache, force, source=row["source_name"], content=content)
-        events.append({
-            "title": title,
-            "time": today_bj + "T08:00:00",
-            "source": row["source_name"],
-            "pic_url": "",
-            "thesis": enrichment.get("thesis", ""),
-            "tickers": enrichment.get("tickers", []),
-            "weight": weight,
-        })
-        print(f"  [source_articles] {row['source_name']}: {title[:30]} ({len(content)}字)", file=sys.stderr)
 
     return events
 
@@ -462,13 +330,14 @@ def main():
         return
 
     if args.file:
-        # 从文件读事件（含 source/content 字段）
+        # 从文件读事件（含 source/content/source_date 字段）
         with open(args.file, encoding="utf-8") as f:
             raw_events = json.load(f)
         events = []
         for ev in raw_events:
             enrichment = enrich_one(ev.get("title", ""), cache, force=args.force,
-                                     source=ev.get("source", ""), content=ev.get("content", ""))
+                                     source=ev.get("source", ""), content=ev.get("content", ""),
+                                     source_date=ev.get("source_date", ""))
             events.append({**ev, "thesis": enrichment.get("thesis", ""), "tickers": enrichment.get("tickers", [])})
         print(json.dumps(events, ensure_ascii=False, indent=2))
         return
@@ -477,10 +346,7 @@ def main():
     if not WEWE_DB.exists():
         print(f"❌ DB 不存在: {WEWE_DB}", file=sys.stderr)
         sys.exit(1)
-    events_db = enrich_from_db(WEWE_DB, cache, force=args.force)
-    events_sa = enrich_from_source_articles(cache, force=args.force)
-    events = events_db + events_sa
-    events.sort(key=lambda x: (x.get("weight", 0), x.get("time", "")), reverse=True)
+    events = enrich_from_db(WEWE_DB, cache, force=args.force)
 
     print(json.dumps(events, ensure_ascii=False, indent=2))
 

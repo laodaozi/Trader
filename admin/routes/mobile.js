@@ -31,12 +31,10 @@ function _getPositionsPath() {
 }
 const POSITIONS_PATH = void 0; // replaced by _getPositionsPath()
 const BACKTEST_DIR = path.join(__dirname, '..', '..', 'data', 'backtest_reports');
-// V6.5: 优先读 wewe-rss 真实运行目录（9个信源），旧副本作 fallback
-const WEWE_DB_PATH = fsSync.existsSync('/opt/wewe-rss-deploy/data/wewe-rss.db')
-  ? '/opt/wewe-rss-deploy/data/wewe-rss.db'
-  : path.join(__dirname, '..', 'data', 'wewe-rss.db');
+const WEWE_DB_PATH = path.join(__dirname, '..', 'data', 'wewe-rss.db');
 const HOTEVENTS_CACHE_PATH = path.join(__dirname, '..', '..', 'data', 'hotevents_cache.json');
 const ENRICHMENT_CACHE_PATH = path.join(__dirname, '..', '..', 'data', 'hot_enrichment.json');
+const ROTATION_PATH = path.join(__dirname, '..', '..', 'data', 'rotation_snapshot.json');
 
 // V6.5: ETF 代码→中英文名称映射（rotation_factor 策略不携带 stock_name，此处补全）
 const ETF_NAME_MAP = {
@@ -329,7 +327,7 @@ router.get('/compare', (req, res) => {
 
 // ── /m ── V6 三 tab 仪表盘（2026-06-19 切换，原 /m/v6）
 router.get('/m', (req, res) => {
-  res.render('dashboard', { title: '交易仪表盘 V6', appVersion: 'V6.4' });
+  res.render('dashboard', { title: 'CycleRadar Trader', appVersion: 'V7.2' });
 });
 
 // ── /m/v6 ── 保留30天兼容重定向，之后删除
@@ -446,7 +444,11 @@ router.get('/m/api/summary', async (req, res) => {
       };
     }
 
-    res.json({ timing: timingOut, account, strategy, tracker,
+    // --- rotation snapshot ---
+    let rotationSnapshot = null;
+    try { const raw = await fs.readFile(ROTATION_PATH, 'utf8'); rotationSnapshot = JSON.parse(raw); } catch (_) {}
+
+    res.json({ timing: timingOut, account, strategy, tracker, rotation_snapshot: rotationSnapshot,
 
       // ── V5.0: 契约桥（event_narrative + global_conclusion）──
       narrative: (() => {
@@ -695,18 +697,6 @@ router.get('/m/api/cycleradar', async (req, res) => {
 
     const enrichedEvents = _enrichHotEvents(events || []);
 
-    // Q11: 后端过滤——正文缺失且无标的、或纯非市场内容，不下发前端
-    const _badKws = ['正文缺失', '无法确认', '信息不完整', '但无正文', '但正文缺失', '无法提取'];
-    const filteredEvents = enrichedEvents.filter(e => {
-      const thesis = e.thesis || '';
-      // 空 thesis 直接拦截
-      if (thesis.trim() === "") return false;
-      if (thesis === '非市场分析内容') return false;
-      const hasIncomplete = _badKws.some(kw => thesis.includes(kw));
-      if (hasIncomplete && (e.tickers || []).length === 0) return false;
-      return true;
-    });
-
     let summary = null;
     let byStrategy = [];
     let byAssetType = [];
@@ -761,8 +751,8 @@ router.get('/m/api/cycleradar', async (req, res) => {
       summary,
       byStrategy,
       byAssetType,
-      // V4.1.0 四分类 + V4.1.2 LLM 增强；Q11: 已在后端过滤空正文/非市场事件
-      hotEvents: filteredEvents || [],
+      // V4.1.0 四分类 + V4.1.2 LLM 增强
+      hotEvents: enrichedEvents || [],
       dataFreshness: rssHealth,  // V4.2: RSS 数据管路健康度（hotEvents 用）
       signalFreshness,           // V4.3: 信号新鲜度（alpha/ETF/commodity 用）
       alpha: (categories.alpha || []).map(formatSignal),
@@ -882,7 +872,7 @@ function _scoreDim(record, field) {
 }
 
 async function _readAllTracker() {
-  const TRACKER_FILE = path.join(__dirname, '..', '..', 'data', 'trader_tracker.jsonl');
+  const TRACKER_FILE = path.join(__dirname, '..', '..', 'data', 'tracker_log.jsonl');
   try {
     const raw = await fs.readFile(TRACKER_FILE, 'utf8');
     const records = [];
@@ -936,27 +926,3 @@ router.get('/m/api/watchlist', async (req, res) => {
 });
 
 module.exports = router;
-
-// ── /m/api/article ── 今日生成文章 API (V6.5)
-router.get("/m/api/article", async (req, res) => {
-  try {
-    const articlesDir = path.join(__dirname, "../../data/articles");
-    const files = await fs.readdir(articlesDir).catch(() => []);
-    const mdFiles = files.filter(f => f.endsWith(".md")).sort().reverse();
-    if (!mdFiles.length) return res.json({ articles: [] });
-
-    const articles = await Promise.all(mdFiles.slice(0, 7).map(async fname => {
-      const fullPath = path.join(articlesDir, fname);
-      const stat = await fs.stat(fullPath);
-      const raw = await fs.readFile(fullPath, "utf8");
-      const titleMatch = raw.match(/^#\s+(.+)/m);
-      const title = titleMatch ? titleMatch[1].trim() : fname.replace(".md","");
-      const preview = raw.replace(/^#.+\n+---\n*/m, "").replace(/[#*`_>\-]/g," ").trim().slice(0, 200);
-      const date = fname.replace("article_","").replace(".md","");
-      return { fname, date, title, preview, mtime: stat.mtime, wordCount: raw.length };
-    }));
-    res.json({ articles });
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
