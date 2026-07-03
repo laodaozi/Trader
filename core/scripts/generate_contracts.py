@@ -18,7 +18,6 @@ def _read_json(p):
 def generate_alpha():
     signals = []
     date_str = None
-    latest_date = None  # 取最新记录日期，而非第一条（trader_strategy.jsonl 按时间追加，最新在末尾）
     if TRADER_STRATEGY.exists():
         with open(TRADER_STRATEGY) as f:
             for line in f:
@@ -26,9 +25,8 @@ def generate_alpha():
                 if not line: continue
                 try: s = json.loads(line)
                 except: continue
-                row_date = s.get("date", "")
-                if row_date and (latest_date is None or row_date > latest_date):
-                    latest_date = row_date
+                if date_str is None:
+                    date_str = s.get("date", "")
                 signals.append({
                     "signal_id": f"ALPHA-{s.get('date','')}-{len(signals)+1:03d}",
                     "stock": {"code": s.get("code",""), "name": s.get("name","")},
@@ -43,7 +41,8 @@ def generate_alpha():
                     "sector_context": s.get("sector_context",""),
                     "enhanced_nx": s.get("nx","")
                 })
-    date_str = latest_date or datetime.now().strftime("%Y-%m-%d")
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
     alpha = {"date": date_str, "signals": signals}
     morning = _read_json(MORNING_JSON)
     if morning:
@@ -72,41 +71,50 @@ def generate_narrative():
             })
     hot = _read_json(HOT_ENRICHMENT)
     if hot:
-        # 兼容 list（新格式）和 dict（旧格式），按 source_date 降序（发布日期新的优先），其次 enriched_at
+        # 兼容 list（旧格式）和 dict（新格式），按 source_date 降序
         hot_items = hot if isinstance(hot, list) else list(hot.values())
         hot_items = sorted(hot_items,
-            key=lambda x: (x.get("source_date", "") or x.get("enriched_at", "")[:10]),
+            key=lambda x: (x.get("source_date","") or x.get("enriched_at","")[:10]),
             reverse=True)
+        seen_source_titles = set()  # 去重：同一篇文章只取一条
         for val in hot_items:
             if not isinstance(val, dict): continue
             ts = val.get("enriched_at","")
+            tickers = val.get("tickers",[])
             # ── decay 过期过滤 ──
-            decay_days = val.get("decay_days", 3)  # 默认 3 天，旧数据无此字段时用默认值
+            decay_days = val.get("decay_days", 3)
             if ts and isinstance(decay_days, (int, float)) and decay_days > 0:
                 try:
                     occurred = datetime.strptime(str(ts)[:10], "%Y-%m-%d")
                     if (today - occurred).days > int(decay_days):
-                        continue  # 事件已过期，跳过
+                        continue
                 except (ValueError, TypeError):
-                    pass  # 日期解析失败，保留（不误删）
+                    pass
             # ── end decay ──
-            thesis = val.get("thesis", "")
-            # 过滤非市场内容（LLM 对营销/个人感悟类文章的标记）
+            thesis = val.get("thesis","")
+            # 过滤非市场内容
             if not thesis or "非市场分析内容" in thesis:
                 continue
-            tickers = val.get("tickers", [])
+            # ── 同一来源文章去重（title 相同只保留 tickers 最多的，列表已按 source_date 降序） ──
+            src_title = val.get("title","")
+            if src_title and src_title in seen_source_titles:
+                continue
+            if src_title:
+                seen_source_titles.add(src_title)
             events.append({
                 "rank": len(events)+1,
-                "title": val.get("thesis","")[:100],
+                "title": thesis[:100],
                 "source": val.get("source", "ingest"),
                 "source_title": val.get("title",""),
-                "trigger_event": val.get("thesis","")[:200],
-                "direct_reaction": "",
-                "time_dimension": str(ts)[:10] if ts else date_str,
-                "sector_transmission": [],
-                "valuation_impact": "",
-                "trading_window": "",
-                "stock_mapping": [{"code": t.get("code",""), "name": t.get("name",""), "type": "long", "logic": t.get("reason","")} for t in tickers[:5]],
+                "event_time": {
+                    "occurred_at": str(ts)[:10] if ts else date_str,
+                    "certainty": "developing",
+                    "decay_days": int(decay_days) if isinstance(decay_days, (int, float)) else 3
+                },
+                "interpretation": thesis,
+                "sector_impact": [],
+                "stock_impact": [{"code": t.get("code",""), "name": t.get("name",""), "logic": t.get("reason","")} for t in tickers[:5]],
+                "commodity_impact": ""
             })
     narrative = {
         "date": date_str, "source": "cycleradar-trader server pipeline",
