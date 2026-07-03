@@ -221,9 +221,6 @@ function buildTop5Card(snap, cr, strategy) {
 }
 
 
-  </div>`;
-}
-
 // V7.1: 自选池异动卡 — 只展示有买卖信号的
 // V7.2: 概览Tab自选买卖提醒 — 从watchlist信号推导，有买入/止损才展示
 async function buildWatchlistAlertCard(container) {
