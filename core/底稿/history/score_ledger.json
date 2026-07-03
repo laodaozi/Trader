@@ -1259,6 +1259,111 @@
           "rank": 10
         }
       ]
+    },
+    {
+      "date": "2026-07-03",
+      "top10": [
+        {
+          "name": "贵金属",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0398,
+          "fund_flow": 2907566716.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 1
+        },
+        {
+          "name": "纺服行业",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0166,
+          "fund_flow": 628992458.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 2
+        },
+        {
+          "name": "美容护理",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0127,
+          "fund_flow": 183177248.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 3
+        },
+        {
+          "name": "化学制药",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0122,
+          "fund_flow": 1832431664.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 4
+        },
+        {
+          "name": "银行",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.012,
+          "fund_flow": 651464171.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 5
+        },
+        {
+          "name": "铁路公路",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0106,
+          "fund_flow": 118728808.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 6
+        },
+        {
+          "name": "影视院线",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0075,
+          "fund_flow": 85391554.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 7
+        },
+        {
+          "name": "农林牧渔",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0074,
+          "fund_flow": 455496816.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 8
+        },
+        {
+          "name": "电机",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0073,
+          "fund_flow": 494638166.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 9
+        },
+        {
+          "name": "航运港口",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0073,
+          "fund_flow": 67434145.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 10
+        }
+      ]
     }
   ]
 }

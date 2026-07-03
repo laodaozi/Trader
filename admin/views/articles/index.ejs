@@ -38,23 +38,71 @@
   </div>
 
   <!-- 添加信源表单 -->
-  <details style="margin-bottom: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+  <details style="margin-bottom: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;" id="source-details">
     <summary style="cursor: pointer; font-weight: 600; color: #1e293b; user-select: none;">
-      ➕ 添加信源（手动提交 URL / 文章内容）
+      ➕ 添加信源（粘贴 URL 自动抓取 / 直接粘贴正文）
     </summary>
     <% if (locals.flash && locals.flash.error) { %>
       <div style="margin-top: .5rem; background: #fef2f2; color: #b91c1c; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem;"><%= locals.flash.error %></div>
     <% } %>
-    <% if (locals.flash && locals.flash.submitted) { %>
+    <% if (locals.flash && (locals.flash.submitted === 'submitted' || locals.flash.submitted === '1' || locals.flash.submitted === true)) { %>
       <div style="margin-top: .5rem; background: #dcfce7; color: #166534; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem;">✅ 信源已提交，待 22:30 晚间增强处理</div>
+    <% } else if (locals.flash && locals.flash.submitted && String(locals.flash.submitted).startsWith('submitted_warn')) { %>
+      <div style="margin-top: .5rem; background: #fef9c3; color: #92400e; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem;">⚠️ <%= String(locals.flash.submitted).replace('submitted_warn:','') %>，请展开手动补充正文</div>
     <% } %>
-    <form method="POST" action="/admin/articles/submit" style="margin-top: .75rem; display: flex; flex-direction: column; gap: .5rem;">
-      <input type="url" name="url" placeholder="原文 URL（选填）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem;" />
-      <input type="text" name="title" placeholder="文章标题（选填，会自动推断）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem;" />
-      <textarea name="content" rows="6" placeholder="粘贴文章全文...（必填）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem; font-family: inherit; resize: vertical;" required></textarea>
-      <button type="submit" style="align-self: flex-start; padding: .5rem 1.25rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: .85rem;">提交信源</button>
+    <form method="POST" action="/admin/articles/submit" id="source-form" style="margin-top: .75rem; display: flex; flex-direction: column; gap: .5rem;">
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <input type="url" name="url" id="source-url" placeholder="微信/网页 URL（填入后自动抓取正文）" style="flex:1;padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem;" />
+        <button type="button" id="btn-fetch" onclick="fetchPreview()" style="padding:.5rem 1rem;background:#0f172a;color:#fff;border:none;border-radius:4px;font-size:.82rem;cursor:pointer;white-space:nowrap">抓取</button>
+      </div>
+      <div id="fetch-status" style="font-size:.8rem;color:#64748b;min-height:1.2em"></div>
+      <input type="text" name="title" id="source-title" placeholder="文章标题（自动填入，可修改）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem;" />
+      <textarea name="content" id="source-content" rows="6" placeholder="正文（URL抓取失败时手动粘贴；仅粘贴正文时 URL 可不填）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem; font-family: inherit; resize: vertical;"></textarea>
+      <div style="display:flex;align-items:center;gap:1rem">
+        <button type="submit" style="padding: .5rem 1.25rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: .85rem;">提交信源</button>
+        <span style="font-size:.78rem;color:#94a3b8">填 URL 自动抓取；抓取失败可手动粘贴正文</span>
+      </div>
     </form>
   </details>
+  <script>
+  function fetchPreview() {
+    var url = document.getElementById('source-url').value.trim();
+    if (!url) return;
+    var statusEl = document.getElementById('fetch-status');
+    var btn = document.getElementById('btn-fetch');
+    statusEl.textContent = '抓取中...';
+    statusEl.style.color = '#64748b';
+    btn.disabled = true;
+    fetch('/admin/articles/fetch-url', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({url: url})
+    }).then(function(r){ return r.json(); }).then(function(d) {
+      btn.disabled = false;
+      if (d.ok) {
+        document.getElementById('source-content').value = d.content;
+        if (d.title && !document.getElementById('source-title').value) {
+          document.getElementById('source-title').value = d.title;
+        }
+        statusEl.textContent = '✅ 抓取成功，正文 ' + d.length + ' 字';
+        statusEl.style.color = '#16a34a';
+      } else {
+        statusEl.textContent = '⚠️ ' + d.error + ' — 请手动粘贴正文';
+        statusEl.style.color = '#b45309';
+      }
+    }).catch(function(e) {
+      btn.disabled = false;
+      statusEl.textContent = '网络错误: ' + e.message;
+      statusEl.style.color = '#dc2626';
+    });
+  }
+  // URL 框回车或失焦自动触发抓取
+  document.getElementById('source-url').addEventListener('blur', function() {
+    if (this.value.trim() && !document.getElementById('source-content').value.trim()) {
+      fetchPreview();
+    }
+  });
+  </script>
 
   <!-- Plan C: 状态卡片 + 生成按钮 -->
   <% if (locals.enrichmentStatus) { %>

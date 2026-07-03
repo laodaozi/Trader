@@ -3,7 +3,101 @@
 const express = require("express");
 const fs = require("fs/promises");
 const path = require("path");
+const https = require("https");
+const http = require("http");
 const { spawn } = require("child_process");
+
+// ── 微信/通用文章正文抓取 ──────────────────────────────────────────────────
+// 返回 { title, content, error }
+// content 是纯文本（保留换行），error 非空表示抓取失败
+function fetchArticleContent(url) {
+  return new Promise((resolve) => {
+    const timeout = 12000;
+    const isMp = url.includes("mp.weixin.qq.com");
+
+    const options = {
+      headers: {
+        "User-Agent": isMp
+          ? "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.40"
+          : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "zh-CN,zh;q=0.9",
+        "Referer": isMp ? "https://mp.weixin.qq.com/" : url,
+      },
+    };
+
+    const lib = url.startsWith("https") ? https : http;
+    const req = lib.get(url, options, (res) => {
+      // 跟重定向（最多2跳）
+      if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location) {
+        return fetchArticleContent(res.headers.location).then(resolve);
+      }
+      if (res.statusCode !== 200) {
+        return resolve({ title: "", content: "", error: `HTTP ${res.statusCode}` });
+      }
+
+      const chunks = [];
+      res.on("data", (c) => chunks.push(c));
+      res.on("end", () => {
+        const html = Buffer.concat(chunks).toString("utf8");
+
+        let title = "";
+        let content = "";
+
+        // 提取标题
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        if (titleMatch) title = titleMatch[1].replace(/\s*[-_|].*$/, "").trim();
+
+        if (isMp) {
+          // 微信文章：js_content div
+          const contentMatch = html.match(/id=["']js_content["'][^>]*>([\s\S]*?)<\/div>\s*<div[^>]+id=["']js_content_copyright/i)
+            || html.match(/id=["']js_content["'][^>]*>([\s\S]{200,}?)<\/div>/i);
+          if (contentMatch) {
+            content = contentMatch[1]
+              .replace(/<br\s*\/?>/gi, "\n")
+              .replace(/<\/p>/gi, "\n")
+              .replace(/<[^>]+>/g, "")
+              .replace(/&nbsp;/g, " ")
+              .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
+              .replace(/\n{3,}/g, "\n\n")
+              .trim();
+          }
+          // og:title 通常更干净
+          const ogTitle = html.match(/property=["']og:title["']\s+content=["']([^"']+)["']/i);
+          if (ogTitle) title = ogTitle[1].trim();
+        } else {
+          // 通用页面：取 <article> 或 <main> 或 body 文本
+          const bodyMatch = html.match(/<article[^>]*>([\s\S]+?)<\/article>/i)
+            || html.match(/<main[^>]*>([\s\S]+?)<\/main>/i)
+            || html.match(/<body[^>]*>([\s\S]+?)<\/body>/i);
+          if (bodyMatch) {
+            content = bodyMatch[1]
+              .replace(/<script[\s\S]*?<\/script>/gi, "")
+              .replace(/<style[\s\S]*?<\/style>/gi, "")
+              .replace(/<br\s*\/?>/gi, "\n")
+              .replace(/<\/p>/gi, "\n")
+              .replace(/<[^>]+>/g, "")
+              .replace(/&nbsp;/g, " ")
+              .replace(/\n{3,}/g, "\n\n")
+              .trim()
+              .slice(0, 8000); // 截断防止超大正文
+          }
+        }
+
+        if (!content || content.length < 50) {
+          return resolve({ title, content: "", error: "正文提取失败（可能需要登录或内容为空）" });
+        }
+        resolve({ title, content, error: null });
+      });
+    });
+
+    req.setTimeout(timeout, () => {
+      req.destroy();
+      resolve({ title: "", content: "", error: "抓取超时（12s）" });
+    });
+    req.on("error", (e) => resolve({ title: "", content: "", error: e.message }));
+  });
+}
 
 const router = express.Router();
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
@@ -192,11 +286,29 @@ router.get("/articles/status", async (req, res) => {
   }
 });
 
-// ── 信源管理：POST /articles/submit ── 手动提交 URL+内容
+// ── 信源管理：POST /articles/submit ── 手动提交 URL（自动抓取）或直接粘贴正文
 router.post("/articles/submit", async (req, res) => {
   try {
-    const { url, title, content } = req.body;
-    if (!content || !content.trim()) {
+    let { url, title, content } = req.body;
+    url = (url || "").trim();
+    content = (content || "").trim();
+
+    let fetchError = null;
+
+    // URL 有值且 content 为空/只是 URL 本身 → 自动抓取
+    if (url && (!content || content === url)) {
+      const fetched = await fetchArticleContent(url);
+      if (fetched.error) {
+        fetchError = fetched.error;
+        // 抓取失败：content 存空，记录 fetch_error，不阻断提交
+      } else {
+        content = fetched.content;
+        if (!title && fetched.title) title = fetched.title;
+      }
+    }
+
+    // URL 和 content 都为空才真正拒绝
+    if (!url && !content) {
       const enrichmentStatus = await _readEnrichmentStatus();
       const pipelineStatus = await _readPipelineStatus();
       return res.render("articles/index", {
@@ -206,7 +318,7 @@ router.post("/articles/submit", async (req, res) => {
         articles: [],
         enrichmentStatus,
         pipelineStatus,
-        flash: { error: "内容不能为空" },
+        flash: { error: "请填写 URL 或粘贴文章正文" },
       });
     }
 
@@ -215,17 +327,21 @@ router.post("/articles/submit", async (req, res) => {
 
     const entry = {
       id: `manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      url: (url || "").trim(),
+      url,
       title: (title || "").trim() || "(无标题)",
-      content: content.trim(),
+      content: content || "",
       submitted_at: new Date().toISOString(),
       enriched: false,
     };
+    if (fetchError) entry.fetch_error = fetchError;
 
     const line = JSON.stringify(entry) + "\n";
     await fs.appendFile(manualPath, line, "utf8");
 
-    res.redirect("/admin/articles?submitted=1");
+    const flash = fetchError
+      ? `submitted_warn:抓取失败(${fetchError})，已保存 URL，请手动粘贴正文`
+      : "submitted";
+    res.redirect("/admin/articles?submitted=" + encodeURIComponent(flash));
   } catch (error) {
     res.status(500).render("admin/error", {
       title: "500 提交失败",
@@ -235,6 +351,15 @@ router.post("/articles/submit", async (req, res) => {
       error,
     });
   }
+});
+
+// ── 信源管理：POST /articles/fetch-url ── AJAX 预览抓取（前端用）
+router.post("/articles/fetch-url", async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ ok: false, error: "缺少 url" });
+  const result = await fetchArticleContent(url);
+  if (result.error) return res.json({ ok: false, error: result.error });
+  res.json({ ok: true, title: result.title, content: result.content, length: result.content.length });
 });
 
 // ── 信源管理：GET /articles/sources ── 展示原始信源（manual + RSS）
