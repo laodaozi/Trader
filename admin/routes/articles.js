@@ -322,13 +322,17 @@ router.post("/articles/submit", async (req, res) => {
 
     await fs.appendFile(manualPath, JSON.stringify(entry) + "\n", "utf8");
 
-    // 立即后台触发 enrich（fire-and-forget，处理所有未增强条目）
+    // 立即后台触发 enrich + 重新生成 contracts（fire-and-forget）
     const enrichCron = path.join(PROJECT_ROOT, "core", "scripts", "enrich_nightly_cron.sh");
+    const contractsScript = path.join(PROJECT_ROOT, "core", "scripts", "generate_contracts.py");
     const proc = spawn("bash", [enrichCron], {
-      cwd: PROJECT_ROOT,
-      stdio: "ignore",
-      env: { ...process.env },
-      detached: true,
+      cwd: PROJECT_ROOT, stdio: "ignore", env: { ...process.env }, detached: true,
+    });
+    proc.on("close", () => {
+      // enrich 完成后重新生成 contracts，让 /m 事件研判立即更新
+      spawn("python3.9", [contractsScript], {
+        cwd: PROJECT_ROOT, stdio: "ignore", env: { ...process.env }, detached: true,
+      }).unref();
     });
     proc.unref();
 
