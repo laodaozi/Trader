@@ -286,31 +286,17 @@ router.get("/articles/status", async (req, res) => {
   }
 });
 
-// ── 信源管理：POST /articles/submit ── 手动提交 URL（自动抓取）或直接粘贴正文
+// ── 信源管理：POST /articles/submit ── 提交正文，立即后台触发 enrich
 router.post("/articles/submit", async (req, res) => {
   try {
     let { url, title, content } = req.body;
-    url = (url || "").trim();
+    url     = (url     || "").trim();
     content = (content || "").trim();
+    title   = (title   || "").trim();
 
-    let fetchError = null;
-
-    // URL 有值且 content 为空/只是 URL 本身 → 自动抓取
-    if (url && (!content || content === url)) {
-      const fetched = await fetchArticleContent(url);
-      if (fetched.error) {
-        fetchError = fetched.error;
-        // 抓取失败：content 存空，记录 fetch_error，不阻断提交
-      } else {
-        content = fetched.content;
-        if (!title && fetched.title) title = fetched.title;
-      }
-    }
-
-    // URL 和 content 都为空才真正拒绝
-    if (!url && !content) {
+    if (!content) {
       const enrichmentStatus = await _readEnrichmentStatus();
-      const pipelineStatus = await _readPipelineStatus();
+      const pipelineStatus   = await _readPipelineStatus();
       return res.render("articles/index", {
         title: "文章看板",
         active: "articles",
@@ -318,7 +304,7 @@ router.post("/articles/submit", async (req, res) => {
         articles: [],
         enrichmentStatus,
         pipelineStatus,
-        flash: { error: "请填写 URL 或粘贴文章正文" },
+        flash: { error: "正文不能为空，请粘贴文章内容" },
       });
     }
 
@@ -328,20 +314,25 @@ router.post("/articles/submit", async (req, res) => {
     const entry = {
       id: `manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       url,
-      title: (title || "").trim() || "(无标题)",
-      content: content || "",
+      title: title || "(无标题)",
+      content,
       submitted_at: new Date().toISOString(),
       enriched: false,
     };
-    if (fetchError) entry.fetch_error = fetchError;
 
-    const line = JSON.stringify(entry) + "\n";
-    await fs.appendFile(manualPath, line, "utf8");
+    await fs.appendFile(manualPath, JSON.stringify(entry) + "\n", "utf8");
 
-    const flash = fetchError
-      ? `submitted_warn:抓取失败(${fetchError})，已保存 URL，请手动粘贴正文`
-      : "submitted";
-    res.redirect("/admin/articles?submitted=" + encodeURIComponent(flash));
+    // 立即后台触发 enrich（fire-and-forget，处理所有未增强条目）
+    const enrichCron = path.join(PROJECT_ROOT, "core", "scripts", "enrich_nightly_cron.sh");
+    const proc = spawn("bash", [enrichCron], {
+      cwd: PROJECT_ROOT,
+      stdio: "ignore",
+      env: { ...process.env },
+      detached: true,
+    });
+    proc.unref();
+
+    res.redirect("/admin/articles?submitted=1");
   } catch (error) {
     res.status(500).render("admin/error", {
       title: "500 提交失败",

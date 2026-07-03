@@ -67,7 +67,24 @@ def main():
         except Exception:
             pass
 
-    # ── 2. 连 WeWe RSS DB ──
+    # ── 2a. 读 manual.jsonl（手动提交信源，enriched=True 的条目）──
+    manual_rows = []
+    manual_path = PROJECT_ROOT / "data" / "sources" / "manual.jsonl"
+    if manual_path.exists():
+        for line in manual_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                e = json.loads(line)
+            except Exception:
+                continue
+            # 已增强 且 提交日期在目标日
+            submitted = e.get("submitted_at", "")[:10]
+            if e.get("enriched") and submitted == target_date:
+                manual_rows.append(e)
+
+    # ── 2b. 连 WeWe RSS DB ──
     if not WEWE_DB.exists():
         print(f"❌ DB 不存在: {WEWE_DB}", file=sys.stderr)
         sys.exit(1)
@@ -130,7 +147,39 @@ def main():
             "tickers": enr.get("tickers", []),
         })
 
-    print(f"📊 {target_date}: {total_matched}/{total_articles} 篇有标注", file=sys.stderr)
+    print(f"📊 {target_date}: {total_matched}/{total_articles} 篇有标注（WeWe RSS）", file=sys.stderr)
+
+    # ── 3b. 合并 manual 条目 ──
+    MANUAL_SOURCE_ID = "manual_submission"
+    for e in manual_rows:
+        eid   = e.get("id", "")
+        title = e.get("title", "(无标题)")
+        content = e.get("content", "")
+        # 先用 id_hash 查，再用 title_hash 兜底
+        id_hash    = hashlib.md5(eid.encode()).hexdigest()[:12]
+        title_hash = _hash_title(title)
+        enr = enrichment.get(id_hash) or enrichment.get(title_hash)
+        if not enr or not enr.get("thesis"):
+            continue
+
+        if MANUAL_SOURCE_ID not in seen_sources:
+            seen_sources[MANUAL_SOURCE_ID] = {
+                "mp_id":    MANUAL_SOURCE_ID,
+                "mp_name":  "手动提交",
+                "category": "manual",
+                "tags":     [],
+            }
+
+        text_snippet = _clean_content(content)[:1500] if content else ""
+        signals_by_source.setdefault(MANUAL_SOURCE_ID, []).append({
+            "title":   title,
+            "summary": text_snippet,
+            "thesis":  enr.get("thesis", ""),
+            "tickers": enr.get("tickers", []),
+        })
+        total_matched += 1
+
+    print(f"📊 {target_date}: +{len(manual_rows)} 篇手动提交（合计 {total_matched} 篇有标注）", file=sys.stderr)
 
     # 无标注 → 写状态并优雅退出（不报错）
     if total_matched == 0:
