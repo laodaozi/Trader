@@ -1,0 +1,79 @@
+{
+  "date": "2026-07-03",
+  "timing": {
+    "date": "2026-07-03",
+    "temperature": 82.0,
+    "phase": "震荡休整",
+    "index_direction": "下跌",
+    "allow_trade": true,
+    "recommended_position": 0.5,
+    "position_min": 0.4,
+    "position_max": 0.6,
+    "message": "市场处于震荡休整阶段，适宜高抛低吸",
+    "raw": {
+      "snapshot": {
+        "trade_date": "2026-07-03",
+        "trade_status": "ENDTR",
+        "up_down_num": {
+          "total_up_num": 3804,
+          "total_down_num": 1628,
+          "total_flat_num": 84,
+          "total_stop_num": 12,
+          "limit_up_num": 160,
+          "limit_down_num": 24
+        },
+        "trading_volume": {
+          "trade_balance": 3182453521018.0,
+          "trade_balance_display": "3.18万亿元",
+          "increment_trade_balance": -268097843929.0,
+          "increment_trade_balance_display": "-2680.98亿元",
+          "increment_trade_balance_rate": "-7.77%"
+        }
+      }
+    },
+    "haoyun_position": 0.5,
+    "haoyun_flags": [
+      "✅ 无触发条件，维持原仓位 50%"
+    ]
+  },
+  "scan": {
+    "date": "2026-07-03",
+    "candidate_count": 28,
+    "hits": {
+      "向上缺口": [
+        {
+          "code": "600489",
+          "name": "中金黄金",
+          "model": "向上缺口",
+          "label": "顺势·短线",
+          "entry": "T+1 开盘附近（今收 20.34）",
+          "reasons": [
+            "跳空高开 4.2%（缺口 19.09→19.90）",
+            "缺口未回补（今低 19.71 > 昨收 19.09）",
+            "盘中最高涨幅 8.7%",
+            "下影线 0.93%",
+            "板块:其他·龙一"
+          ],
+          "note": "收盘涨幅 6.6% | 缺口支撑: 19.09"
+        },
+        {
+          "code": "601899",
+          "name": "紫金矿业",
+          "model": "向上缺口",
+          "label": "顺势·短线",
+          "entry": "T+1 开盘附近（今收 27.82）",
+          "reasons": [
+            "跳空高开 4.6%（缺口 26.30→27.50）",
+            "缺口未回补（今低 27.41 > 昨收 26.30）",
+            "盘中最高涨幅 7.6%",
+            "下影线 0.32%",
+            "板块:其他·龙二"
+          ],
+          "note": "收盘涨幅 5.8% | 缺口支撑: 26.30"
+        }
+      ]
+    },
+    "total_hits": 2,
+    "summary": "扫描28只 | 向上缺口 2只"
+  }
+}
