@@ -123,7 +123,10 @@ router.get('/trader/strategy', async (req, res) => {
     }
 
     const currentDate = dateParam || strategyDateList[0];
-    const strategy = await strategyModel.getStrategyByDate(currentDate);
+    const [strategy, globalWinRates] = await Promise.all([
+      strategyModel.getStrategyByDate(currentDate),
+      trackerModel.globalWinRateByStrategy(),
+    ]);
 
     res.render('trader/strategy', {
       title: '自选池诊断',
@@ -132,6 +135,7 @@ router.get('/trader/strategy', async (req, res) => {
       strategyDateList,
       currentDate,
       strategy,
+      globalWinRates,
       error: strategy ? null : `日期 ${currentDate} 无数据`,
     });
   } catch (error) {
@@ -281,7 +285,10 @@ router.get('/trader/backtest/view/:filename', async (req, res) => {
 });
 
 // ── /admin/trader/model-library ── 策略模型库 ──
-router.get('/trader/model-library', async (req, res) => {
+router.get('/trader/model-library', (req, res) => {
+  return res.redirect(301, '/admin/trader/strategy?from=model-library');
+});
+router.get('/trader/model-library-v1', async (req, res) => {
   try {
     const SIGNALS_PATH = path.join(__dirname, '..', '..', 'data', 'upstream_signals.jsonl');
 
@@ -603,6 +610,31 @@ router.get('/trader/reflection', async (req, res) => {
       latestScanner: scannerEntries.length > 0 ? '有' : '无',
     };
 
+    // V7.5: 接入 tracker HIT/MISS 数据
+    let trackerSummary = null;
+    let globalWinRates = [];
+    let trackerStats = null;
+    try {
+      [trackerSummary, globalWinRates] = await Promise.all([
+        trackerModel.getTrackerSummary(),
+        trackerModel.globalWinRateByStrategy(),
+      ]);
+      // 计算全局汇总（跨所有 horizon）
+      if (trackerSummary && trackerSummary.allByHorizon) {
+        let totalHit = 0, totalMiss = 0, totalPending = 0;
+        for (const h of Object.values(trackerSummary.allByHorizon)) {
+          totalHit     += (h.verdicts && h.verdicts.HIT)     || 0;
+          totalMiss    += (h.verdicts && h.verdicts.MISS)    || 0;
+          totalPending += (h.verdicts && h.verdicts.PENDING) || 0;
+        }
+        const closed = totalHit + totalMiss;
+        trackerStats = {
+          totalHit, totalMiss, totalPending,
+          globalWinRate: closed > 0 ? Math.round(totalHit / closed * 100) : null,
+        };
+      }
+    } catch (_) {}
+
     res.render('trader/reflection', {
       title: '策略反思',
       active: 'trader',
@@ -613,6 +645,9 @@ router.get('/trader/reflection', async (req, res) => {
       reflections: reflections.slice(-20).reverse(),
       strategies: strategies.slice(-10).reverse(),
       scannerEntries: scannerEntries.slice(-5).reverse(),
+      trackerSummary,
+      trackerStats,
+      globalWinRates,
       error: null,
     });
   } catch (error) {

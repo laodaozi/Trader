@@ -170,13 +170,56 @@
     </div>
     <% } %>
 
-    <!-- A1 胜率矩阵 — 待填充 -->
+    <!-- A1 胜率矩阵 — V7.5 接入 tracker 真实数据 -->
     <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">📈 A1 胜率矩阵（构建中）</h3>
-      <div class="dash-empty" style="padding:30px">
-        <p>🛠 此处将展示各模型（scanner 14 模型 + NX 买卖点）横向对比：命中率 / 平均收益 / 夏普 / 最大回撤</p>
-        <p style="color:var(--m-sub)">数据源：tracker_log.jsonl 反思条目 × 验证观点 → 按模型分组统计</p>
+      <h3 class="dash-section-title">📈 策略胜率回顾（tracker 真实标记）</h3>
+      <% if (trackerStats) { %>
+      <div class="dash-cards" style="justify-content:flex-start;gap:12px;margin-bottom:16px">
+        <div class="dash-card" style="flex:0 0 auto;padding:12px 20px;text-align:center">
+          <div class="dash-card-value" style="color:var(--cr-positive)"><%= trackerStats.totalHit || 0 %></div>
+          <span class="dash-card-label">HIT</span>
+        </div>
+        <div class="dash-card" style="flex:0 0 auto;padding:12px 20px;text-align:center">
+          <div class="dash-card-value" style="color:var(--cr-negative)"><%= trackerStats.totalMiss || 0 %></div>
+          <span class="dash-card-label">MISS</span>
+        </div>
+        <div class="dash-card" style="flex:0 0 auto;padding:12px 20px;text-align:center">
+          <div class="dash-card-value"><%= trackerStats.totalPending || 0 %></div>
+          <span class="dash-card-label">Pending</span>
+        </div>
+        <div class="dash-card" style="flex:0 0 auto;padding:12px 20px;text-align:center">
+          <div class="dash-card-value" style="color:<%= (trackerStats.globalWinRate||0) >= 60 ? 'var(--cr-positive)' : 'var(--cr-warn)' %>">
+            <%= trackerStats.globalWinRate != null ? trackerStats.globalWinRate + '%' : 'N/A' %>
+          </div>
+          <span class="dash-card-label">全局胜率</span>
+        </div>
       </div>
+      <% } %>
+      <% if (globalWinRates && globalWinRates.length > 0) { %>
+      <table class="track-table">
+        <thead>
+          <tr><th>策略</th><th>胜率</th><th>WIN</th><th>LOSE</th><th>持仓中</th><th>均最终回报</th></tr>
+        </thead>
+        <tbody>
+          <% globalWinRates.forEach(r => { %>
+          <tr>
+            <td style="font-weight:600"><%= r.strategy %></td>
+            <td style="font-weight:700;color:<%= r.winRate >= 60 ? 'var(--cr-positive)' : r.winRate >= 45 ? 'var(--cr-warn)' : 'var(--cr-negative)' %>">
+              <%= r.winRate != null ? r.winRate + '%' : 'N/A' %>
+            </td>
+            <td style="color:var(--cr-positive)"><%= r.win %></td>
+            <td style="color:var(--cr-negative)"><%= r.lose %></td>
+            <td style="color:var(--cr-text-2)"><%= r.hold %></td>
+            <td style="font-weight:600;color:<%= (r.avgFinalReturn||0) >= 0 ? 'var(--cr-positive)' : 'var(--cr-negative)' %>">
+              <%= r.avgFinalReturn != null ? r.avgFinalReturn + '%' : '—' %>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+      <div class="dash-empty"><p>暂无 tracker 数据。在「信号跟踪」页标记 HIT/MISS 后此处自动汇总。</p></div>
+      <% } %>
     </div>
 
     <!-- 最新策略执行 -->
