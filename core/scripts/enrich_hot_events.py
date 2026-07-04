@@ -63,8 +63,9 @@ SYSTEM_PROMPT = """你是一个事件驱动交易解读引擎。你的任务是�
 严格输出 JSON，无其他文字：
 {
   "thesis": "交易级洞察，30-60字。直接说：什么变了、影响什么方向、持续性如何。用「超预期」「证伪」「price in」「拐点」「抱团松动」「风格切换」等术语。",
+  "event_type": "从以下列表选一个最匹配的事件类型：policy_support / earnings_beat / earnings_miss / capacity_expansion / ma_restructuring / product_launch / price_hike / order_win / regulatory_penalty / supply_disruption / commodity_shock / sector_rotation / analyst_upgrade / fund_flow / management_change / index_rebalance / short_squeeze / technical_breakout / macro_data_release / sector_policy。若文章涉及多个事件，选驱动力最强的一个。非市场内容填 null。",
   "tickers": [
-    {"code": "sh/sz+6位数字", "name": "简称", "reason": "关联逻辑≤15字"}
+    {"code": "sh/sz+6位数字", "name": "简称", "reason": "关联逻辑≤15字", "event_type": "该标的对应的事件类型，可与顶层不同"}
   ]
 }
 
@@ -72,7 +73,7 @@ SYSTEM_PROMPT = """你是一个事件驱动交易解读引擎。你的任务是�
 
 - thesis 必须包含可证伪的判断（涨/跌/轮动/分化），不允许骑墙
 - 如果含「传」「据称」「或」，标注不确定性但依然给出基准判断
-- 营销/培训/广告类 → thesis="非市场分析内容", tickers=[]
+- 营销/培训/广告类 → thesis="非市场分析内容", tickers=[], event_type=null
 - 泛资讯汇总 → 提取其中最可能影响次日市场的方向
 - tickers 最多3只，宁可少推不硬凑，不确定代码就不输出
 - **正文中提到具体公司/股票名称的，优先推 ticker；正文无具体标的时再从标题推断**"""
@@ -301,6 +302,7 @@ def enrich_from_db(db_path: Path, cache: dict, force: bool = False) -> list:
             "source": source_name,
             "pic_url": row["pic_url"] or "",
             "thesis": enrichment.get("thesis", ""),
+            "event_type": enrichment.get("event_type", None),
             "tickers": enrichment.get("tickers", []),
             "weight": weight,
         })
@@ -338,7 +340,7 @@ def main():
             enrichment = enrich_one(ev.get("title", ""), cache, force=args.force,
                                      source=ev.get("source", ""), content=ev.get("content", ""),
                                      source_date=ev.get("source_date", ""))
-            events.append({**ev, "thesis": enrichment.get("thesis", ""), "tickers": enrichment.get("tickers", [])})
+            events.append({**ev, "thesis": enrichment.get("thesis", ""), "event_type": enrichment.get("event_type", None), "tickers": enrichment.get("tickers", [])})
         print(json.dumps(events, ensure_ascii=False, indent=2))
         return
 

@@ -948,4 +948,39 @@ router.get('/m/api/watchlist', async (req, res) => {
   }
 });
 
+
+// ── /m/api/manifest ── Pipeline 运行状态（V7.5）
+router.get('/m/api/manifest', async (req, res) => {
+  try {
+    const contractsDir = await _getContractsPath();
+    const raw = await fs.readFile(path.join(contractsDir, 'run_manifest.json'), 'utf8');
+    return res.json(JSON.parse(raw));
+  } catch (_) {
+    return res.json({ run_id: null, summary: { total: 0, ok: 0, stale: 0, error: 0 }, tasks: [] });
+  }
+});
+
+// ── /m/api/decision ── 信号决策记录（V7.5）
+// POST { signal_id, decision: 'adopt'|'watch'|'ignore', reason?: string }
+router.post('/m/api/decision', async (req, res) => {
+  try {
+    const { signal_id, decision, reason } = req.body || {};
+    if (!signal_id || !['adopt','watch','ignore'].includes(decision)) {
+      return res.status(400).json({ error: 'signal_id and decision(adopt/watch/ignore) required' });
+    }
+    const DATA_DIR = process.env.CYCLERADAR_DATA_DIR || path.join(__dirname, '../../data');
+    const logPath = path.join(DATA_DIR, 'decision_log.jsonl');
+    const entry = JSON.stringify({
+      signal_id,
+      decision,
+      reason: reason || null,
+      decided_at: new Date().toISOString()
+    });
+    await fs.appendFile(logPath, entry + '\n', 'utf8');
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: String(err) });
+  }
+});
+
 module.exports = router;

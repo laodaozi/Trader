@@ -34,12 +34,21 @@ def generate_alpha():
                     "entry_price": s.get("entry_low"),
                     "target_price": None,
                     "stop_loss": s.get("stop_loss"),
-                    "confidence": min(round(s.get("score",0)/20, 1), 5.0),
+                    "confidence": {
+                        "score": min(round(s.get("score",0)/20, 1), 5.0),
+                        "score_pct": round(min(s.get("score",0)/100, 1.0), 2),
+                        "calibration_status": "uncalibrated",
+                        "sample_size": 0,
+                        "calibrated_winrate": None,
+                        "rule_basis": s.get("strategy", "stock_agent")
+                    },
                     "time_window": "1w",
                     "event_source": s.get("source",""),
+                    "event_type": s.get("event_type", None),
                     "thesis": f"{s.get('name','')} {s.get('strategy','')} score={s.get('score',0)}",
                     "sector_context": s.get("sector_context",""),
-                    "enhanced_nx": s.get("nx","")
+                    "enhanced_nx": s.get("nx",""),
+                    "attribution": {"primary_driver": s.get("source","stock_agent"), "supporting": [], "market_beta": "unknown"}
                 })
     if not date_str:
         date_str = datetime.now().strftime("%Y-%m-%d")
@@ -106,6 +115,7 @@ def generate_narrative():
                 "title": thesis[:100],
                 "source": val.get("source", "ingest"),
                 "source_title": val.get("title",""),
+                "event_type": val.get("event_type", None),
                 "event_time": {
                     "occurred_at": str(ts)[:10] if ts else date_str,
                     "certainty": "developing",
@@ -113,7 +123,7 @@ def generate_narrative():
                 },
                 "interpretation": thesis,
                 "sector_impact": [],
-                "stock_impact": [{"code": t.get("code",""), "name": t.get("name",""), "logic": t.get("reason","")} for t in tickers[:5]],
+                "stock_impact": [{"code": t.get("code",""), "name": t.get("name",""), "logic": t.get("reason",""), "event_type": t.get("event_type", val.get("event_type", None))} for t in tickers[:5]],
                 "commodity_impact": ""
             })
     narrative = {

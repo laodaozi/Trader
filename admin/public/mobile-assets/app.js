@@ -1,3 +1,23 @@
+// ====== Confidence Helper (V7.5) ======
+// 兼容旧版数字格式和新版结构体格式
+// 返回 { pct: 0-1浮点, label: 显示文字, isCalibrated: bool }
+function getConf(s) {
+  var c = s.confidence;
+  if (c == null) return { pct: 0, label: '—', isCalibrated: false };
+  if (typeof c === 'number') {
+    // 旧格式：直接是数字
+    var pct = c > 1 ? c / 5.0 : c;  // score/5 or 0-1
+    return { pct: pct, label: '规则分 ' + Math.round(pct * 100), isCalibrated: false };
+  }
+  // 新格式：结构体
+  var status = c.calibration_status || 'uncalibrated';
+  var pct = c.score_pct != null ? c.score_pct : (c.score != null ? c.score / 5.0 : 0);
+  if (status === 'calibrated' && c.calibrated_winrate != null) {
+    return { pct: c.calibrated_winrate, label: '胜率 ' + Math.round(c.calibrated_winrate * 100) + '% (n=' + c.sample_size + ')', isCalibrated: true };
+  }
+  return { pct: pct, label: '规则分 ' + Math.round(pct * 100), isCalibrated: false };
+}
+
 // ====== Tab Switching ======
 document.querySelectorAll('.m-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -22,6 +42,32 @@ loadOverview(); // initial load
 
 // ====== Overview Tab ======
 // V7.1b: 择时卡 — 大字结论 + 手风琴展开温度详情 + 轮动快照 + header 联动
+// V7.5: Pipeline 状态条
+function buildPipelineBar(mf) {
+  if (!mf || !mf.summary) return '';
+  var s = mf.summary;
+  var total = s.total || 0;
+  var ok = s.ok || 0;
+  var stale = s.stale || 0;
+  var err = s.error || 0;
+  var runId = mf.run_id || '—';
+  var barColor = err > 0 ? '#ef4444' : stale > 0 ? '#f59e0b' : '#22c55e';
+  var icon = err > 0 ? '🔴' : stale > 0 ? '⚠️' : '✅';
+  var statusText = icon + ' Pipeline ' + ok + '/' + total + ' ok';
+  if (stale > 0) statusText += ' · ' + stale + ' stale';
+  if (err > 0) statusText += ' · ' + err + ' error';
+  var taskHtml = (mf.tasks || []).map(function(t) {
+    var dot = t.status === 'ok' ? '🟢' : t.status === 'stale' ? '🟡' : '🔴';
+    var age = t.age_hours != null ? t.age_hours + 'h' : '—';
+    return '<span style="font-size:10px;color:#64748b;margin-right:8px">' + dot + ' ' + t.name + ' ' + age + '</span>';
+  }).join('');
+  return '<div style="background:#1a1f2e;border:1px solid ' + barColor + '33;border-radius:10px;padding:10px 14px;margin-bottom:10px">' +
+    '<div style="font-size:12px;font-weight:700;color:' + barColor + ';margin-bottom:6px">' + statusText + '</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:4px">' + taskHtml + '</div>' +
+    '<div style="font-size:9px;color:#334155;margin-top:4px">' + runId + '</div>' +
+    '</div>';
+}
+
 function buildTimingCard(t, n, snap) {
   if (!t) return '';
   const temp = t.temperature || 0;
@@ -145,7 +191,7 @@ function buildTop5Card(snap, cr, strategy) {
     var fallbackRows = alphaStocks.map(function(s, i) {
       var meta = s.metadata || {};
       var name = meta.stock_name || s.asset;
-      var conf = Math.round((s.confidence||0)*100);
+      var conf = Math.round(getConf(s).pct*100);
       var clr = conf>=80?'var(--m-positive)':conf>=60?'var(--m-primary)':'var(--m-warn)';
       return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:'+(i<alphaStocks.length-1?'1px solid var(--m-border)':'none')+'">' +
         '<div style="width:3px;height:28px;border-radius:2px;background:'+clr+';flex-shrink:0"></div>' +
@@ -325,15 +371,18 @@ function buildRotationSnapshotCard(snap) {
 
 async function loadOverview() {
   try {
-    const [sumRes, crRes] = await Promise.all([
+    const [sumRes, crRes, mfRes] = await Promise.all([
       fetch('/m/api/summary'),
-      fetch('/m/api/cycleradar')
+      fetch('/m/api/cycleradar'),
+      fetch('/m/api/manifest')
     ]);
     const d = await sumRes.json();
     const cr = crRes.ok ? await crRes.json() : null;
+    const mf = mfRes.ok ? await mfRes.json() : null;
     const el = document.getElementById('overview-content');
-    // V7.2: 择时 + Top5 先渲染，自选提醒异步追加
+    // V7.5: Pipeline 状态条 + 择时 + Top5
     el.innerHTML =
+      buildPipelineBar(mf) +
       buildTimingCard(d.timing, d.event_narrative, d.rotation_snapshot) +
       buildTop5Card(d.rotation_snapshot, cr, d.strategy);
     el.style.display = 'block';
@@ -409,7 +458,7 @@ function buildNarrativeCard(n) {
   if (!n) return '';
   var gc = n.global_conclusion || {};
   var regime = gc.market_regime || gc.regime || '未知';
-  var confidence = gc.confidence != null ? Math.round(gc.confidence * 100) + '%' : '—';
+  var confidence = getConf(gc).label;
   var action = gc.action || '';
   var thesis = gc.key_thesis || '';
   var risks = gc.risk_warnings || [];
@@ -853,7 +902,7 @@ function buildCrEventNarrative(en, hotEvents) {
   var raw = gc.market_regime || gc.regime || '';
   if (!raw && events.length === 0) return '';
 
-  var llmConf = gc.confidence || 0;
+  var llmConf = getConf(gc).pct;
 
   // 顶部研判行 — V5.3 市场风格语言强化
   var regimeMap = {
@@ -1078,13 +1127,13 @@ function buildCrSummaryCards(s) {
 // V7.1: 信号Tab收敛 — Alpha三档折叠，ETF/商品合并为轮动热度卡
 function buildCrCategorySections(hotEvents, alpha, etf, commodity, alpha_latest) {
   var sortedAlpha = (alpha || []).slice().sort(function(a, b) {
-    return (b.confidence || 0) - (a.confidence || 0);
+    return (getConf(b).pct||0)-(getConf(a).pct||0);
   });
 
   // Alpha 按置信度分三档
-  var strong = sortedAlpha.filter(function(s){ return (s.confidence||0) >= 0.8; });
-  var mid    = sortedAlpha.filter(function(s){ var c=s.confidence||0; return c>=0.6 && c<0.8; });
-  var weak   = sortedAlpha.filter(function(s){ return (s.confidence||0) < 0.6; });
+  var strong = sortedAlpha.filter(function(s){ return getConf(s).pct >= 0.8; });
+  var mid    = sortedAlpha.filter(function(s){ return getConf(s).pct>=0.6 && getConf(s).pct<0.8; });
+  var weak   = sortedAlpha.filter(function(s){ return getConf(s).pct < 0.6; });
 
   return (
     _buildAlphaTiered(strong, mid, weak, alpha_latest) +
@@ -1104,7 +1153,7 @@ function _buildAlphaTiered(strong, mid, weak, alpha_latest) {
         s = Object.assign({}, s, { _alphaLatest: alMap[s.asset] });
         if (alMap[s.asset].direction === s.direction) {
           s.multi_source = true;
-          s.confidence = Math.min(1.0, (s.confidence || 0) + 0.15);
+          s._conf_boost = (getConf(s).pct||0) + 0.15;
         }
       }
       return s;
@@ -1149,7 +1198,7 @@ function _buildCrSignalRowCompact(s) {
   var meta = s.metadata || {};
   var al = s._alphaLatest || {};
   var name = meta.stock_name || meta.sector || s.asset;
-  var conf = Math.round((s.confidence||0)*100);
+  var conf = Math.round(getConf(s).pct*100);
   var isLong = s.direction === 'long';
   var confColor = conf >= 80 ? 'var(--m-positive)' : conf >= 60 ? 'var(--m-primary)' : 'var(--m-text-3)';
   var STRAT_LABEL = {'report_agent':'事件','scanner':'形态','ma_signals':'并购','wanjun_models':'量化','stock_agent':'AI','rotation_factor':'轮动'};
@@ -1196,12 +1245,12 @@ function _buildRotationHeatCard(etf, commodity) {
 
   function buildGroup(icon, label, list) {
     if (!list.length) return '';
-    var sorted = list.slice().sort(function(a,b){ return (b.confidence||0)-(a.confidence||0); }).slice(0,5);
+    var sorted = list.slice().sort(function(a,b){ return (getConf(b).pct||0)-(getConf(a).pct||0); }).slice(0,5);
     var rows = sorted.map(function(s) {
       var meta = s.metadata || {};
       var name = meta.stock_name || meta.sector || meta.etf_code || s.asset;
-      var conf = Math.round((s.confidence||0)*100);
-      var c = tierColor(s.confidence||0);
+      var conf = Math.round(getConf(s).pct*100);
+      var c = tierColor(getConf(s).pct);
       var isLong = s.direction === 'long';
       var dirBadge = `<span style="font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;background:${isLong?'rgba(var(--m-positive-rgb),0.12)':'rgba(var(--m-negative-rgb),0.12)'};color:${isLong?'var(--m-positive)':'var(--m-negative)'}">${isLong?'多':'空'}</span>`;
       return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--m-border)">
@@ -1327,13 +1376,13 @@ function _buildCrAlpha(signals, alpha_latest) {
         // V6.5: 共振检测 — scanner code ∩ LLM alpha code + direction 一致
         if (alMap[s.asset].direction === s.direction) {
           s.multi_source = true;
-          s.confidence = Math.min(1.0, (s.confidence || 0) + 0.15);
+          s._conf_boost = (getConf(s).pct||0) + 0.15;
         }
       }
     });
   }
   // V5.3: 按置信度降序排列 + 限 10 条
-  enriched.sort(function(a, b) { return (b.confidence || 0) - (a.confidence || 0); });
+  enriched.sort(function(a, b) { return (getConf(b).pct||0)-(getConf(a).pct||0); });
   var limited = enriched.slice(0, 10);
   return _buildCrSignalGroup('📈', 'alpha', limited, '#22c55e');
 }
@@ -1352,7 +1401,7 @@ function _buildCrSignalGroup(icon, label, signals, color) {
   }
   var items = signals.map(function(s) {
     var isLong = s.direction === 'long';
-    var conf = s.confidence != null ? Math.round(s.confidence * 100) : 0;
+    var conf = Math.round(getConf(s).pct*100);
     var confColor = conf >= 80 ? '#22c55e' : conf >= 60 ? '#f59e0b' : '#ef4444';
     var meta = s.metadata || {};
     var displayName = meta.stock_name || s.asset || '—';
@@ -1417,7 +1466,7 @@ function _buildCrSignalDetail(s, icon) {
   }
 
   // 2. 置信度
-  var conf = s.confidence != null ? Math.round(s.confidence * 100) : 0;
+  var conf = Math.round(getConf(s).pct*100);
   var confLvl = conf >= 80 ? '高' : conf >= 60 ? '中' : '低';
   html += '<div class="cr-detail-cell"><span class="cr-detail-lbl">置信度</span><span class="cr-detail-val">' + conf + '% (' + confLvl + ')</span></div>';
 
@@ -1483,12 +1532,32 @@ function _buildCrSignalDetail(s, icon) {
     html += '</div>';
   }
 
+  // V7.5: 决策按钮（只在有 signal_id 的 alpha 信号上显示）
+  if (s.signal_id) {
+    var sid = s.signal_id;
+    html += '<div class="cr-decision-bar" style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #1e2435">';
+    html += '<button class="cr-dec-btn cr-dec-adopt" onclick="postDecision(\'' + sid + '\',\'adopt\',null,this)" ' +
+      'style="flex:1;padding:7px 4px;border-radius:7px;border:1px solid rgba(34,197,94,.4);background:rgba(34,197,94,.08);color:#86efac;font-size:11px;font-weight:700;cursor:pointer">采纳</button>';
+    html += '<button class="cr-dec-btn cr-dec-watch" onclick="postDecision(\'' + sid + '\',\'watch\',null,this)" ' +
+      'style="flex:1;padding:7px 4px;border-radius:7px;border:1px solid rgba(59,130,246,.4);background:rgba(59,130,246,.08);color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer">观察</button>';
+    html += '<div style="flex:1;position:relative">' +
+      '<button class="cr-dec-btn cr-dec-ignore" onclick="toggleIgnoreMenu(this,\'' + sid + '\')" ' +
+      'style="width:100%;padding:7px 4px;border-radius:7px;border:1px solid rgba(100,116,139,.4);background:rgba(100,116,139,.08);color:#94a3b8;font-size:11px;font-weight:700;cursor:pointer">忽略 ▾</button>' +
+      '<div class="cr-ignore-menu" id="imenu-' + sid + '" style="display:none;position:absolute;right:0;bottom:36px;background:#1e2435;border:1px solid #2d3748;border-radius:8px;padding:4px;min-width:120px;z-index:100">' +
+      ['仓位已满','不认可逻辑','时机不对','已有类似持仓'].map(function(r) {
+        return '<div class="cr-ignore-opt" onclick="postDecision(\'' + sid + '\',\'ignore\',\'' + r + '\',this.parentNode.previousSibling)" ' +
+          'style="padding:8px 12px;font-size:11px;color:#cbd5e1;cursor:pointer;border-radius:4px;white-space:nowrap">' + r + '</div>';
+      }).join('') +
+      '</div></div>';
+    html += '</div>';
+  }
+
   return html;
 }
 
 // ── V4.1.1 信号卡片 actionable 描述 ──
 function _buildActionableHint(s) {
-  var conf = s.confidence != null ? Math.round(s.confidence * 100) : 0;
+  var conf = Math.round(getConf(s).pct*100);
   var meta = s.metadata || {};
   var dir = s.direction === 'long' ? '看多' : '看空';
   var parts = [];
@@ -1574,4 +1643,34 @@ function refreshAll() {
   document.getElementById('cr-loading').style.display = 'block';
   var active = document.querySelector('.m-tab.active');
   if (active) loadTab(active.dataset.tab);
+}
+
+// V7.5: 决策记录函数
+function postDecision(signalId, decision, reason, btn) {
+  // 关闭 ignore 菜单
+  document.querySelectorAll('.cr-ignore-menu').forEach(function(m) { m.style.display = 'none'; });
+  fetch('/m/api/decision', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ signal_id: signalId, decision: decision, reason: reason })
+  }).then(function(r) { return r.json(); }).then(function() {
+    // 标记按钮已选中
+    var bar = btn ? btn.closest('.cr-decision-bar') : null;
+    if (bar) {
+      bar.querySelectorAll('.cr-dec-btn').forEach(function(b) {
+        b.style.opacity = '0.4'; b.style.pointerEvents = 'none';
+      });
+      var decColor = decision === 'adopt' ? '#22c55e' : decision === 'watch' ? '#3b82f6' : '#64748b';
+      var decLabel = decision === 'adopt' ? '✓ 已采纳' : decision === 'watch' ? '👁 观察中' : ('✕ 忽略: ' + (reason || ''));
+      bar.innerHTML = '<div style="font-size:11px;color:' + decColor + ';font-weight:600;padding:6px 0">' + decLabel + '</div>';
+    }
+  }).catch(function(e) { console.warn('decision log failed', e); });
+}
+
+function toggleIgnoreMenu(btn, signalId) {
+  var menu = document.getElementById('imenu-' + signalId);
+  if (!menu) return;
+  var isOpen = menu.style.display !== 'none';
+  document.querySelectorAll('.cr-ignore-menu').forEach(function(m) { m.style.display = 'none'; });
+  if (!isOpen) menu.style.display = 'block';
 }
