@@ -87,4 +87,86 @@
   <% } %>
 </div>
 
+
+  <!-- ── 回撤统计（合并自 /trader/drawdown）── -->
+  <% if (typeof drawdownReport !== 'undefined' && drawdownReport && !drawdownReport.error) { %>
+  <% const s = drawdownReport.summary; %>
+  <div class="dash-section" style="margin-top:32px">
+    <h3 class="dash-section-title">📉 回撤统计 <span style="font-weight:400;font-size:12px;color:var(--cr-text-secondary)">自动池 + 自选池</span></h3>
+    <div class="dash-cards" style="margin-bottom:16px">
+      <div class="dash-card">
+        <span class="dash-card-value"><%= s.totalAuto %> + <%= s.totalWatchlist %></span>
+        <span class="dash-card-label">auto / 自选</span>
+      </div>
+      <div class="dash-card">
+        <span class="dash-card-value"><%= s.withDrawdown %></span>
+        <span class="dash-card-label">有回撤数据</span>
+      </div>
+      <div class="dash-card" style="--card-color: var(--cr-positive)">
+        <span class="dash-card-value"><%= s.profitCount %></span>
+        <span class="dash-card-label">盈利数</span>
+      </div>
+      <div class="dash-card" style="--card-color: var(--cr-negative)">
+        <span class="dash-card-value"><%= s.lossCount %></span>
+        <span class="dash-card-label">亏损数</span>
+      </div>
+      <div class="dash-card">
+        <span class="dash-card-value"><%= s.avgDrawdown !== null ? parseFloat(s.avgDrawdown).toFixed(2) + '%' : '—' %></span>
+        <span class="dash-card-label">平均涨跌</span>
+      </div>
+      <div class="dash-card" style="--card-color: var(--cr-warn)">
+        <span class="dash-card-value"><%= s.maxDD !== null ? Math.abs(parseFloat(s.maxDD)).toFixed(2) + '%' : '—' %></span>
+        <span class="dash-card-label">最大回撤</span>
+      </div>
+      <div class="dash-card" style="--card-color: var(--cr-positive)">
+        <span class="dash-card-value"><%= s.maxGain !== null ? '+'+parseFloat(s.maxGain).toFixed(2)+'%' : '—' %></span>
+        <span class="dash-card-label">最大涨幅</span>
+      </div>
+    </div>
+
+    <% if (drawdownReport.auto && drawdownReport.auto.length > 0) { %>
+    <h4 style="font-size:13px;color:var(--cr-text-secondary);margin-bottom:8px">自动选股池 · <%= drawdownReport.auto.length %> 只</h4>
+    <table class="data-table" style="margin-bottom:20px">
+      <thead><tr><th>代码</th><th>名称</th><th>入价</th><th>现价</th><th>涨跌</th><th>策略</th><th>持有天</th></tr></thead>
+      <tbody>
+        <% drawdownReport.auto.forEach(r => { %>
+        <tr class="<%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'row-profit' : 'row-loss') : '' %>">
+          <td class="mono"><%= r.code %></td>
+          <td class="name"><%= r.name %></td>
+          <td class="num"><%= r.entryPrice %></td>
+          <td class="num"><%= r.price || '—' %></td>
+          <td class="num <%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'val-positive' : 'val-negative') : '' %>"><%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? '+' : '') + r.drawdownPct.toFixed(2) + '%' : '—' %></td>
+          <td class="tag-cell"><%= r.strategy || '—' %></td>
+          <td class="num"><%= r.daysHeld !== null ? r.daysHeld + 'd' : '—' %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <% } %>
+
+    <% if (drawdownReport.watchlist && drawdownReport.watchlist.length > 0) { %>
+    <h4 style="font-size:13px;color:var(--cr-text-secondary);margin-bottom:8px">自选池 · <%= drawdownReport.watchlist.length %> 只</h4>
+    <table class="data-table">
+      <thead><tr><th>代码</th><th>名称</th><th>入价</th><th>现价</th><th>涨跌</th><th>匹配策略</th></tr></thead>
+      <tbody>
+        <% drawdownReport.watchlist.forEach(r => { %>
+        <tr class="<%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'row-profit' : 'row-loss') : '' %>">
+          <td class="mono"><%= r.code %></td>
+          <td class="name"><%= r.name %></td>
+          <td class="num"><%= r.entryPrice || '—' %></td>
+          <td class="num"><%= r.price || '—' %></td>
+          <td class="num <%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'val-positive' : 'val-negative') : '' %>"><%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? '+' : '') + r.drawdownPct.toFixed(2) + '%' : '—' %></td>
+          <td class="tag-cell"><%= r.strategy || '无匹配信号' %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <% } %>
+
+    <div style="margin-top:12px;font-size:11px;color:var(--cr-text-secondary)">
+      行情拉取时间：<%= drawdownReport.fetchedAt %>
+    </div>
+  </div>
+  <% } %>
+
 <%- include('../partials/layout-bottom') %>

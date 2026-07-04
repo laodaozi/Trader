@@ -68,6 +68,39 @@ def _count_records(p: Path) -> int:
     except Exception:
         return 0
 
+def _wewe_rss_age_hours():
+    """读 wewe-rss.db 最新文章时间，返回距今小时数。"""
+    import sqlite3, time
+    db_path = Path("/opt/wewe-rss-deploy/data/wewe-rss.db")
+    if not db_path.exists():
+        return None
+    try:
+        conn = sqlite3.connect(str(db_path))
+        row = conn.execute("SELECT MAX(publish_time) FROM articles").fetchone()
+        conn.close()
+        if row and row[0]:
+            age = (time.time() - row[0]) / 3600
+            return round(age, 1)
+    except Exception:
+        pass
+    return None
+
+def check_wewe_rss():
+    """wewe-rss 专用检查：7天内算 ok，不搞日度提醒。"""
+    age = _wewe_rss_age_hours()
+    stale_threshold = 168  # 7天
+    if age is None:
+        return {"name": "wewe_rss", "status": "missing", "age_hours": None,
+                "stale_threshold_hours": stale_threshold, "record_count": 0,
+                "error": "wewe-rss.db 不存在"}
+    status = "ok" if age <= stale_threshold else "stale"
+    result = {"name": "wewe_rss", "status": status, "age_hours": age,
+              "stale_threshold_hours": stale_threshold, "record_count": 0}
+    if status == "stale":
+        days = round(age / 24, 1)
+        result["error"] = f"停更 {days}天（>{stale_threshold//24}天视为过期）"
+    return result
+
 def main():
     now = datetime.now()
     run_id = now.strftime("RUN-%Y%m%d-%H%M")
@@ -105,6 +138,7 @@ def main():
             CONTRACTS_DIR / "watchlist_signals.json",
             stale_hours=28,
         ),
+        check_wewe_rss(),
     ]
 
     ok    = sum(1 for t in tasks if t["status"] == "ok")

@@ -236,16 +236,21 @@ router.get('/trader/tracker/stock/:code', async (req, res) => {
   }
 });
 
-// ── /admin/trader/backtest ── 回测报告 ──
+// ── /admin/trader/backtest ── 回测报告 + 回撤统计（合并页）──
 router.get('/trader/backtest', async (req, res) => {
   try {
-    const reports = await backtestModel.listReports();
+    const [reports, drawdownReport] = await Promise.all([
+      backtestModel.listReports(),
+      drawdownModel.buildDrawdownReport().catch(() => null),
+    ]);
 
     res.render('trader/backtest', {
-      title: '策略回测',
+      title: '策略回测 & 回撤',
       active: 'trader',
       subTab: 'backtest',
       reports,
+      drawdownReport,
+      conclusion: null,
       error: null,
     });
   } catch (error) {
@@ -531,8 +536,12 @@ router.post('/trader/watchlist/import', async (req, res) => {
   }
 });
 
-// ── /admin/trader/drawdown ── 回撤统计（双池：自动选股 + 自选股） ──
-router.get('/trader/drawdown', async (req, res) => {
+// ── /admin/trader/drawdown ── 已合并到 backtest，301 重定向 ──
+router.get('/trader/drawdown', (req, res) => {
+  return res.redirect(301, '/admin/trader/backtest');
+});
+
+router.get('/trader/drawdown_DISABLED', async (req, res) => {
   try {
     const report = await drawdownModel.buildDrawdownReport();
     res.render('trader/drawdown', {

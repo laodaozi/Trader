@@ -13,9 +13,15 @@
 
 import json
 import re
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+# report_agent 依赖 score.py / factor_agent.py，它们在 core/ 目录下
+_CORE_DIR = Path(__file__).resolve().parents[1]
+if str(_CORE_DIR) not in sys.path:
+    sys.path.insert(0, str(_CORE_DIR))
 
 from core.writing.prompt_registry import (
     SignalSourceMeta,

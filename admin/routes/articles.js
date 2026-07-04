@@ -528,4 +528,18 @@ router.get('/articles/mp-status', (req, res) => {
   res.json({ configured, appId: configured ? process.env.WECHAT_APPID.slice(0,8) + '****' : null });
 });
 
+// GET /articles/view/:filename — 直接渲染生成的 HTML 文章
+router.get('/articles/view/:filename', async (req, res) => {
+  const { filename } = req.params;
+  const safeName = path.basename(filename).replace(/[^\w\-\u4e00-\u9fa5\.]/g, '');
+  const filePath = path.join(articleDir, safeName.endsWith('.html') ? safeName : safeName + '.html');
+  try {
+    const html = await fs.readFile(filePath, 'utf8');
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (e) {
+    res.status(404).send('文章不存在: ' + safeName);
+  }
+});
+
 module.exports = router;
