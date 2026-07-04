@@ -29,17 +29,46 @@ function runPy(args, cb) {
 // ── GET /admin/ingest ── 看板页
 router.get('/ingest', (req, res) => {
   const date = req.query.date || bjToday();
+  const fs = require('fs');
+  const PROJECT_ROOT = path.join(__dirname, '..', '..');
+
   runPy(['status', date], (err, data) => {
     if (err) return res.status(500).send('DB 错误: ' + err.message);
     const missing_critical = data.sources.filter(
       s => ['S','A'].includes(s.tier) && s.status !== 'success'
     );
+
+    // V7.5: 并入 hot_enrichment 和 manual.jsonl 状态
+    let enrichmentStats = null;
+    try {
+      const enrichPath = path.join(PROJECT_ROOT, 'data', 'hot_enrichment.json');
+      if (fs.existsSync(enrichPath)) {
+        const raw = JSON.parse(fs.readFileSync(enrichPath, 'utf8'));
+        const items = Array.isArray(raw) ? raw : Object.values(raw);
+        const withEventType = items.filter(i => i.event_type).length;
+        const lastUpdated = items.map(i => i.enriched_at || '').sort().reverse()[0] || null;
+        enrichmentStats = { total: items.length, withEventType, lastUpdated };
+      }
+    } catch (_) {}
+
+    let manualStats = null;
+    try {
+      const manualPath = path.join(PROJECT_ROOT, 'data', 'sources', 'manual.jsonl');
+      if (fs.existsSync(manualPath)) {
+        const lines = fs.readFileSync(manualPath, 'utf8').trim().split('\n').filter(Boolean);
+        const enriched = lines.filter(l => { try { return JSON.parse(l).enriched; } catch(_) { return false; } }).length;
+        manualStats = { total: lines.length, enriched };
+      }
+    } catch (_) {}
+
     res.render('ingest/index', {
       title: '信源正文投喂',
       active: 'ingest',
       date,
       statusList: data.sources,
       missing_critical,
+      enrichmentStats,
+      manualStats,
       error: null,
     });
   });

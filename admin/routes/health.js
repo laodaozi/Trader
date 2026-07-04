@@ -37,10 +37,20 @@ function runHealthCheck() {
 // ── GET /admin/health ── 健康面板 HTML ──
 router.get('/health', async (req, res) => {
   const { data } = await runHealthCheck();
+  // V7.5: 并入 run_manifest pipeline 状态
+  let manifest = null;
+  try {
+    const fs = require('fs');
+    const mfPath = '/opt/trader/output/contracts/run_manifest.json';
+    if (fs.existsSync(mfPath)) {
+      manifest = JSON.parse(fs.readFileSync(mfPath, 'utf8'));
+    }
+  } catch (_) {}
   res.render('admin/health', {
     title: '生产健康',
     active: 'health',
     health: data,
+    manifest,
   });
 });
 

@@ -37,10 +37,35 @@
     <h5 class="mb-0 me-3">📡 信源管理</h5>
     <span class="text-muted" style="font-size:.85rem">日期：<%= date %></span>
     <div class="ms-auto d-flex gap-2">
-      <a href="/admin" class="btn btn-sm btn-outline-primary">🗂 RSS 订阅管理</a>
       <a href="/admin/articles/sources" class="btn btn-sm btn-outline-secondary">📋 信源列表</a>
     </div>
   </div>
+
+
+  <!-- V7.5: 信源汇总状态条 -->
+  <% if (enrichmentStats || manualStats) { %>
+  <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <% if (manualStats) { %>
+    <div style="background:var(--cr-surface);border:1px solid var(--cr-border);border-radius:8px;padding:10px 16px;font-size:12px">
+      <span style="font-weight:700;color:var(--cr-text)">📝 手动信源</span>
+      <span style="color:var(--cr-text-2);margin-left:8px">共 <%= manualStats.total %> 条 · 已 enrich <%= manualStats.enriched %></span>
+    </div>
+    <% } %>
+    <% if (enrichmentStats) { %>
+    <div style="background:var(--cr-surface);border:1px solid var(--cr-border);border-radius:8px;padding:10px 16px;font-size:12px">
+      <span style="font-weight:700;color:var(--cr-text)">🧠 Enrichment 缓存</span>
+      <span style="color:var(--cr-text-2);margin-left:8px"><%= enrichmentStats.total %> 条 · event_type 已填 <%= enrichmentStats.withEventType %></span>
+      <% if (enrichmentStats.lastUpdated) { %>
+      <span style="color:var(--cr-text-3);margin-left:6px;font-size:10px">最新: <%= enrichmentStats.lastUpdated.slice(0,10) %></span>
+      <% } %>
+    </div>
+    <% } %>
+    <div style="background:var(--cr-surface);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 16px;font-size:12px">
+      <span style="font-weight:700;color:var(--cr-warn)">⚠️ WeWe RSS</span>
+      <span style="color:var(--cr-text-2);margin-left:8px">停更 06-25 · 需登录 ECS:4000 重新扫码</span>
+    </div>
+  </div>
+  <% } %>
 
   <!-- 缺失预警 -->
   <% if (missing_critical.length > 0) { %>

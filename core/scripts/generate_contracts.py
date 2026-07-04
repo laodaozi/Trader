@@ -7,6 +7,47 @@ MORNING_JSON    = Path("/opt/cycleradar-trader/data/morning.json")
 CONTRACTS_DIR   = Path("/opt/trader/output/contracts")
 HOT_ENRICHMENT  = Path("/opt/cycleradar-trader/data/hot_enrichment.json")
 
+
+# ── event_type 推断（V7.5）——根据 strategy + model_hits/reasons 规则映射 ──
+_REASON_EVENT_MAP = {
+    '并购重组': 'ma_restructuring',
+    '重组':     'ma_restructuring',
+    '政策':     'policy_support',
+    '涨价':     'price_hike',
+    '提价':     'price_hike',
+    '大单':     'order_win',
+    '中标':     'order_win',
+    '业绩超预期': 'earnings_beat',
+    '业绩超':   'earnings_beat',
+    '产能扩':   'capacity_expansion',
+    '扩产':     'capacity_expansion',
+    '管理层':   'management_change',
+    '行业政策': 'sector_policy',
+}
+_STRATEGY_EVENT_MAP = {
+    'rotation_factor':  'sector_rotation',
+    'commodity_radar':  'commodity_shock',
+    'report_agent':     'analyst_upgrade',
+    'wanjun_models':    'technical_breakout',
+    'ma_signals':       'technical_breakout',
+}
+
+def _infer_event_type(signal):
+    strategy = signal.get('strategy', '')
+    # 1. reasons/model_hits 关键词优先
+    reasons = signal.get('model_hits') or signal.get('reasons') or []
+    for r in reasons:
+        for kw, et in _REASON_EVENT_MAP.items():
+            if kw in str(r):
+                return et
+    # 2. strategy 默认映射
+    if strategy in _STRATEGY_EVENT_MAP:
+        return _STRATEGY_EVENT_MAP[strategy]
+    # 3. stock_agent 默认为技术突破
+    if strategy == 'stock_agent':
+        return 'technical_breakout'
+    return None
+
 def _read_json(p):
     try:
         if p.exists():
@@ -44,7 +85,7 @@ def generate_alpha():
                     },
                     "time_window": "1w",
                     "event_source": s.get("source",""),
-                    "event_type": s.get("event_type", None),
+                    "event_type": s.get("event_type") or _infer_event_type(s),
                     "thesis": f"{s.get('name','')} {s.get('strategy','')} score={s.get('score',0)}",
                     "sector_context": s.get("sector_context",""),
                     "enhanced_nx": s.get("nx",""),
