@@ -730,7 +730,7 @@ router.get('/m/api/cycleradar', async (req, res) => {
       asset: s.asset || '',
       assetType: s.asset_type || '',
       direction: s.direction || 'long',
-      confidence: s.confidence != null ? s.confidence : 0,
+      confidence: s.confidence != null ? s.confidence : 0,  // rotation signals: keep as float
       expiry: s.expiry || '',
       metadata: s.metadata || {},
     });
@@ -803,7 +803,9 @@ router.get('/m/api/cycleradar', async (req, res) => {
             entry_price: s.entry_price || null,
             target_price: s.target_price || null,
             stop_loss: s.stop_loss || null,
-            confidence: s.confidence || 0,
+            confidence: s.confidence,        // 透传完整结构体（V7.5）
+            event_type: s.event_type || null,
+            attribution: s.attribution || null,
             time_window: s.time_window || '',
             event_source: s.event_source || '',
             thesis: s.thesis || '',
