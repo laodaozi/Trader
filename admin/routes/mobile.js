@@ -327,7 +327,7 @@ router.get('/compare', (req, res) => {
 
 // ── /m ── V6 三 tab 仪表盘（2026-06-19 切换，原 /m/v6）
 router.get('/m', (req, res) => {
-  res.render('dashboard', { title: 'CycleRadar Trader', appVersion: 'V7.2' });
+  res.render('dashboard', { title: 'CycleRadar Trader', appVersion: 'V7.5' });
 });
 
 // ── /m/v6 ── 保留30天兼容重定向，之后删除

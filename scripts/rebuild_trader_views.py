@@ -80,6 +80,20 @@ def _signal_type(signal: dict) -> str:
     return "🕐 观察"
 
 
+def _infer_nx_from_reasons(reasons: list) -> str:
+    """从 reasons 文字（如 "NX买点 +20"）推断 nx 枚举值。"""
+    for r in (reasons or []):
+        if "NX买点" in r:
+            return "buy"
+        if "NX趋势" in r or "NX上升" in r:
+            return "rising"
+        if "NX卖点" in r or "NX下降" in r:
+            return "sell"
+        if "NX中性" in r:
+            return "neutral"
+    return "unknown"
+
+
 def _capital_dir(metadata: dict) -> str:
     breakdown = metadata.get("catalyst_breakdown") or {}
     fund_score = breakdown.get("fund")
@@ -139,7 +153,7 @@ def _strategy_record(signal: dict) -> dict:
         "date": date,
         "code": code,
         "name": name,
-        "nx": "unknown",
+        "nx": _infer_nx_from_reasons(metadata.get("reasons") or []),
         "ma_align": "unknown",
         "fib_zone": "unknown",
         "weekly_dir": metadata.get("industry") or "未知",

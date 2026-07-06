@@ -1364,6 +1364,111 @@
           "rank": 10
         }
       ]
+    },
+    {
+      "date": "2026-07-06",
+      "top10": [
+        {
+          "name": "贵金属",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0635,
+          "fund_flow": 2711664415.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 1
+        },
+        {
+          "name": "电机",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0567,
+          "fund_flow": 1664608059.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 2
+        },
+        {
+          "name": "国防军工",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.037,
+          "fund_flow": 4712237042.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 3
+        },
+        {
+          "name": "交运设备",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0352,
+          "fund_flow": 7821939512.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 4
+        },
+        {
+          "name": "通用设备",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0299,
+          "fund_flow": 3313186290.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 5
+        },
+        {
+          "name": "机械设备",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.028,
+          "fund_flow": 6453701005.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 6
+        },
+        {
+          "name": "家用电器",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0246,
+          "fund_flow": 2173635002.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 7
+        },
+        {
+          "name": "专用设备",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0215,
+          "fund_flow": 272885346.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 8
+        },
+        {
+          "name": "汽车整车",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0215,
+          "fund_flow": 1415796690.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 9
+        },
+        {
+          "name": "纺服行业",
+          "score": 1.0,
+          "stage": "观望",
+          "chg_pct": 0.0209,
+          "fund_flow": 215154602.0,
+          "weekly_flow": 0.0,
+          "consecutive_top10": 0,
+          "rank": 10
+        }
+      ]
     }
   ]
 }
