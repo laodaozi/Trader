@@ -4,19 +4,8 @@
 <%- include('../partials/nav', { active: 'trader' }) %>
 
 <div class="dash-container">
-  <h2><%= title %></h2>
-
-  <div class="subnav">
-    <a href="/admin/trader" class="subnav-tab">概览</a>
-    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
-    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
-    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
-    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
-    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
-    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
-    <a href="/admin/trader/drawdown" class="subnav-tab active">回撤统计</a>
-    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
-  </div>
+  <h2><%= title %></h2>  <!-- 子导航 -->
+  <%- include('../partials/trader-subnav') %>
 
   <% if (error) { %>
     <div class="dash-empty" style="margin-top:20px"><p><%= error %></p></div>

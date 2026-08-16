@@ -16,3 +16,10 @@ modules/
 metadata.db
 *.db
 admin_backup/
+
+# 补充: .bak 变体 + 清理备份目录 + 临时
+*.bak.*
+*.bak2
+*.bak-*
+.orphan_backup/
+admin/health/

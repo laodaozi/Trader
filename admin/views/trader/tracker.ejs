@@ -4,24 +4,59 @@
 <%- include('../partials/nav', { active: 'trader' }) %>
 
 <div class="dash-container">
-  <h2><%= title %></h2>
+  <h2><%= title %></h2>  <!-- 子导航 -->
+  <%- include('../partials/trader-subnav') %>
 
-  <!-- 子导航 -->
-  <div class="subnav">
-    <a href="/admin/trader" class="subnav-tab">概览</a>
-    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
-    <a href="/admin/trader/tracker" class="subnav-tab active">信号跟踪</a>
-    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
-    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
-    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
-    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
-    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
-    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
+  <!-- 档2: 信号复盘组 子模块入口 -->
+  <div class="subgroup-entry" style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px">
+    <a href="/admin/trader/reflection" class="subgroup-link">🤖 策略反思</a>
+    <a href="/admin/trader/drawdown" class="subgroup-link">📉 回撤监控</a>
+    <a href="/admin/trader/backtest" class="subgroup-link">📜 回测报告</a>
   </div>
 
   <% if (error) { %>
     <div class="dash-empty" style="margin-top:20px"><p>⚠️ <%= error %></p></div>
   <% } else if (trackerSummary) { %>
+
+  <%
+    // ── 置顶诊断结论 ──
+    var h20 = trackerSummary.allByHorizon && trackerSummary.allByHorizon[20];
+    var h10 = trackerSummary.allByHorizon && trackerSummary.allByHorizon[10];
+    var h5  = trackerSummary.allByHorizon && trackerSummary.allByHorizon[5];
+    function resolvedWR(stat) {
+      if (!stat) return null;
+      var r = (stat.verdicts.HIT||0) + (stat.verdicts.MISS||0);
+      return r > 0 ? Math.round((stat.verdicts.HIT||0)/r*100) : null;
+    }
+    var wr20 = resolvedWR(h20), wr10 = resolvedWR(h10), wr5 = resolvedWR(h5);
+    var expiredPct20 = h20 && h20.total > 0 ? Math.round((h20.verdicts.EXPIRED||0)/h20.total*100) : null;
+    var bestWR = Math.max(wr20||0, wr10||0, wr5||0);
+    var conclCls = bestWR >= 50 ? 'ok' : bestWR >= 40 ? 'warn' : 'bad';
+
+    // 结论文字
+    var diagnosis = [];
+    if (wr20 !== null) diagnosis.push('20日胜率 ' + wr20 + '%');
+    if (wr10 !== null) diagnosis.push('10日胜率 ' + wr10 + '%');
+    if (wr5  !== null) diagnosis.push('5日胜率 '  + wr5  + '%');
+    if (expiredPct20 !== null && expiredPct20 > 60) {
+      diagnosis.push('⚠ ' + expiredPct20 + '% 信号 EXPIRED（target 距离过远或 OHLC 未回填）');
+    }
+  %>
+
+  <!-- ── 置顶结论 ── -->
+  <div style="margin:16px 0;padding:12px 16px;border-radius:8px;border-left:4px solid <%= conclCls==='ok'?'#22c55e':conclCls==='warn'?'#f59e0b':'#ef4444' %>;background:rgba(<%= conclCls==='ok'?'34,197,94':conclCls==='warn'?'245,158,11':'239,68,68' %>,.06)">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:.8px;margin-bottom:5px">跟踪诊断结论</div>
+    <div style="font-size:13px;font-weight:600;color:<%= conclCls==='ok'?'#4ade80':conclCls==='warn'?'#fbbf24':'#f87171' %>">
+      <%= diagnosis.join(' · ') %>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:5px;line-height:1.55">
+      <% if (expiredPct20 !== null && expiredPct20 > 60) { %>
+        建议：① 排查 tracker_closer OHLC 回填是否正常（当前 n_bars=0）；② 评估 5日 horizon 是否保留（裁决率 <%= (trackerSummary && trackerSummary.overall && trackerSummary.overall.adjudicationRate != null) ? trackerSummary.overall.adjudicationRate + '%' : 'N/A' %>）
+      <% } else { %>
+        信号裁决链运行正常，持续观察胜率趋势
+      <% } %>
+    </div>
+  </div>
 
     <!-- ── 胜率诊断卡（按策略分组） ── -->
     <% if (globalWinRates && globalWinRates.length > 0) { %>
@@ -84,13 +119,16 @@
 
     <!-- 个股命中率 -->
     <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">🎯 个股命中率</h3>
+      <h3 class="dash-section-title">🎯 个股命中率
+        <% var activeSummary = trackerSummary.stockSummary.filter(function(s){ return (s.hit||0)+(s.miss||0) > 0; }); %>
+        <span style="font-weight:400;font-size:12px;color:var(--text-muted)">已裁决 <%= activeSummary.length %> 只 · <a href="#all-stocks" onclick="document.getElementById('all-stocks-block').style.display='block';this.style.display='none';return false;" style="color:var(--primary)">展开全部 <%= trackerSummary.stockSummary.length %> 只</a></span>
+      </h3>
       <table class="data-table">
         <thead>
           <tr><th>代码</th><th>名称</th><th>信号类型</th><th>总数</th><th>HIT</th><th>MISS</th><th>PENDING</th><th>NODATA</th><th>命中率</th></tr>
         </thead>
         <tbody>
-          <% trackerSummary.stockSummary.forEach(s => { %>
+          <% activeSummary.forEach(s => { %>
             <tr>
               <td class="track-mono">
                 <a href="/admin/trader/tracker/stock/<%= s.code %>" class="track-link"><%= s.code %></a>
@@ -105,8 +143,37 @@
               <td class="track-bold"><%= s.hitRate %></td>
             </tr>
           <% }) %>
+          <% if (activeSummary.length === 0) { %>
+          <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:16px">暂无已裁决记录（HIT/MISS=0），信号仍在跟踪窗口内</td></tr>
+          <% } %>
         </tbody>
       </table>
+      <!-- 折叠区：全量 -->
+      <div id="all-stocks-block" style="display:none;margin-top:12px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;font-weight:600">全量列表（含无裁决记录的标的）</div>
+        <table class="data-table">
+          <thead>
+            <tr><th>代码</th><th>名称</th><th>信号类型</th><th>总数</th><th>HIT</th><th>MISS</th><th>PENDING</th><th>NODATA</th><th>命中率</th></tr>
+          </thead>
+          <tbody>
+            <% trackerSummary.stockSummary.forEach(s => { %>
+              <tr>
+                <td class="track-mono">
+                  <a href="/admin/trader/tracker/stock/<%= s.code %>" class="track-link"><%= s.code %></a>
+                </td>
+                <td><%= s.name %></td>
+                <td><%= s.signal_type %></td>
+                <td><%= s.total %></td>
+                <td class="track-success"><%= s.hit %></td>
+                <td class="track-danger"><%= s.miss %></td>
+                <td class="track-pending"><%= s.pending %></td>
+                <td class="track-nodata"><%= s.nodata %></td>
+                <td class="track-bold"><%= s.hitRate %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- 筛选器 + 明细 -->

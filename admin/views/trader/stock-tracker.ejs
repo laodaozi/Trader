@@ -4,16 +4,8 @@
 <%- include('../partials/nav', { active: 'trader' }) %>
 
 <div class="dash-container">
-  <h2><%= title %></h2>
-
-  <!-- 子导航 -->
-  <div class="subnav">
-    <a href="/admin/trader" class="subnav-tab">概览</a>
-    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
-    <a href="/admin/trader/tracker" class="subnav-tab active">信号跟踪</a>
-    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
-    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
-  </div>
+  <h2><%= title %></h2>  <!-- 子导航 -->
+  <%- include('../partials/trader-subnav') %>
 
   <p style="margin-top:16px"><a href="/admin/trader/tracker" class="btn">← 返回跟踪列表</a></p>
 

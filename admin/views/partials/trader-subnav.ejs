@@ -1,0 +1,16 @@
+<%
+  // 档2: 6→4 组收敛。event-feed 归「今日行动」；reflection/drawdown/stock 归「信号复盘」
+  var _navKey = ({
+    overview: 'overview', strategy: 'overview', backtest: 'overview', 'model-library': 'overview', 'event-feed': 'overview',
+    watchlist: 'watchlist',
+    rotation: 'rotation',
+    tracker: 'tracker', 'stock-tracker': 'tracker', drawdown: 'tracker', reflection: 'tracker'
+  })[typeof subTab !== 'undefined' ? subTab : ''] || '';
+  function _act(k){ return _navKey === k ? ' active' : ''; }
+%>
+<div class="subnav">
+  <a href="/admin/trader"           class="subnav-tab<%= _act('overview') %>">今日行动</a>
+  <a href="/admin/trader/tracker"   class="subnav-tab<%= _act('tracker') %>">信号复盘</a>
+  <a href="/admin/trader/watchlist" class="subnav-tab<%= _act('watchlist') %>">自选池</a>
+  <a href="/admin/trader/rotation"  class="subnav-tab<%= _act('rotation') %>">市场状态</a>
+</div>

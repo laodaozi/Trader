@@ -3,105 +3,14 @@
 const express = require("express");
 const fs = require("fs/promises");
 const path = require("path");
-const https = require("https");
-const http = require("http");
 const { spawn } = require("child_process");
-
-// ── 微信/通用文章正文抓取 ──────────────────────────────────────────────────
-// 返回 { title, content, error }
-// content 是纯文本（保留换行），error 非空表示抓取失败
-function fetchArticleContent(url) {
-  return new Promise((resolve) => {
-    const timeout = 12000;
-    const isMp = url.includes("mp.weixin.qq.com");
-
-    const options = {
-      headers: {
-        "User-Agent": isMp
-          ? "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.40"
-          : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "zh-CN,zh;q=0.9",
-        "Referer": isMp ? "https://mp.weixin.qq.com/" : url,
-      },
-    };
-
-    const lib = url.startsWith("https") ? https : http;
-    const req = lib.get(url, options, (res) => {
-      // 跟重定向（最多2跳）
-      if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location) {
-        return fetchArticleContent(res.headers.location).then(resolve);
-      }
-      if (res.statusCode !== 200) {
-        return resolve({ title: "", content: "", error: `HTTP ${res.statusCode}` });
-      }
-
-      const chunks = [];
-      res.on("data", (c) => chunks.push(c));
-      res.on("end", () => {
-        const html = Buffer.concat(chunks).toString("utf8");
-
-        let title = "";
-        let content = "";
-
-        // 提取标题
-        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-        if (titleMatch) title = titleMatch[1].replace(/\s*[-_|].*$/, "").trim();
-
-        if (isMp) {
-          // 微信文章：js_content div
-          const contentMatch = html.match(/id=["']js_content["'][^>]*>([\s\S]*?)<\/div>\s*<div[^>]+id=["']js_content_copyright/i)
-            || html.match(/id=["']js_content["'][^>]*>([\s\S]{200,}?)<\/div>/i);
-          if (contentMatch) {
-            content = contentMatch[1]
-              .replace(/<br\s*\/?>/gi, "\n")
-              .replace(/<\/p>/gi, "\n")
-              .replace(/<[^>]+>/g, "")
-              .replace(/&nbsp;/g, " ")
-              .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
-              .replace(/\n{3,}/g, "\n\n")
-              .trim();
-          }
-          // og:title 通常更干净
-          const ogTitle = html.match(/property=["']og:title["']\s+content=["']([^"']+)["']/i);
-          if (ogTitle) title = ogTitle[1].trim();
-        } else {
-          // 通用页面：取 <article> 或 <main> 或 body 文本
-          const bodyMatch = html.match(/<article[^>]*>([\s\S]+?)<\/article>/i)
-            || html.match(/<main[^>]*>([\s\S]+?)<\/main>/i)
-            || html.match(/<body[^>]*>([\s\S]+?)<\/body>/i);
-          if (bodyMatch) {
-            content = bodyMatch[1]
-              .replace(/<script[\s\S]*?<\/script>/gi, "")
-              .replace(/<style[\s\S]*?<\/style>/gi, "")
-              .replace(/<br\s*\/?>/gi, "\n")
-              .replace(/<\/p>/gi, "\n")
-              .replace(/<[^>]+>/g, "")
-              .replace(/&nbsp;/g, " ")
-              .replace(/\n{3,}/g, "\n\n")
-              .trim()
-              .slice(0, 8000); // 截断防止超大正文
-          }
-        }
-
-        if (!content || content.length < 50) {
-          return resolve({ title, content: "", error: "正文提取失败（可能需要登录或内容为空）" });
-        }
-        resolve({ title, content, error: null });
-      });
-    });
-
-    req.setTimeout(timeout, () => {
-      req.destroy();
-      resolve({ title: "", content: "", error: "抓取超时（12s）" });
-    });
-    req.on("error", (e) => resolve({ title: "", content: "", error: e.message }));
-  });
-}
+const { marked } = require("marked");
 
 const router = express.Router();
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
-const articleDir = path.join(PROJECT_ROOT, "output", "article");
+// V9.2: 文章真实来源为 data/articles/article_YYYYMMDD.md（generate_article_cron.sh 每日 22:50 生成）
+// 旧 output/article 已废弃（仅剩 2 个 7 月僵尸文件）
+const articleDir = path.join(PROJECT_ROOT, "data", "articles");
 
 router.get("/articles", async (req, res) => {
   try {
@@ -109,15 +18,28 @@ router.get("/articles", async (req, res) => {
 
     try {
       const entries = await fs.readdir(articleDir, { withFileTypes: true });
-      const htmlEntries = entries.filter((entry) => entry.isFile() && path.extname(entry.name) === ".html");
+      const mdEntries = entries.filter((entry) => entry.isFile() && path.extname(entry.name) === ".md");
 
       articles = await Promise.all(
-        htmlEntries.map(async (entry) => {
+        mdEntries.map(async (entry) => {
           const filePath = path.join(articleDir, entry.name);
           const stats = await fs.stat(filePath);
+          const slug = path.basename(entry.name, ".md");
+
+          // 从 md 首行 # 标题 提取真实标题；提取 YYYYMMDD 作为日期
+          let title = slug;
+          try {
+            const raw = await fs.readFile(filePath, "utf8");
+            const m = raw.match(/^#\s+(.+)$/m);
+            if (m) title = m[1].trim();
+          } catch (_) {}
+          const dm = slug.match(/(\d{4})(\d{2})(\d{2})/);
+          const dateLabel = dm ? `${dm[1]}-${dm[2]}-${dm[3]}` : "";
 
           return {
-            name: path.basename(entry.name, ".html"),
+            name: slug,
+            title,
+            dateLabel,
             path: filePath,
             mtime: stats.mtime,
           };
@@ -246,7 +168,7 @@ router.post("/articles/generate", async (req, res) => {
     const date = req.body.date || new Date().toISOString().slice(0, 10);
     const scriptPath = path.join(PROJECT_ROOT, "core", "scripts", "run_article_pipeline.py");
 
-    const proc = spawn("python3", [scriptPath, "--date", date], {
+    const proc = spawn("python3.9", [scriptPath, "--date", date], {
       cwd: PROJECT_ROOT,
       stdio: "pipe",
     });
@@ -286,17 +208,13 @@ router.get("/articles/status", async (req, res) => {
   }
 });
 
-// ── 信源管理：POST /articles/submit ── 提交正文，立即后台触发 enrich
+// ── 信源管理：POST /articles/submit ── 手动提交 URL+内容
 router.post("/articles/submit", async (req, res) => {
   try {
-    let { url, title, content } = req.body;
-    url     = (url     || "").trim();
-    content = (content || "").trim();
-    title   = (title   || "").trim();
-
-    if (!content) {
+    const { url, title, content } = req.body;
+    if (!content || !content.trim()) {
       const enrichmentStatus = await _readEnrichmentStatus();
-      const pipelineStatus   = await _readPipelineStatus();
+      const pipelineStatus = await _readPipelineStatus();
       return res.render("articles/index", {
         title: "文章看板",
         active: "articles",
@@ -304,7 +222,7 @@ router.post("/articles/submit", async (req, res) => {
         articles: [],
         enrichmentStatus,
         pipelineStatus,
-        flash: { error: "正文不能为空，请粘贴文章内容" },
+        flash: { error: "内容不能为空" },
       });
     }
 
@@ -313,28 +231,15 @@ router.post("/articles/submit", async (req, res) => {
 
     const entry = {
       id: `manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      url,
-      title: title || "(无标题)",
-      content,
+      url: (url || "").trim(),
+      title: (title || "").trim() || "(无标题)",
+      content: content.trim(),
       submitted_at: new Date().toISOString(),
       enriched: false,
     };
 
-    await fs.appendFile(manualPath, JSON.stringify(entry) + "\n", "utf8");
-
-    // 立即后台触发 enrich + 重新生成 contracts（fire-and-forget）
-    const enrichCron = path.join(PROJECT_ROOT, "core", "scripts", "enrich_nightly_cron.sh");
-    const contractsScript = path.join(PROJECT_ROOT, "core", "scripts", "generate_contracts.py");
-    const proc = spawn("bash", [enrichCron], {
-      cwd: PROJECT_ROOT, stdio: "ignore", env: { ...process.env }, detached: true,
-    });
-    proc.on("close", () => {
-      // enrich 完成后重新生成 contracts，让 /m 事件研判立即更新
-      spawn("python3.9", [contractsScript], {
-        cwd: PROJECT_ROOT, stdio: "ignore", env: { ...process.env }, detached: true,
-      }).unref();
-    });
-    proc.unref();
+    const line = JSON.stringify(entry) + "\n";
+    await fs.appendFile(manualPath, line, "utf8");
 
     res.redirect("/admin/articles?submitted=1");
   } catch (error) {
@@ -346,15 +251,6 @@ router.post("/articles/submit", async (req, res) => {
       error,
     });
   }
-});
-
-// ── 信源管理：POST /articles/fetch-url ── AJAX 预览抓取（前端用）
-router.post("/articles/fetch-url", async (req, res) => {
-  const { url } = req.body;
-  if (!url) return res.status(400).json({ ok: false, error: "缺少 url" });
-  const result = await fetchArticleContent(url);
-  if (result.error) return res.json({ ok: false, error: result.error });
-  res.json({ ok: true, title: result.title, content: result.content, length: result.content.length });
 });
 
 // ── 信源管理：GET /articles/sources ── 展示原始信源（manual + RSS）
@@ -457,88 +353,58 @@ async function _readEnrichmentStatus() {
 }
 
 async function _readPipelineStatus() {
-   const statusPath = path.join(PROJECT_ROOT, "data", "pipeline_status.json");
+  const statusPath = path.join(PROJECT_ROOT, "data", "pipeline_status.json");
+  let status = { date: "", generated: 0, enriched: 0 };
   try {
     const raw = await fs.readFile(statusPath, "utf8");
-    return JSON.parse(raw);
+    status = JSON.parse(raw);
+  } catch (_) {}
+
+  // V9.2: generated 以 data/articles/ 实际文件为准（pipeline_status.json 的 generated 字段已废弃/失准）
+  const today = new Date().toISOString().slice(0, 10);
+  const todaySlug = `article_${today.replace(/-/g, "")}.md`;
+  try {
+    await fs.access(path.join(articleDir, todaySlug));
+    status.generatedToday = 1;
   } catch (_) {
-    return { date: "", generated: 0, enriched: 0 };
+    status.generatedToday = 0;
   }
+  // 总篇数（真实）
+  try {
+    const files = await fs.readdir(articleDir);
+    status.totalArticles = files.filter((f) => f.endsWith(".md")).length;
+  } catch (_) {
+    status.totalArticles = 0;
+  }
+  return status;
 }
 
-// ── V7.2: 微信公众号草稿箱推送 ──
-// POST /articles/mp-draft  body: { filename }
-router.post('/articles/mp-draft', async (req, res) => {
-  const { filename } = req.body;
-  if (!filename) return res.status(400).json({ ok: false, error: '缺少 filename' });
-
-  const appId     = process.env.WECHAT_APPID;
-  const appSecret = process.env.WECHAT_APPSECRET;
-  if (!appId || !appSecret) {
-    return res.status(503).json({ ok: false, error: '未配置 WECHAT_APPID / WECHAT_APPSECRET，请在 .env 中添加' });
-  }
-
+// ── V9.2: GET /articles/view/:name ── 用 marked 渲染 md 预览（替代废弃的 /article 静态服务）──
+router.get("/articles/view/:name", async (req, res) => {
   try {
-    const filePath = path.join(articleDir, filename + '.html');
-    const html = await fs.readFile(filePath, 'utf8');
-
-    // 1. 获取 access_token
-    const tokenUrl = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${appId}&secret=${appSecret}`;
-    const tokenRes = await fetch(tokenUrl);
-    const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) {
-      return res.status(502).json({ ok: false, error: '获取 access_token 失败: ' + JSON.stringify(tokenData) });
+    // 防目录穿越：仅允许 article_YYYYMMDD 形式的 slug
+    const name = req.params.name;
+    if (!/^[A-Za-z0-9_\-]+$/.test(name)) {
+      return res.status(400).send("非法文件名");
     }
-    const token = tokenData.access_token;
-
-    // 2. 提取标题（从 <title> 或 filename）
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const title = titleMatch ? titleMatch[1].trim() : filename;
-
-    // 3. 推送草稿箱
-    const draftUrl = `https://api.weixin.qq.com/cgi-bin/draft/add?access_token=${token}`;
-    const draftRes = await fetch(draftUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        articles: [{
-          title,
-          content: html,
-          author: 'CycleRadar',
-          need_open_comment: 0,
-          only_fans_can_comment: 0
-        }]
-      })
+    const filePath = path.join(articleDir, `${name}.md`);
+    const raw = await fs.readFile(filePath, "utf8");
+    const html = marked.parse(raw);
+    res.render("articles/view", {
+      title: name,
+      active: "articles",
+      subTab: "index",
+      contentHtml: html,
+      slug: name,
     });
-    const draftData = await draftRes.json();
-
-    if (draftData.errcode && draftData.errcode !== 0) {
-      return res.status(502).json({ ok: false, error: '草稿箱接口错误: ' + draftData.errmsg, code: draftData.errcode });
-    }
-
-    return res.json({ ok: true, media_id: draftData.media_id, title });
-  } catch (err) {
-    return res.status(500).json({ ok: false, error: String(err) });
-  }
-});
-
-// GET /articles/mp-status — 检查公众号配置状态
-router.get('/articles/mp-status', (req, res) => {
-  const configured = !!(process.env.WECHAT_APPID && process.env.WECHAT_APPSECRET);
-  res.json({ configured, appId: configured ? process.env.WECHAT_APPID.slice(0,8) + '****' : null });
-});
-
-// GET /articles/view/:filename — 直接渲染生成的 HTML 文章
-router.get('/articles/view/:filename', async (req, res) => {
-  const { filename } = req.params;
-  const safeName = path.basename(filename).replace(/[^\w\-\u4e00-\u9fa5\.]/g, '');
-  const filePath = path.join(articleDir, safeName.endsWith('.html') ? safeName : safeName + '.html');
-  try {
-    const html = await fs.readFile(filePath, 'utf8');
-    res.set('Content-Type', 'text/html; charset=utf-8');
-    res.send(html);
-  } catch (e) {
-    res.status(404).send('文章不存在: ' + safeName);
+  } catch (error) {
+    res.status(404).render("admin/error", {
+      title: "404 文章不存在",
+      status: 404,
+      active: "articles",
+      message: "文章不存在或读取失败",
+      error,
+    });
   }
 });
 

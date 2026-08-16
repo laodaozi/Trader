@@ -16,9 +16,11 @@ function _sinaUrl(code) {
 function _fetchOne(code) {
   return new Promise((resolve) => {
     const req = http.get(_sinaUrl(code), { headers: { Referer: 'https://finance.sina.com.cn' } }, (res) => {
-      let data = '';
-      res.on('data', (c) => (data += c));
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
       res.on('end', () => {
+        const iconv = require('iconv-lite');
+        const data = iconv.decode(Buffer.concat(chunks), 'gbk');
         const m = data.match(/"([^"]+)"/);
         if (!m) return resolve(null);
         const f = m[1].split(',');
@@ -158,9 +160,13 @@ async function buildDrawdownReport() {
   function calcDrawdown(stock, price) {
     if (!price || !stock.entryPrice) return { ...stock, ...price, drawdownPct: null, daysHeld: null, status: 'no_data' };
     const dd = ((price.price - stock.entryPrice) / stock.entryPrice * 100).toFixed(2);
-    const daysHeld = stock.signalDate
-      ? Math.floor((now - new Date(stock.signalDate)) / 86400000)
-      : null;
+    let daysHeld = null;
+    if (stock.signalDate) {
+      const parsed = new Date(stock.signalDate);
+      const d = Math.floor((now - parsed) / 86400000);
+      // 非法日期(Invalid Date)会算出 NaN，EJS 端 NaN !== null 为真会渲染成 "NaNd"，此处归一为 null
+      daysHeld = Number.isFinite(d) ? d : null;
+    }
     let status = 'no_signal';
     if (stock.entryPrice) {
       status = parseFloat(dd) >= 0 ? 'profit' : 'loss';

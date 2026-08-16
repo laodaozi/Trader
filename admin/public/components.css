@@ -1,0 +1,155 @@
+/* ============================================================
+ * CycleRadar Admin — components.css  (V9.2)
+ * 复用 public/style.css 的 --cr-* 设计 token
+ * 补齐 4 个缺失组件：空状态 / KPI 卡 / tooltip / 骨架屏
+ * 不重复定义 :root 变量，仅消费既有 token
+ * ============================================================ */
+
+/* ---------- 1. 空状态 Empty State ---------- */
+.cr-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: var(--cr-surface);
+  border: 1px dashed var(--cr-border);
+  border-radius: var(--cr-radius);
+  color: var(--cr-text-secondary);
+}
+.cr-empty__icon { font-size: 2rem; opacity: .5; margin-bottom: .75rem; }
+.cr-empty__title { font-size: .95rem; font-weight: 600; color: var(--cr-text); margin: 0 0 .35rem; }
+.cr-empty__desc { font-size: .82rem; line-height: 1.6; margin: 0; max-width: 360px; }
+.cr-empty__action { margin-top: 1rem; }
+
+/* ---------- 2. KPI 卡 ---------- */
+.cr-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.cr-kpi {
+  background: var(--cr-surface);
+  border: 1px solid var(--cr-border);
+  border-radius: var(--cr-radius);
+  padding: 1rem 1.15rem;
+  transition: border-color var(--cr-transition), box-shadow var(--cr-transition);
+}
+.cr-kpi:hover { border-color: var(--cr-primary); box-shadow: var(--cr-shadow-md); }
+.cr-kpi__label {
+  font-size: .78rem;
+  color: var(--cr-text-secondary);
+  margin-bottom: .4rem;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+}
+.cr-kpi__value { font-size: 1.6rem; font-weight: 700; line-height: 1.1; color: var(--cr-text); font-variant-numeric: tabular-nums; }
+.cr-kpi__hint { font-size: .73rem; color: var(--cr-text-secondary); margin-top: .4rem; }
+.cr-kpi__value.is-positive { color: var(--cr-positive); }
+.cr-kpi__value.is-negative { color: var(--cr-negative); }
+.cr-kpi__value.is-warn { color: var(--cr-warn); }
+.cr-kpi__value.is-info { color: var(--cr-info); }
+/* 左侧强调条变体 */
+.cr-kpi--accent { border-left: 3px solid var(--cr-primary); }
+.cr-kpi--positive { border-left: 3px solid var(--cr-positive); }
+.cr-kpi--negative { border-left: 3px solid var(--cr-negative); }
+.cr-kpi--warn { border-left: 3px solid var(--cr-warn); }
+
+/* ---------- 3. Tooltip（纯 CSS，data-cr-tip 属性触发）---------- */
+.cr-tip {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dotted var(--cr-text-secondary);
+}
+.cr-tip::after {
+  content: attr(data-cr-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(4px);
+  background: var(--cr-surface-dark);
+  color: var(--cr-text);
+  border: 1px solid var(--cr-border);
+  border-radius: var(--cr-radius-sm);
+  padding: .5rem .7rem;
+  font-size: .76rem;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+  width: max-content;
+  max-width: 260px;
+  box-shadow: var(--cr-shadow-md);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--cr-transition), transform var(--cr-transition);
+  z-index: 100;
+}
+.cr-tip::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 3px);
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--cr-border);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--cr-transition);
+  z-index: 100;
+}
+.cr-tip:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+.cr-tip:hover::before { opacity: 1; }
+/* 信息图标形态 */
+.cr-tip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--cr-border);
+  color: var(--cr-text-secondary);
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+  cursor: help;
+  border-bottom: none;
+}
+
+/* ---------- 4. 骨架屏 Skeleton / 加载态 ---------- */
+@keyframes cr-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.cr-skeleton {
+  background: linear-gradient(90deg, var(--cr-surface) 25%, var(--cr-surface-alt) 37%, var(--cr-surface) 63%);
+  background-size: 800px 100%;
+  animation: cr-shimmer 1.4s ease infinite;
+  border-radius: var(--cr-radius-sm);
+  display: block;
+}
+.cr-skeleton--text { height: .8rem; margin: .4rem 0; }
+.cr-skeleton--title { height: 1.4rem; width: 40%; margin: .5rem 0 1rem; }
+.cr-skeleton--line-70 { width: 70%; }
+.cr-skeleton--line-90 { width: 90%; }
+.cr-skeleton--card { height: 90px; margin-bottom: 1rem; }
+.cr-skeleton--row { height: 2.5rem; margin-bottom: .5rem; }
+/* 内联 spinner */
+.cr-spinner {
+  display: inline-block;
+  width: 1rem; height: 1rem;
+  border: 2px solid var(--cr-border);
+  border-top-color: var(--cr-primary);
+  border-radius: 50%;
+  animation: cr-spin .7s linear infinite;
+  vertical-align: middle;
+}
+@keyframes cr-spin { to { transform: rotate(360deg); } }
+.cr-loading-text { color: var(--cr-text-secondary); font-size: .85rem; }
+
+/* ---------- 减弱动画（无障碍）---------- */
+@media (prefers-reduced-motion: reduce) {
+  .cr-skeleton, .cr-spinner { animation: none; }
+}

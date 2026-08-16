@@ -15,13 +15,6 @@
   .btn-generate:disabled { opacity: .5; cursor: not-allowed; }
   .flash-ok { background: #dcfce7; color: #166534; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem; }
   .flash-info { background: #e0f2fe; color: #075985; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem; }
-  .mp-row { display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0f172a;border-radius:6px;border:1px solid #1e293b;margin-bottom:6px }
-  .mp-filename { font-size:12px;color:#94a3b8;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
-  .mp-date { font-size:11px;color:#475569;flex-shrink:0 }
-  .btn-preview { font-size:11px;padding:3px 10px;border-radius:4px;background:#1e3a5f;color:#60a5fa;text-decoration:none;flex-shrink:0 }
-  .btn-push { font-size:11px;padding:3px 12px;border-radius:4px;background:#166534;color:#86efac;border:none;cursor:pointer;flex-shrink:0 }
-  .btn-push:disabled { opacity:.5;cursor:not-allowed }
-  .push-status { font-size:11px;flex-shrink:0 }
 </style>
 </head>
 <body>
@@ -34,25 +27,24 @@
     <a href="/admin/articles" class="subnav-tab active">文章列表</a>
     <a href="/admin/articles/sources" class="subnav-tab">信源管理</a>
     <a href="/admin/articles/stats" class="subnav-tab">数据统计</a>
-    <a href="/admin/templates" class="subnav-tab">📝 模板管理</a>
   </div>
 
   <!-- 添加信源表单 -->
   <details style="margin-bottom: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
     <summary style="cursor: pointer; font-weight: 600; color: #1e293b; user-select: none;">
-      ➕ 添加信源（从手机微信复制正文后粘贴）
+      ➕ 添加信源（手动提交 URL / 文章内容）
     </summary>
     <% if (locals.flash && locals.flash.error) { %>
       <div style="margin-top: .5rem; background: #fef2f2; color: #b91c1c; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem;"><%= locals.flash.error %></div>
     <% } %>
     <% if (locals.flash && locals.flash.submitted) { %>
-      <div style="margin-top: .5rem; background: #dcfce7; color: #166534; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem;">✅ 已提交并触发增强，约1分钟后刷新查看</div>
+      <div style="margin-top: .5rem; background: #dcfce7; color: #166534; padding: .5rem 1rem; border-radius: 6px; font-size: .85rem;">✅ 信源已提交，待 22:30 晚间增强处理</div>
     <% } %>
     <form method="POST" action="/admin/articles/submit" style="margin-top: .75rem; display: flex; flex-direction: column; gap: .5rem;">
-      <input type="text" name="title" placeholder="文章标题（选填）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem;" />
-      <input type="url" name="url" placeholder="原文 URL（选填，记录来源用）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem;" />
-      <textarea name="content" rows="8" placeholder="粘贴文章正文（必填）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem; font-family: inherit; resize: vertical;" required></textarea>
-      <button type="submit" style="align-self: flex-start; padding: .5rem 1.25rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: .85rem;">提交并立即增强</button>
+      <input type="url" name="url" placeholder="原文 URL（选填）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem;" />
+      <input type="text" name="title" placeholder="文章标题（选填，会自动推断）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem;" />
+      <textarea name="content" rows="6" placeholder="粘贴文章全文...（必填）" style="padding: .5rem; border: 1px solid #e2e8f0; border-radius: 4px; font-size: .85rem; font-family: inherit; resize: vertical;" required></textarea>
+      <button type="submit" style="align-self: flex-start; padding: .5rem 1.25rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: .85rem;">提交信源</button>
     </form>
   </details>
 
@@ -71,8 +63,8 @@
     </div>
     <div class="status-card gen">
       <div class="label">📄 今日生成</div>
-      <div class="value"><%= (locals.pipelineStatus && locals.pipelineStatus.generated) || 0 %></div>
-      <div class="hint"><%= (locals.pipelineStatus && locals.pipelineStatus.run_at) ? '最近: ' + locals.pipelineStatus.run_at.slice(0,16) : '尚未生成' %></div>
+      <div class="value"><%= (locals.pipelineStatus && locals.pipelineStatus.generatedToday) || 0 %></div>
+      <div class="hint">累计 <%= (locals.pipelineStatus && locals.pipelineStatus.totalArticles) || 0 %> 篇</div>
     </div>
   </div>
 
@@ -91,92 +83,22 @@
   </div>
   <% } %>
 
-  <!-- ── 公众号发文卡片 ── -->
-  <% if (articles && articles.length > 0) { %>
-  <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem" id="mp-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-      <div>
-        <span style="font-size:14px;font-weight:700;color:#f1f5f9">📲 公众号发文</span>
-        <span style="font-size:11px;color:#64748b;margin-left:8px" id="mp-cfg-hint">检查配置中...</span>
-      </div>
-      <a href="/admin/articles/stats" style="font-size:11px;color:#3b82f6;text-decoration:none">查看统计 →</a>
-    </div>
-    <div id="mp-list">
-      <% articles.slice(0, 8).forEach(a => { %>
-      <div class="mp-row">
-        <span class="mp-filename"><%= a.name %></span>
-        <span class="mp-date"><%= new Date(a.mtime).toLocaleDateString('zh-CN') %></span>
-        <a href="/article/<%= a.name %>.html" target="_blank" class="btn-preview">预览</a>
-        <button class="btn-push" data-filename="<%= a.name %>" onclick="pushDraft(this)">推送草稿</button>
-        <span class="push-status" id="status-<%= a.name.replace(/[^a-z0-9]/gi,'_') %>"></span>
-      </div>
-      <% }) %>
-      <% if (articles.length > 8) { %>
-      <div style="font-size:11px;color:#475569;text-align:center;padding-top:4px">还有 <%= articles.length - 8 %> 篇 · 见下方列表</div>
-      <% } %>
-    </div>
-  </div>
-  <% } %>
-
-  <script>
-  // 检查公众号配置
-  fetch('/admin/articles/mp-status').then(r=>r.json()).then(function(d){
-    var hint = document.getElementById('mp-cfg-hint');
-    if (!hint) return;
-    if (d.configured) {
-      hint.textContent = 'AppID: ' + d.appId + ' · 已配置';
-      hint.style.color = '#86efac';
-    } else {
-      hint.textContent = '未配置 WECHAT_APPID/APPSECRET，推送不可用';
-      hint.style.color = '#fca5a5';
-      document.querySelectorAll('.btn-push').forEach(function(b){ b.disabled = true; });
-    }
-  }).catch(function(){});
-
-  function pushDraft(btn) {
-    var filename = btn.dataset.filename;
-    var statusEl = document.getElementById('status-' + filename.replace(/[^a-z0-9]/gi,'_'));
-    btn.disabled = true;
-    btn.textContent = '推送中...';
-    if (statusEl) statusEl.textContent = '';
-    fetch('/admin/articles/mp-draft', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: filename })
-    }).then(function(r){ return r.json(); }).then(function(d) {
-      if (d.ok) {
-        btn.textContent = '✅ 已推送';
-        btn.style.background = '#14532d';
-        if (statusEl) { statusEl.textContent = 'media_id: ' + (d.media_id||'').slice(0,12) + '...'; statusEl.style.color = '#86efac'; }
-      } else {
-        btn.textContent = '推送草稿';
-        btn.disabled = false;
-        if (statusEl) { statusEl.textContent = '❌ ' + (d.error||'失败'); statusEl.style.color = '#fca5a5'; }
-      }
-    }).catch(function(e) {
-      btn.textContent = '推送草稿';
-      btn.disabled = false;
-      if (statusEl) { statusEl.textContent = '❌ 网络错误'; statusEl.style.color = '#fca5a5'; }
-    });
-  }
-  </script>
-
   <div class="dash-section">
     <h3 class="dash-section-title">生成文章列表</h3>
     <% if (articles && articles.length > 0) { %>
       <div class="article-list">
         <% articles.forEach(a => { %>
           <div class="article-item">
-            <span class="article-name"><%= a.name %></span>
-            <span class="article-mtime"><%= new Date(a.mtime).toLocaleString('zh-CN') %></span>
-            <a href="/article/<%= a.name %>.html" target="_blank" class="article-link">预览</a>
+            <span class="article-name"><%= a.title || a.name %></span>
+            <span class="article-mtime"><%= a.dateLabel || new Date(a.mtime).toLocaleString('zh-CN') %></span>
+            <a href="/admin/articles/view/<%= a.name %>" target="_blank" class="article-link">预览</a>
           </div>
         <% }) %>
       </div>
     <% } else { %>
       <div class="article-empty">
         <p>📝 暂无生成文章</p>
-        <p>运行「生成今日日报」后文章将在此列出 (output/article/)</p>
+        <p>每日 22:50 自动生成，文章保存于 data/articles/</p>
       </div>
     <% } %>
   </div>

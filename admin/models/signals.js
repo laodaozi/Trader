@@ -6,9 +6,55 @@ const path = require('path');
 const SIGNALS_FILE = path.join(__dirname, '..', '..', 'data', 'upstream_signals.jsonl');
 const LATEST_SIGNAL_LIMIT = 20;
 
-function toTimestamp(value) {
-  const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? null : parsed;
+// ── 模块级缓存：按文件 mtime 作废，避免每次请求全量读文件 ──
+const _cache = {
+  map: null,       // Map<signal_id, enriched_signal> — 解析后的去重结果
+  mtimeMs: 0,
+};
+
+// ── 内部：带 mtime 缓存的加载 + 解析 → Map ──
+async function _loadAndParse() {
+  let stat;
+  try {
+    stat = await fs.stat(SIGNALS_FILE);
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      _cache.map = null;
+      _cache.mtimeMs = 0;
+      return null;
+    }
+    throw error;
+  }
+
+  if (_cache.map && _cache.mtimeMs === stat.mtimeMs) {
+    return _cache.map;   // 文件未变，直接复用
+  }
+
+  const content = await fs.readFile(SIGNALS_FILE, 'utf8');
+  if (!content.trim()) {
+    _cache.map = null;
+    _cache.mtimeMs = stat.mtimeMs;
+    return null;
+  }
+
+  const map = new Map();
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    let signal;
+    try { signal = JSON.parse(line); } catch (_) { continue; }
+    if (!signal || !signal.signal_id || !signal.timestamp) continue;
+    const ts = Date.parse(signal.timestamp);
+    if (Number.isNaN(ts)) continue;
+    const existing = map.get(signal.signal_id);
+    if (!existing || ts >= existing.timestampMs) {
+      map.set(signal.signal_id, { ...signal, timestampMs: ts });
+    }
+  }
+
+  _cache.map = map;
+  _cache.mtimeMs = stat.mtimeMs;
+  return map;
 }
 
 function compareSignalsByTimestampDesc(a, b) {
@@ -24,50 +70,9 @@ function sortByCountDescThenName(a, b, key) {
 // 传 null/Infinity 取全部（供 getCycleradarCategories 使用）
 async function getDashboardData(opts = {}) {
   const limit = opts.limit !== undefined ? opts.limit : LATEST_SIGNAL_LIMIT;
-  let content;
 
-  try {
-    content = await fs.readFile(SIGNALS_FILE, 'utf8');
-  } catch (error) {
-    if (error && error.code === 'ENOENT') {
-      return null;
-    }
-    throw error;
-  }
-
-  if (!content.trim()) {
-    return null;
-  }
-
-  const latestBySignalId = new Map();
-
-  for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line) continue;
-
-    let signal;
-    try {
-      signal = JSON.parse(line);
-    } catch (_) {
-      continue;
-    }
-
-    if (!signal || !signal.signal_id || !signal.timestamp) {
-      continue;
-    }
-
-    const timestampMs = toTimestamp(signal.timestamp);
-    if (timestampMs === null) {
-      continue;
-    }
-
-    const existing = latestBySignalId.get(signal.signal_id);
-    if (!existing || timestampMs >= existing.timestampMs) {
-      latestBySignalId.set(signal.signal_id, { ...signal, timestampMs });
-    }
-  }
-
-  if (latestBySignalId.size === 0) {
+  const latestBySignalId = await _loadAndParse();
+  if (!latestBySignalId || latestBySignalId.size === 0) {
     return null;
   }
 

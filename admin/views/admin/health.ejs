@@ -6,8 +6,8 @@ const STATUS_LABEL = { healthy: '✅ HEALTHY', degraded: '⚠️ DEGRADED', crit
 const STATUS_CLASS = { healthy: 'status-healthy', degraded: 'status-degraded', critical: 'status-critical' };
 const CHECK_ICON  = { pass: '✓', warn: '⚠', fail: '✗' };
 const CHECK_CLASS = { pass: 'check-pass', warn: 'check-warn', fail: 'check-fail' };
-const DIM_LABEL   = { process: '进程', data: '数据新鲜度', cron: 'Cron 执行', system: '系统资源', pipeline: '信息管道' };
-const DIM_ICON    = { process: '⚙️', data: '📂', cron: '🕐', system: '🖥️', pipeline: '📡' };
+const DIM_LABEL   = { process: '进程', data: '数据新鲜度', cron: 'Cron 执行', system: '系统资源' };
+const DIM_ICON    = { process: '⚙️', data: '📂', cron: '🕐', system: '🖥️' };
 
 const s = health.status || 'critical';
 const sum = health.summary || { pass: 0, warn: 0, fail: 0 };
@@ -18,7 +18,7 @@ const byDim = {};
 checks.forEach(c => {
   (byDim[c.dim] = byDim[c.dim] || []).push(c);
 });
-const dims = ['process', 'data', 'cron', 'system', 'pipeline'];
+const dims = ['process', 'data', 'cron', 'system'];
 %>
 
 </head>
@@ -107,36 +107,5 @@ async function refreshHealth() {
   }
 }
 </script>
-
-
-<% if (manifest) { %>
-<div style="margin:20px 0;background:var(--cr-surface);border:1px solid var(--cr-border);border-radius:10px;padding:16px 20px">
-  <div style="font-size:13px;font-weight:700;color:var(--cr-text);margin-bottom:12px">
-    📡 Pipeline 运行状态
-    <span style="font-size:11px;font-weight:400;color:var(--cr-text-2);margin-left:8px"><%= manifest.run_id %></span>
-  </div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px">
-    <% manifest.tasks.forEach(function(t) { %>
-    <div style="background:var(--cr-surface-2);border:1px solid var(--cr-border);border-radius:7px;padding:8px 14px;min-width:140px">
-      <div style="font-size:11px;font-weight:600;color:<%= t.status==='ok' ? 'var(--cr-positive)' : t.status==='stale' ? 'var(--cr-warn)' : 'var(--cr-negative)' %>">
-        <%= t.status==='ok' ? '🟢' : t.status==='stale' ? '🟡' : '🔴' %> <%= t.name %>
-      </div>
-      <div style="font-size:10px;color:var(--cr-text-2);margin-top:3px">
-        <%= t.age_hours != null ? t.age_hours + 'h 前' : '未知' %>
-        <% if (t.record_count) { %> · <%= t.record_count %>条<% } %>
-      </div>
-      <% if (t.error) { %>
-      <div style="font-size:10px;color:var(--cr-warn);margin-top:2px"><%= t.error %></div>
-      <% } %>
-    </div>
-    <% }) %>
-  </div>
-  <div style="font-size:10px;color:var(--cr-text-3);margin-top:10px">
-    汇总：<%= manifest.summary.ok %>/<%= manifest.summary.total %> ok
-    <% if (manifest.summary.stale > 0) { %> · <span style="color:var(--cr-warn)"><%= manifest.summary.stale %> stale</span><% } %>
-    <% if (manifest.summary.error > 0) { %> · <span style="color:var(--cr-negative)"><%= manifest.summary.error %> error</span><% } %>
-  </div>
-</div>
-<% } %>
 
 <%- include('../partials/layout-bottom') %>

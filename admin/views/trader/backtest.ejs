@@ -4,58 +4,8 @@
 <%- include('../partials/nav', { active: 'trader' }) %>
 
 <div class="dash-container">
-  <h2><%= title %></h2>
-
-  <!-- 子导航 -->
-  <div class="subnav">
-    <a href="/admin/trader" class="subnav-tab">概览</a>
-    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
-    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
-    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
-    <a href="/admin/trader/backtest" class="subnav-tab active">策略回测</a>
-    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
-    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
-    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
-    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
-  </div>
-
-  <% if (conclusion) { %>
-    <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">📊 信号追踪结论 <span style="font-weight:400;font-size:12px;color:var(--cr-text-secondary)">来源：tracker_log.jsonl · 截至 <%= conclusion.latestDate || '—' %></span></h3>
-      <div class="dash-cards" style="justify-content:flex-start;gap:12px;flex-wrap:wrap">
-        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
-          <span style="font-size:26px;font-weight:700;color:<%= (conclusion.hitRate||0)>=60 ? 'var(--cr-positive)' : (conclusion.hitRate||0)>=40 ? 'var(--cr-warn,#f59e0b)' : 'var(--cr-negative)' %>">
-            <%= conclusion.hitRate != null ? conclusion.hitRate + '%' : '—' %>
-          </span>
-          <span class="dash-card-label">信号命中率</span>
-        </div>
-        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
-          <span style="font-size:26px;font-weight:700"><%= conclusion.totalDecisions %></span>
-          <span class="dash-card-label">总决策次数</span>
-        </div>
-        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
-          <span style="font-size:26px;font-weight:700;color:var(--cr-positive)"><%= conclusion.hits %></span>
-          <span class="dash-card-label">命中</span>
-        </div>
-        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
-          <span style="font-size:26px;font-weight:700;color:var(--cr-negative)"><%= conclusion.misses %></span>
-          <span class="dash-card-label">未命中</span>
-        </div>
-        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
-          <span style="font-size:26px;font-weight:700;color:var(--cr-text-secondary)"><%= conclusion.pending %></span>
-          <span class="dash-card-label">待验证</span>
-        </div>
-        <div class="dash-card" style="flex:0 0 auto;padding:14px 20px;text-align:center;min-width:80px">
-          <span style="font-size:26px;font-weight:700"><%= conclusion.stockCount %></span>
-          <span class="dash-card-label">覆盖标的数</span>
-        </div>
-      </div>
-      <p style="margin-top:10px;font-size:12px;color:var(--cr-text-secondary)">
-        ℹ️ 命中率排除无数据项（<%= conclusion.nodata %> 条），基于有效验证 <%= conclusion.totalDecisions - conclusion.nodata %> 次计算。
-        详细标的命中明细请见 <a href="/admin/trader/tracker" style="color:var(--cr-primary)">信号跟踪</a> 页面。
-      </p>
-    </div>
-  <% } %>
+  <h2><%= title %></h2>  <!-- 子导航 -->
+  <%- include('../partials/trader-subnav') %>
 
   <% if (reports && reports.length > 0) { %>
     <div class="dash-section" style="margin-top:20px">
@@ -69,7 +19,7 @@
             <tr>
               <td style="font-family:monospace;font-size:13px"><%= r.filename %></td>
               <td><%= r.date %></td>
-              <td><%= r.isLatest ? '<span class="track-pending track-bold">最新</span>' : '归档' %></td>
+              <td><%- r.isLatest ? '<span class="track-pending track-bold">最新</span>' : '归档' %></td>
               <td>
                 <a href="/admin/trader/backtest/view/<%= r.filename %>" target="_blank" class="btn btn-sm">查看报告</a>
               </td>
@@ -86,87 +36,5 @@
     </div>
   <% } %>
 </div>
-
-
-  <!-- ── 回撤统计（合并自 /trader/drawdown）── -->
-  <% if (typeof drawdownReport !== 'undefined' && drawdownReport && !drawdownReport.error) { %>
-  <% const s = drawdownReport.summary; %>
-  <div class="dash-section" style="margin-top:32px">
-    <h3 class="dash-section-title">📉 回撤统计 <span style="font-weight:400;font-size:12px;color:var(--cr-text-secondary)">自动池 + 自选池</span></h3>
-    <div class="dash-cards" style="margin-bottom:16px">
-      <div class="dash-card">
-        <span class="dash-card-value"><%= s.totalAuto %> + <%= s.totalWatchlist %></span>
-        <span class="dash-card-label">auto / 自选</span>
-      </div>
-      <div class="dash-card">
-        <span class="dash-card-value"><%= s.withDrawdown %></span>
-        <span class="dash-card-label">有回撤数据</span>
-      </div>
-      <div class="dash-card" style="--card-color: var(--cr-positive)">
-        <span class="dash-card-value"><%= s.profitCount %></span>
-        <span class="dash-card-label">盈利数</span>
-      </div>
-      <div class="dash-card" style="--card-color: var(--cr-negative)">
-        <span class="dash-card-value"><%= s.lossCount %></span>
-        <span class="dash-card-label">亏损数</span>
-      </div>
-      <div class="dash-card">
-        <span class="dash-card-value"><%= s.avgDrawdown !== null ? parseFloat(s.avgDrawdown).toFixed(2) + '%' : '—' %></span>
-        <span class="dash-card-label">平均涨跌</span>
-      </div>
-      <div class="dash-card" style="--card-color: var(--cr-warn)">
-        <span class="dash-card-value"><%= s.maxDD !== null ? Math.abs(parseFloat(s.maxDD)).toFixed(2) + '%' : '—' %></span>
-        <span class="dash-card-label">最大回撤</span>
-      </div>
-      <div class="dash-card" style="--card-color: var(--cr-positive)">
-        <span class="dash-card-value"><%= s.maxGain !== null ? '+'+parseFloat(s.maxGain).toFixed(2)+'%' : '—' %></span>
-        <span class="dash-card-label">最大涨幅</span>
-      </div>
-    </div>
-
-    <% if (drawdownReport.auto && drawdownReport.auto.length > 0) { %>
-    <h4 style="font-size:13px;color:var(--cr-text-secondary);margin-bottom:8px">自动选股池 · <%= drawdownReport.auto.length %> 只</h4>
-    <table class="data-table" style="margin-bottom:20px">
-      <thead><tr><th>代码</th><th>名称</th><th>入价</th><th>现价</th><th>涨跌</th><th>策略</th><th>持有天</th></tr></thead>
-      <tbody>
-        <% drawdownReport.auto.forEach(r => { %>
-        <tr class="<%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'row-profit' : 'row-loss') : '' %>">
-          <td class="mono"><%= r.code %></td>
-          <td class="name"><%= r.name %></td>
-          <td class="num"><%= r.entryPrice %></td>
-          <td class="num"><%= r.price || '—' %></td>
-          <td class="num <%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'val-positive' : 'val-negative') : '' %>"><%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? '+' : '') + r.drawdownPct.toFixed(2) + '%' : '—' %></td>
-          <td class="tag-cell"><%= r.strategy || '—' %></td>
-          <td class="num"><%= r.daysHeld !== null ? r.daysHeld + 'd' : '—' %></td>
-        </tr>
-        <% }) %>
-      </tbody>
-    </table>
-    <% } %>
-
-    <% if (drawdownReport.watchlist && drawdownReport.watchlist.length > 0) { %>
-    <h4 style="font-size:13px;color:var(--cr-text-secondary);margin-bottom:8px">自选池 · <%= drawdownReport.watchlist.length %> 只</h4>
-    <table class="data-table">
-      <thead><tr><th>代码</th><th>名称</th><th>入价</th><th>现价</th><th>涨跌</th><th>匹配策略</th></tr></thead>
-      <tbody>
-        <% drawdownReport.watchlist.forEach(r => { %>
-        <tr class="<%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'row-profit' : 'row-loss') : '' %>">
-          <td class="mono"><%= r.code %></td>
-          <td class="name"><%= r.name %></td>
-          <td class="num"><%= r.entryPrice || '—' %></td>
-          <td class="num"><%= r.price || '—' %></td>
-          <td class="num <%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? 'val-positive' : 'val-negative') : '' %>"><%= r.drawdownPct !== null ? (r.drawdownPct >= 0 ? '+' : '') + r.drawdownPct.toFixed(2) + '%' : '—' %></td>
-          <td class="tag-cell"><%= r.strategy || '无匹配信号' %></td>
-        </tr>
-        <% }) %>
-      </tbody>
-    </table>
-    <% } %>
-
-    <div style="margin-top:12px;font-size:11px;color:var(--cr-text-secondary)">
-      行情拉取时间：<%= drawdownReport.fetchedAt %>
-    </div>
-  </div>
-  <% } %>
 
 <%- include('../partials/layout-bottom') %>

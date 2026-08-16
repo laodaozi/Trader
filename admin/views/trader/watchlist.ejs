@@ -4,28 +4,114 @@
 <%- include('../partials/nav', { active: 'trader' }) %>
 
 <div class="dash-container">
-  <h2><%= title %></h2>
-
-  <div class="subnav">
-    <a href="/admin/trader" class="subnav-tab">概览</a>
-    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
-    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
-    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
-    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
-    <a href="/admin/trader/watchlist" class="subnav-tab active">自选股</a>
-    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
-    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
-    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
-  </div>
+  <h2><%= title %></h2>  <!-- 子导航 -->
+  <%- include('../partials/trader-subnav') %>
 
   <% if (error) { %>
     <div class="dash-empty" style="margin-top:20px"><p><%= error %></p></div>
   <% } %>
 
   <% if (success) { %>
-    <div style="margin-top:16px;padding:10px 16px;background:#dcfce7;color:var(--cr-positive);border-radius:6px;font-size:13px">
+    <div style="margin-top:16px;padding:10px 16px;background:rgba(38,166,154,.12);color:var(--cr-positive);border:1px solid rgba(38,166,154,.3);border-radius:6px;font-size:13px">
       <%= success %>
     </div>
+  <% } %>
+
+  <!-- ── V7.9 自选股信号总览（watchlist_signals.json，64 只）── -->
+  <% if (typeof wlSignals !== 'undefined' && wlSignals && wlSignals.length > 0) { %>
+  <%
+    var nxBuy  = wlSignals.filter(function(s){ return s.nx_signal==='buy'||s.nx_signal==='rising'; }).length;
+    var nxSell = wlSignals.filter(function(s){ return s.nx_signal==='sell'; }).length;
+    var nxNeut = wlSignals.filter(function(s){ return s.nx_signal==='neutral'; }).length;
+    var stopList   = wlSignals.filter(function(s){ return s.nx_signal==='sell' && s.pnl_pct!=null && s.pnl_pct<-15; });
+    var reduceList = wlSignals.filter(function(s){ return s.nx_signal==='sell' && !(s.pnl_pct!=null && s.pnl_pct<-15); });
+    var addList    = wlSignals.filter(function(s){ return (s.nx_signal==='buy'||s.nx_signal==='rising') && (s.pnl_pct==null||s.pnl_pct<=20); });
+  %>
+  <div class="dash-section" style="margin:20px 0">
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
+      <h3 class="dash-section-title">📊 自选池信号总览</h3>
+      <span style="font-size:11px;color:var(--text-muted)"><%= wlSignals.length %> 只 · 含 NX 信号 + P&amp;L</span>
+    </div>
+    <!-- 结论行 -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <% if (stopList.length > 0) { %>
+      <div style="padding:8px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;font-size:12px">
+        <span style="color:#f87171;font-weight:700">⚠ 止损</span>
+        <span style="color:var(--text-muted);margin-left:6px"><%= stopList.map(function(s){return s.name;}).slice(0,4).join(' / ') %><%= stopList.length>4?' +'+( stopList.length-4)+'只':'' %></span>
+      </div>
+      <% } %>
+      <% if (reduceList.length > 0) { %>
+      <div style="padding:8px 14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:6px;font-size:12px">
+        <span style="color:#fbbf24;font-weight:700">减仓</span>
+        <span style="color:var(--text-muted);margin-left:6px"><%= reduceList.slice(0,4).map(function(s){return s.name;}).join(' / ') %><%= reduceList.length>4?' +'+(reduceList.length-4)+'只':'' %></span>
+      </div>
+      <% } %>
+      <div style="padding:8px 14px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:6px;font-size:12px">
+        <span style="color:#4ade80;font-weight:700">看多</span>
+        <span style="color:var(--text-muted);margin-left:6px"><%= nxBuy %> 只</span>
+      </div>
+    </div>
+    <!-- 信号明细表 -->
+    <div style="overflow-x:auto">
+      <table class="data-table" style="width:100%">
+        <thead>
+          <tr><th>代码</th><th>名称</th><th>NX</th><th>P&amp;L</th><th>止损分</th><th>建议</th><th>MA</th></tr>
+        </thead>
+        <tbody>
+          <%
+            // 止损评分：NX=sell(+2) + PnL<-15%(+2) + MA=bear(+1) + PnL<-25%且亏损(+1) → 满分6，>=4立即止损
+            function stopScore(s) {
+              var score = 0;
+              if (s.nx_signal === 'sell') score += 2;
+              if (s.pnl_pct != null && s.pnl_pct < -15) score += 2;
+              if ((s.ma_alignment || '').toLowerCase().indexOf('bear') !== -1) score += 1;
+              if (s.pnl_pct != null && s.pnl_pct < -25) score += 1;  // 深度亏损加权
+              return score;
+            }
+            // 操作紧迫度排序：立即止损(5) > 减仓(3-4) > 看多(2) > 持有(1) > 其他
+            function urgency(s) {
+              var sc = stopScore(s);
+              if (sc >= 4) return 0;                           // 立即止损
+              if (s.nx_signal === 'sell') return 1;            // 减仓
+              if (sc >= 2) return 2;                           // 止损警戒
+              if (s.nx_signal==='buy'||s.nx_signal==='rising') return 3; // 看多
+              return 4;                                        // 持有/观望
+            }
+          %>
+          <% wlSignals.slice().sort(function(a,b){
+              var ua = urgency(a), ub = urgency(b);
+              if (ua !== ub) return ua - ub;
+              // 同级内按 PnL 升序（亏损最深的排前面）
+              return (a.pnl_pct||0) - (b.pnl_pct||0);
+             }).forEach(function(s){
+               var pnlStr = s.pnl_pct!=null ? (s.pnl_pct>=0?'+':'')+s.pnl_pct.toFixed(1)+'%' : '—';
+               var pnlCls = s.pnl_pct==null?'':s.pnl_pct>=0?'track-success':'track-danger';
+               var nxColor = (s.nx_signal==='buy'||s.nx_signal==='rising')?'var(--success)':s.nx_signal==='sell'?'var(--danger)':'var(--text-muted)';
+               var nxLabel = {buy:'买入',rising:'趋升',sell:'卖出',neutral:'中性'}[s.nx_signal]||'—';
+               var sc = stopScore(s);
+               var advice='持有', advCls='track-neutral';
+               if (sc >= 4){ advice='🔴止损'; advCls='track-miss'; }
+               else if (s.nx_signal==='sell' && s.pnl_pct!=null && s.pnl_pct<-15){ advice='⚠止损'; advCls='track-miss'; }
+               else if (s.nx_signal==='sell'){ advice='减仓'; advCls='track-warn'; }
+               else if (sc >= 2){ advice='警戒'; advCls='track-warn'; }
+               else if ((s.nx_signal==='buy'||s.nx_signal==='rising') && s.pnl_pct!=null && s.pnl_pct>20){ advice='减仓'; advCls='track-warn'; }
+           %>
+          <tr>
+            <td class="mono" style="font-size:12px"><%= s.code %></td>
+            <td style="font-weight:600"><%= s.name %></td>
+            <td><b style="color:<%= nxColor %>;font-size:12px"><%= nxLabel %></b></td>
+            <td class="<%= pnlCls %>" style="font-family:monospace"><%= pnlStr %></td>
+            <td style="font-size:12px;text-align:center">
+              <span style="font-weight:700;color:<%= sc>=4?'#f87171':sc>=2?'#fbbf24':'var(--text-muted)' %>"><%= sc %>/6</span>
+            </td>
+            <td class="<%= advCls %>" style="font-weight:600"><%= advice %></td>
+            <td style="font-size:11px;color:var(--text-muted)"><%= s.ma_alignment||'—' %></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
   <% } %>
 
   <div class="dash-grid" style="margin-top:20px">
@@ -34,7 +120,7 @@
       <form method="POST" action="/admin/trader/watchlist" class="calc-form" style="gap:10px">
         <label>股票代码 <input type="text" name="code" class="calc-input" placeholder="如 600519" required></label>
         <label>名称 <input type="text" name="name" class="calc-input" placeholder="如 贵州茅台" required></label>
-        <label>备注 <input type="text" name="notes" class="calc-input" placeholder="添加理由/关注方向（可选）"></label>
+        <label>备注 <input type="text" name="notes" class="calc-input" placeholder="关注理由（可选）"></label>
         <div style="margin-top:4px">
           <button type="submit" class="btn">添加到自选股</button>
         </div>
@@ -62,47 +148,28 @@
       <% if (stocks.length === 0) { %>
         <p class="track-dim">暂无自选股，请在左侧添加</p>
       <% } else { %>
-        <form method="POST" action="/admin/trader/watchlist/delete-batch" id="batch-delete-form">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
-              <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)"> 全选
-            </label>
-            <button type="submit" class="btn" style="background:var(--cr-negative);border-color:var(--cr-negative);font-size:12px;padding:5px 14px" onclick="return confirmBatchDelete()">批量移除选中</button>
-          </div>
-          <table class="data-table" style="width:100%">
-            <thead>
-              <tr><th style="width:32px"></th><th>代码</th><th>名称</th><th>备注</th><th>添加时间</th><th></th></tr>
-            </thead>
-            <tbody>
-              <% stocks.forEach(s => { %>
-                <tr>
-                  <td><input type="checkbox" name="codes" value="<%= s.code %>" class="row-check"></td>
-                  <td class="mono"><%= s.code %></td>
-                  <td class="name"><%= s.name %></td>
-                  <td class="track-dim"><%= s.notes || '—' %></td>
-                  <td class="track-dim" style="font-size:12px"><%= (s.added_at || '').slice(0,10) %></td>
-                  <td>
-                    <form method="POST" action="/admin/trader/watchlist/delete" style="display:inline" onsubmit="return confirm('确认移除 <%= s.code %> <%= s.name %>？')">
-                      <input type="hidden" name="code" value="<%= s.code %>">
-                      <button type="submit" class="btn" style="background:var(--cr-negative);border-color:var(--cr-negative);font-size:11px;padding:4px 10px">移除</button>
-                    </form>
-                  </td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
-        </form>
+        <table class="data-table" style="width:100%">
+          <thead>
+            <tr><th>代码</th><th>名称</th><th>备注</th><th>添加时间</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% stocks.forEach(s => { %>
+              <tr>
+                <td class="mono"><%= s.code %></td>
+                <td class="name"><%= s.name %></td>
+                <td class="track-dim"><%= s.notes || '—' %></td>
+                <td class="track-dim" style="font-size:12px"><%= (s.added_at || '').slice(0,10) %></td>
+                <td>
+                  <form method="POST" action="/admin/trader/watchlist/delete" style="display:inline" onsubmit="return confirm('确认移除 <%= s.code %> <%= s.name %>？')">
+                    <input type="hidden" name="code" value="<%= s.code %>">
+                    <button type="submit" class="btn" style="background:var(--cr-negative);border-color:var(--cr-negative);font-size:11px;padding:4px 10px">移除</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
         <p style="margin-top:10px;font-size:12px;color:var(--cr-text-secondary)">提示：邮件列表也支持买入/清仓/永久清仓三级操作，在自选股管理员添加后，在下一次日报中将自动加入追踪清单。</p>
-        <script>
-          function toggleSelectAll(cb) {
-            document.querySelectorAll('.row-check').forEach(function(c) { c.checked = cb.checked; });
-          }
-          function confirmBatchDelete() {
-            var checked = document.querySelectorAll('.row-check:checked');
-            if (checked.length === 0) { alert('请先勾选要移除的股票'); return false; }
-            return confirm('确认批量移除选中的 ' + checked.length + ' 只股票？');
-          }
-        </script>
       <% } %>
     </div>
   </div>

@@ -1,189 +1,238 @@
 <%- include('../partials/layout-top') %>
+<style>
+/* ── Admin Dashboard V9.6 · 统一 --cr-* 令牌（对齐全站 TradingView 暗色板）── */
+.adm-top { display:flex; align-items:center; gap:12px; margin:16px 0 20px; padding:14px 18px; background:var(--cr-surface); border-radius:var(--cr-radius); border-left:4px solid var(--cr-positive); }
+.adm-top.warn { border-left-color:var(--cr-warn); }
+.adm-top.danger { border-left-color:var(--cr-negative); }
+.adm-top-label { font-size:11px; font-weight:700; text-transform:uppercase; color:var(--cr-text-secondary); letter-spacing:.8px; flex-shrink:0; }
+.adm-top-text { font-size:14px; font-weight:600; color:var(--cr-text); flex:1; }
+.adm-top-time { font-size:11px; color:var(--cr-text-secondary); flex-shrink:0; }
+
+/* 管线状态行 */
+.pipe-row { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
+.pipe-item { display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:6px; font-size:12px; font-weight:600; }
+.pipe-item.ok   { background:rgba(38,166,154,.10); color:var(--cr-positive); border:1px solid rgba(38,166,154,.28); }
+.pipe-item.warn { background:rgba(245,158,11,.10); color:var(--cr-warn);     border:1px solid rgba(245,158,11,.28); }
+.pipe-item.dead { background:rgba(239,83,80,.10);  color:var(--cr-negative); border:1px solid rgba(239,83,80,.28); }
+.pipe-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.pipe-item.ok .pipe-dot   { background:var(--cr-positive); }
+.pipe-item.warn .pipe-dot { background:var(--cr-warn); }
+.pipe-item.dead .pipe-dot { background:var(--cr-negative); }
+.pipe-time { font-size:10px; font-weight:400; opacity:.7; margin-left:2px; }
+
+/* 指标卡片 */
+.kpi-row { display:flex; gap:12px; flex-wrap:wrap; margin:14px 0; }
+.kpi-card { flex:1; min-width:120px; max-width:200px; background:var(--cr-surface); border:1px solid var(--cr-border); border-radius:var(--cr-radius); padding:14px 16px; }
+.kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; color:var(--cr-text-secondary); letter-spacing:.7px; margin-bottom:6px; }
+.kpi-val { font-size:26px; font-weight:800; color:var(--cr-text); line-height:1; }
+.kpi-val.ok   { color:var(--cr-positive); }
+.kpi-val.warn { color:var(--cr-warn); }
+.kpi-val.bad  { color:var(--cr-negative); }
+.kpi-sub { font-size:11px; color:var(--cr-text-secondary); margin-top:5px; line-height:1.4; }
+
+/* 结论块 */
+.concl { margin:14px 0; padding:10px 14px; border-radius:6px; font-size:12px; line-height:1.65; }
+.concl.ok   { background:rgba(38,166,154,.07); border-left:3px solid var(--cr-positive); color:var(--cr-positive); }
+.concl.warn { background:rgba(245,158,11,.07); border-left:3px solid var(--cr-warn);     color:var(--cr-warn); }
+.concl.bad  { background:rgba(239,83,80,.07);  border-left:3px solid var(--cr-negative); color:var(--cr-negative); }
+.concl strong { font-weight:700; }
+
+/* 信号分布条 */
+.dist-row { display:flex; height:8px; border-radius:4px; overflow:hidden; margin:8px 0 4px; gap:1px; }
+.dist-seg { height:100%; transition:width .3s; }
+.dist-legend { display:flex; gap:14px; font-size:10px; color:var(--cr-text-secondary); }
+.dist-dot { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:3px; vertical-align:middle; }
+
+/* section 标题带结论 */
+.sec-head { display:flex; align-items:baseline; gap:10px; margin:20px 0 10px; }
+.sec-title { font-size:13px; font-weight:700; color:var(--cr-text); }
+.sec-concl { font-size:11px; color:var(--cr-text-secondary); }
+.sec-concl.ok   { color:var(--cr-positive); }
+.sec-concl.warn { color:var(--cr-warn); }
+.sec-concl.bad  { color:var(--cr-negative); }
+
+/* 反思摘要 */
+.refl-item { padding:8px 0; border-bottom:1px solid var(--cr-border); }
+.refl-item:last-child { border-bottom:none; }
+.refl-section { font-size:10px; font-weight:700; color:var(--cr-primary); text-transform:uppercase; margin-bottom:3px; }
+.refl-content { font-size:12px; color:var(--cr-text-secondary); line-height:1.55; }
+</style>
 </head>
 <body>
 <%- include('../partials/nav', { active: 'trader' }) %>
 
-<div class="dash-container">
-  <h2><%= title %></h2>
+<div class="dash-container">  <!-- 子导航 -->
+  <%- include('../partials/trader-subnav') %>
 
-  <!-- 子导航 -->
-  <div class="subnav">
-    <a href="/admin/trader" class="subnav-tab <%= subTab === 'overview' ? 'active' : '' %>">概览</a>
-    <a href="/admin/trader/strategy" class="subnav-tab <%= subTab === 'strategy' ? 'active' : '' %>">自选池诊断</a>
-    <a href="/admin/trader/tracker" class="subnav-tab <%= subTab === 'tracker' ? 'active' : '' %>">信号跟踪</a>
-    <a href="/admin/trader/model-library" class="subnav-tab <%= subTab === 'model-library' ? 'active' : '' %>">策略库</a>
-    <a href="/admin/trader/backtest" class="subnav-tab <%= subTab === 'backtest' ? 'active' : '' %>">策略回测</a>
-    <a href="/admin/trader/watchlist" class="subnav-tab <%= subTab === 'watchlist' ? 'active' : '' %>">自选股</a>
-    <a href="/admin/trader/article-stats" class="subnav-tab <%= subTab === 'article-stats' ? 'active' : '' %>">文章统计</a>
-    <a href="/admin/trader/drawdown" class="subnav-tab <%= subTab === 'drawdown' ? 'active' : '' %>">回撤统计</a>
-    <a href="/admin/trader/reflection" class="subnav-tab <%= subTab === 'reflection' ? 'active' : '' %>">策略反思</a>
+  <%
+    // ── 系统状态判断 ──
+    var pipeOk = 0, pipeWarn = 0;
+    if (ops) {
+      Object.values(ops).forEach(function(o){ o.ran ? pipeOk++ : pipeWarn++; });
+    }
+    var sysStatus = pipeWarn === 0 ? 'ok' : pipeWarn <= 1 ? 'warn' : 'danger';
+    var sysMsg = pipeWarn === 0
+      ? '所有管线今日已运行，系统正常'
+      : pipeWarn + ' 条管线未运行，请检查对应 cron log';
+
+    // ── 信号分布 ──
+    var sigTotal  = latestStrategy ? (latestStrategy.attack + latestStrategy.buy + latestStrategy.ambush + latestStrategy.watch) : 0;
+    var sigAttack = latestStrategy ? latestStrategy.attack : 0;
+    var sigBuy    = latestStrategy ? latestStrategy.buy    : 0;
+    var sigAmbush = latestStrategy ? latestStrategy.ambush : 0;
+    var sigWatch  = latestStrategy ? latestStrategy.watch  : 0;
+    var pct = function(n){ return sigTotal > 0 ? (n/sigTotal*100).toFixed(0) : 0; };
+
+    // ── 跟踪胜率结论 ──
+    var trackerConcl = '', trackerConclCls = 'warn';
+    if (trackerSummary) {
+      var h20 = trackerSummary.allByHorizon && trackerSummary.allByHorizon[20];
+      var ov  = trackerSummary.overall;
+      if (h20 && ov) {
+        var resolved20 = (h20.verdicts.HIT||0) + (h20.verdicts.MISS||0);
+        var wr20 = resolved20 > 0 ? Math.round((h20.verdicts.HIT||0)/resolved20*100) : null;
+        trackerConclCls = wr20 >= 50 ? 'ok' : wr20 >= 40 ? 'warn' : 'bad';
+        trackerConcl = '裁决率 ' + (ov.adjudicationRate != null ? ov.adjudicationRate.toFixed(1) : '—') + '% （HIT=' + (ov.HIT||0) + ' MISS=' + (ov.MISS||0) + '）';
+        if (ov.PENDING) trackerConcl += ' · PENDING ' + (ov.PENDING||0) + ' 条';
+        trackerConcl += ' · 20日窗口胜率 ' + (wr20 != null ? wr20 + '%' : '—');
+        trackerConcl += ' · 总计 ' + (ov.total||0) + ' 条（全 horizon 汇总）';
+      }
+    }
+
+    // ── 今日运营时间 ──
+    var nowStr = new Date().toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false}).replace(/\//g,'-');
+  %>
+
+  <!-- ① 系统状态一行结论 -->
+  <div class="adm-top <%= sysStatus %>">
+    <span class="adm-top-label">系统状态</span>
+    <span class="adm-top-text"><%- sysMsg %></span>
+    <span class="adm-top-time"><%= nowStr %></span>
   </div>
 
-  <!-- ── V7.1 今日工作流引导条 ── -->
-  <div style="display:flex;align-items:stretch;gap:0;margin-top:20px;border:1px solid var(--cr-border);border-radius:var(--cr-radius);overflow:hidden;background:var(--cr-surface)">
-    <a href="/admin/trader/reflection" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:14px 10px;text-decoration:none;border-right:1px solid var(--cr-border);transition:background var(--cr-transition);color:inherit" onmouseover="this.style.background='rgba(41,98,255,0.06)'" onmouseout="this.style.background=''">
-      <span style="font-size:18px;margin-bottom:4px">📝</span>
-      <span style="font-size:11px;font-weight:700;color:var(--cr-text)">更新轮动判断</span>
-      <span style="font-size:10px;color:var(--cr-text-secondary);margin-top:2px">reflection</span>
-      <% if (rotationSnapshot && rotationSnapshot.updated_at) { %>
-        <span style="font-size:10px;color:var(--cr-positive);margin-top:4px;font-weight:600">✓ <%= rotationSnapshot.updated_at.slice(5,16).replace('T',' ') %></span>
-      <% } else { %>
-        <span style="font-size:10px;color:var(--cr-warn);margin-top:4px">待更新</span>
-      <% } %>
-    </a>
-    <div style="display:flex;align-items:center;padding:0 6px;color:var(--cr-text-secondary);font-size:16px;flex-shrink:0">→</div>
-    <a href="/admin/trader/tracker" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:14px 10px;text-decoration:none;border-right:1px solid var(--cr-border);transition:background var(--cr-transition);color:inherit" onmouseover="this.style.background='rgba(41,98,255,0.06)'" onmouseout="this.style.background=''">
-      <span style="font-size:18px;margin-bottom:4px">🔍</span>
-      <span style="font-size:11px;font-weight:700;color:var(--cr-text)">检查信号质量</span>
-      <span style="font-size:10px;color:var(--cr-text-secondary);margin-top:2px">tracker</span>
-      <% if (trackerSummary) { %>
-        <% const hr5 = trackerSummary.allByHorizon && trackerSummary.allByHorizon[5]; %>
-        <% if (hr5 && hr5.total > 0) { %>
-          <% const hitPct = Math.round((hr5.verdicts && hr5.verdicts.HIT || 0) / hr5.total * 100); %>
-          <span style="font-size:10px;color:<%= hitPct >= 50 ? 'var(--cr-positive)' : 'var(--cr-negative)' %>;margin-top:4px;font-weight:600">5日胜率 <%= hitPct %>%</span>
-        <% } else { %>
-          <span style="font-size:10px;color:var(--cr-text-secondary);margin-top:4px"><%= (trackerSummary.totalRecords||0) %> 条记录</span>
-        <% } %>
-      <% } %>
-    </a>
-    <div style="display:flex;align-items:center;padding:0 6px;color:var(--cr-text-secondary);font-size:16px;flex-shrink:0">→</div>
-    <a href="/m" target="_blank" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:14px 10px;text-decoration:none;transition:background var(--cr-transition);color:inherit" onmouseover="this.style.background='rgba(41,98,255,0.06)'" onmouseout="this.style.background=''">
-      <span style="font-size:18px;margin-bottom:4px">📱</span>
-      <span style="font-size:11px;font-weight:700;color:var(--cr-text)">查看 Mobile</span>
-      <span style="font-size:10px;color:var(--cr-text-secondary);margin-top:2px">输出验证</span>
-      <span style="font-size:10px;color:var(--cr-primary);margin-top:4px;font-weight:600">→ /m</span>
-    </a>
-  </div>
-
-  <!-- ── 概览卡片行 ── -->
-  <div class="dash-cards" style="margin-top:20px">
-    <div class="dash-card">
-      <span class="dash-card-value"><%= (latestStrategy && latestStrategy.count) || 0 %></span>
-      <span class="dash-card-label">最新诊断标的</span>
-    </div>
-    <div class="dash-card">
-      <span class="dash-card-value"><%= (trackerSummary && trackerSummary.totalRecords) || 0 %></span>
-      <span class="dash-card-label">跟踪记录</span>
-    </div>
-    <div class="dash-card">
-      <span class="dash-card-value"><%= (backtestReports && backtestReports.length) || 0 %></span>
-      <span class="dash-card-label">回测报告</span>
-    </div>
-    <div class="dash-card">
-      <span class="dash-card-value"><%= account ? account.meta.total_capital.toLocaleString() : 'N/A' %></span>
-      <span class="dash-card-label">总资金</span>
-    </div>
-  </div>
-
+  <!-- ② 管线状态行 -->
   <% if (ops) { %>
-  <!-- ── 今日运营摘要 ── -->
-  <div class="dash-section" style="margin-top:24px">
-    <h3 class="dash-section-title">🔧 今日运营摘要</h3>
-    <div class="dash-cards" style="justify-content:flex-start;gap:12px;flex-wrap:wrap">
-      <% Object.entries(ops).forEach(function([key, o]) { %>
-      <div class="dash-card" style="flex:0 0 auto;min-width:150px;padding:12px 16px">
-        <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:6px"><%= o.label %></div>
-        <div style="font-size:24px;font-weight:700;color:<%= o.ran ? 'var(--success)' : 'var(--danger)' %>"><%= o.ran ? '✅ 已运行' : '❌ 未运行' %></div>
-        <% if (o.ran && o.mtime) { %>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:3px"><%= o.mtime.slice(11, 16) %></div>
+  <div class="pipe-row">
+    <% Object.entries(ops).forEach(function(entry){ var k=entry[0], o=entry[1]; %>
+    <div class="pipe-item <%= o.ran ? 'ok' : 'dead' %>">
+      <div class="pipe-dot"></div>
+      <%= o.label %>
+      <% if (o.ran && o.mtime) { %><span class="pipe-time"><%= o.mtime.slice(11,16) %></span><% } %>
+    </div>
+    <% }); %>
+  </div>
+  <% } %>
+
+  <!-- ③ 核心 KPI 行 -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">今日选股</div>
+      <div class="kpi-val <%= sigBuy+sigAttack > 0 ? 'ok' : 'warn' %>"><%= latestStrategy ? latestStrategy.count || sigTotal : '—' %></div>
+      <div class="kpi-sub"><%= latestStrategy ? latestStrategy.date : '无数据' %></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">均分</div>
+      <div class="kpi-val <%= latestStrategy && latestStrategy.avgScore >= 60 ? 'ok' : 'warn' %>"><%= latestStrategy ? latestStrategy.avgScore : '—' %></div>
+      <div class="kpi-sub">满分 100 · 60+ 可信</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">跟踪记录</div>
+      <div class="kpi-val"><%= trackerSummary ? trackerSummary.totalRecords : '—' %></div>
+      <div class="kpi-sub">EXPIRED <%= trackerSummary && trackerSummary.overall ? (trackerSummary.overall.EXPIRED||0) : '—' %> · <a href="/admin/trader/drawdown" style="color:var(--cr-primary);font-size:11px">回撤分析 →</a></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">市场温度</div>
+      <% var temp = timing && timing.history && timing.history.length ? timing.history[timing.history.length-1] : null; %>
+      <div class="kpi-val <%= temp && temp.phase==='进攻' ? 'ok' : temp && temp.phase==='防守' ? 'bad' : 'warn' %>">
+        <%= temp ? Math.round(temp.temperature || 0) + '°' : '—' %>
+      </div>
+      <div class="kpi-sub"><%= temp ? temp.phase_desc || temp.phase || '—' : '无数据' %></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">回测模型</div>
+      <div class="kpi-val"><%= backtestReports ? backtestReports.length : '—' %></div>
+      <div class="kpi-sub"><a href="/admin/trader/backtest" style="color:var(--cr-primary);font-size:11px">查看 →</a> · <a href="/admin/trader/model-library" style="color:var(--cr-primary);font-size:11px">模型库 →</a></div>
+    </div>
+  </div>
+
+  <!-- ④ 今日信号分布 + 结论 -->
+  <% if (latestStrategy) { %>
+  <div class="sec-head">
+    <span class="sec-title">📋 今日信号分布</span>
+    <span class="sec-concl <%= sigBuy+sigAttack >= 10 ? 'ok' : sigBuy+sigAttack >= 3 ? 'warn' : 'bad' %>">
+      <%= sigBuy+sigAttack >= 10 ? '做多信号充足，可正常择股' : sigBuy+sigAttack >= 3 ? '做多信号偏少，谨慎操作' : '信号极少，观望为主' %>
+    </span>
+  </div>
+  <div class="dist-row">
+    <div class="dist-seg" style="width:<%= pct(sigAttack) %>%;background:var(--cr-negative)" title="进攻 <%= sigAttack %>"></div>
+    <div class="dist-seg" style="width:<%= pct(sigBuy)    %>%;background:var(--cr-positive)" title="买入 <%= sigBuy %>"></div>
+    <div class="dist-seg" style="width:<%= pct(sigAmbush) %>%;background:var(--cr-primary)" title="埋伏 <%= sigAmbush %>"></div>
+    <div class="dist-seg" style="width:<%= pct(sigWatch)  %>%;background:var(--cr-text-secondary)" title="观望 <%= sigWatch %>"></div>
+  </div>
+  <div class="dist-legend">
+    <span><span class="dist-dot" style="background:var(--cr-negative)"></span>进攻 <b><%= sigAttack %></b></span>
+    <span><span class="dist-dot" style="background:var(--cr-positive)"></span>买入 <b><%= sigBuy %></b></span>
+    <span><span class="dist-dot" style="background:var(--cr-primary)"></span>埋伏 <b><%= sigAmbush %></b></span>
+    <span><span class="dist-dot" style="background:var(--cr-text-secondary)"></span>观望 <b><%= sigWatch %></b></span>
+  </div>
+  <p style="margin-top:10px"><a href="/admin/trader/strategy?date=<%= latestStrategy.date %>" class="btn">查看完整诊断 →</a></p>
+  <% } %>
+
+  <!-- ④b 今日主线事件（管线去重后 top4） -->
+  <% if (typeof narrativeEvents !== 'undefined' && narrativeEvents && narrativeEvents.length > 0) { %>
+  <div class="sec-head" style="margin-top:18px">
+    <span class="sec-title">📰 今日主线</span>
+    <a href="/admin/trader/event-feed" style="font-size:11px;color:var(--primary,#3b82f6)">全部早报 →</a>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:7px">
+    <% narrativeEvents.forEach(function(ev) { %>
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border:1px solid var(--border,#334155);border-radius:7px;font-size:12px">
+      <span style="font-weight:700;color:var(--primary,#3b82f6);flex-shrink:0;min-width:22px">#<%= ev.rank %></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;color:var(--text-primary,#f1f5f9);line-height:1.4;margin-bottom:4px"><%= ev.title %><% if (ev.trading_window) { %><span style="color:#f59e0b;font-size:10px;margin-left:5px">⏱ <%= ev.trading_window %></span><% } %></div>
+        <% if (ev.stock_mapping && ev.stock_mapping.length > 0) { %>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          <% ev.stock_mapping.forEach(function(s) { %>
+          <span style="font-size:10px;padding:1px 6px;border-radius:3px;background:<%= s.type==='long'?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)' %>;color:<%= s.type==='long'?'#4ade80':'#f87171' %>;font-family:monospace"><%= s.name || s.code %></span>
+          <% }); %>
+        </div>
         <% } %>
       </div>
-      <% }); %>
     </div>
+    <% }); %>
   </div>
   <% } %>
 
-  <% if (account) { %>
-  <!-- ── 账户快照 ── -->
-  <div class="dash-grid" style="margin-top:24px">
-    <div class="dash-section">
-      <h3 class="dash-section-title">📊 账户快照</h3>
-      <table class="data-table">
-        <tr><td style="width:140px">总资金</td><td>¥<%= account.meta.total_capital.toLocaleString() %></td></tr>
-        <tr><td>可用资金</td><td>¥<%= account.meta.available_cash.toLocaleString() %></td></tr>
-        <tr><td>持仓比例</td><td><%= (account.meta.position_ratio * 100).toFixed(1) %>%</td></tr>
-        <tr><td>账户状态</td><td class="<%= account.account_state === '良性' ? 'track-hit' : 'track-miss' %>"><%= account.account_state %></td></tr>
-        <tr><td>连续亏损日</td><td><%= account.consecutive_loss_days || 0 %></td></tr>
-        <tr><td>持仓数量</td><td><%= (account.holdings || []).length %></td></tr>
-        <tr><td>更新于</td><td><%= account.meta.last_updated %></td></tr>
-      </table>
-    </div>
-
-    <!-- ── 市场体温 ── -->
-    <div class="dash-section">
-      <h3 class="dash-section-title">🌡️ 市场体温</h3>
-      <% if (timing && timing.history && timing.history.length > 0) {
-        const latest = timing.history[timing.history.length - 1]; %>
-        <div style="padding:16px">
-          <p style="font-size:32px;margin:0;font-weight:700"><%= latest.phase_desc || latest.phase || 'N/A' %></p>
-          <p class="track-dim" style="margin:4px 0 0">温度: <%= (latest.temp * 100).toFixed(0) %>% | 仓位: <%= (latest.position_pct * 100).toFixed(0) %>%</p>
-        </div>
-      <% } else { %>
-        <p class="track-dim" style="padding:16px">暂无市场体温数据</p>
-      <% } %>
-    </div>
+  <!-- ⑤ 跟踪胜率结论（摘要，详见信号归档） -->
+  <% if (trackerSummary && trackerConcl) { %>
+  <div class="sec-head" style="margin-top:22px">
+    <span class="sec-title">📈 信号跟踪诊断</span>
+    <a href="/admin/trader/tracker" style="font-size:11px;color:var(--primary,#3b82f6)">明细 →</a>
+  </div>
+  <div class="concl <%= trackerConclCls %>">
+    <%- trackerConcl %>
+    <span style="display:block;margin-top:6px;font-size:11px">
+      策略胜率明细 → <a href="/admin/trader/tracker" style="color:var(--primary,#3b82f6)">信号归档</a>
+    </span>
   </div>
   <% } %>
 
-  <% if (latestStrategy) { %>
-  <!-- ── 最新诊断摘要 ── -->
-  <div class="dash-section" style="margin-top:24px">
-    <h3 class="dash-section-title">📋 最新诊断 <%= latestStrategy.date %></h3>
-    <div class="dash-cards" style="justify-content:flex-start;gap:12px">
-      <div class="dash-card" style="flex:0 0 auto;padding:12px 20px"><span class="track-miss" style="font-size:24px">🔥</span> <span class="dash-card-value"><%= latestStrategy.attack %></span><span class="dash-card-label">进攻</span></div>
-      <div class="dash-card" style="flex:0 0 auto;padding:12px 20px"><span class="track-hit" style="font-size:24px">✅</span> <span class="dash-card-value"><%= latestStrategy.buy %></span><span class="dash-card-label">买入</span></div>
-      <div class="dash-card" style="flex:0 0 auto;padding:12px 20px"><span class="track-neutral" style="font-size:24px">🕐</span> <span class="dash-card-value"><%= latestStrategy.ambush %></span><span class="dash-card-label">埋伏</span></div>
-      <div class="dash-card" style="flex:0 0 auto;padding:12px 20px"><span class="track-dim" style="font-size:24px">—</span> <span class="dash-card-value"><%= latestStrategy.watch %></span><span class="dash-card-label">观望</span></div>
-      <div class="dash-card" style="flex:0 0 auto;padding:12px 20px"><span class="dash-card-value"><%= latestStrategy.avgScore %></span><span class="dash-card-label">均分</span></div>
+  <!-- ⑥ 策略反思摘要（如有） -->
+  <% if (typeof llmReflection !== 'undefined' && llmReflection && llmReflection.reflections) { %>
+  <div class="sec-head" style="margin-top:22px">
+    <span class="sec-title">🔁 今日策略反思</span>
+    <span class="sec-concl"><%= llmReflection.generated_at ? llmReflection.generated_at.slice(0,16).replace('T',' ') : '' %> · <%= llmReflection.model || '' %></span>
+    <a href="/admin/trader/reflection" style="font-size:11px;color:var(--primary,#3b82f6);margin-left:auto">完整反思 →</a>
+  </div>
+  <div style="background:var(--surface-2,#1e293b);border:1px solid var(--border,#334155);border-radius:8px;padding:14px 16px">
+    <% llmReflection.reflections.slice(0,2).forEach(function(r){ %>
+    <div class="refl-item">
+      <div class="refl-section"><%= r.section || '' %></div>
+      <div class="refl-content"><%= (r.content||'').slice(0,160) %><%= (r.content||'').length>160?'…':'' %></div>
     </div>
-    <p style="margin-top:12px"><a href="/admin/trader/strategy?date=<%= latestStrategy.date %>" class="btn">查看完整诊断 →</a></p>
+    <% }); %>
   </div>
   <% } %>
 
-  <% if (trackerSummary) { %>
-  <!-- ── 跟踪摘要 ── -->
-  <div class="dash-section" style="margin-top:24px">
-    <h3 class="dash-section-title">📈 信号跟踪</h3>
-    <table class="data-table" style="width:auto">
-      <thead>
-        <tr><th>周期</th><th>总数</th><th>HIT</th><th>MISS</th><th>NEUTRAL</th><th>PENDING</th><th>NODATA</th><th>均收益</th></tr>
-      </thead>
-      <tbody>
-        <% [5,10,20].forEach(h => {
-          const stat = trackerSummary.allByHorizon[h];
-          if (!stat) return; %>
-          <tr>
-            <td><strong><%= h %>日</strong></td>
-            <td><%= stat.total %></td>
-            <td class="track-hit"><%= stat.verdicts.HIT || 0 %></td>
-            <td class="track-miss"><%= stat.verdicts.MISS || 0 %></td>
-            <td class="track-neutral"><%= stat.verdicts.NEUTRAL || 0 %></td>
-            <td class="track-pending"><%= stat.verdicts.PENDING || 0 %></td>
-            <td class="track-nodata"><%= stat.verdicts.NODATA || 0 %></td>
-            <td><%= stat.avgReturn %></td>
-          </tr>
-        <% }) %>
-      </tbody>
-    </table>
-    <p style="margin-top:12px"><a href="/admin/trader/tracker" class="btn">查看跟踪详情 →</a></p>
-  </div>
-  <% } %>
-
-  <% if (backtestReports && backtestReports.length > 0) { %>
-  <!-- ── 回测报告 ── -->
-  <div class="dash-section" style="margin-top:24px">
-    <h3 class="dash-section-title">📜 回测报告</h3>
-    <p><%= backtestReports.length %> 份报告</p>
-    <p><a href="/admin/trader/backtest" class="btn">查看回测 →</a></p>
-  </div>
-  <% } %>
-
-  <% if (!latestStrategy && !trackerSummary) { %>
-    <div class="dash-empty" style="margin-top:32px">
-      <p>📡 暂无交易员数据</p>
-      <p>请先运行 Python 交易员模块生成数据</p>
-    </div>
-  <% } %>
 </div>
-
 <%- include('../partials/layout-bottom') %>

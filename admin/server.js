@@ -10,8 +10,10 @@ const articlesRouter = require('./routes/articles');
 const templatesRouter = require('./routes/templates');
 const recoverRouter = require('./routes/recover');
 const healthRouter = require('./routes/health');
-const schedulerRouter = require("./routes/scheduler");
-const ingestRouter = require("./routes/article_ingest");
+const systemRouter = require("./routes/system");
+const schedulerRouter = require('./routes/scheduler');
+const briefRouter = require('./routes/brief');     // V9.1: 每日简报 API
+const discoverRouter = require('./routes/discover'); // V9.1: 发现 feed API
 
 const app = express();
 const PORT = process.env.PORT || 3100;
@@ -26,10 +28,10 @@ app.use(express.json());
 
 // 静态资源
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/article', express.static(path.join(__dirname, '..', 'output', 'article')));
+// V9.2: 移除废弃 /article 静态路由（旧 output/article 已弃用，预览改由 /admin/articles/view/:name 用 marked 渲染 data/articles）
 
-// 根路径重定向到 /admin/dashboard
-app.get('/', (req, res) => res.redirect('/admin/dashboard'));
+// V9.1: 根路径锚定到 /m（移动端首页），一屏看清全貌
+app.get('/', (req, res) => res.redirect('/m'));
 
 // 路由
 app.use('/', mobileRouter);
@@ -40,8 +42,10 @@ app.use('/admin', articlesRouter);
 app.use('/admin', templatesRouter);
 app.use('/admin/recover', recoverRouter);
 app.use('/admin', healthRouter);
-app.use("/admin", schedulerRouter);
-app.use("/admin", ingestRouter);
+app.use('/admin', schedulerRouter);
+ app.use("/admin", systemRouter);
+app.use('/', briefRouter);                        // V9.1: /api/brief 端点
+app.use('/', discoverRouter);                     // V9.1: /api/discover 端点
 
 // 404 处理
 app.use((req, res) => {

@@ -1,0 +1,202 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'trader' }) %>
+
+<div class="dash-container">
+  <h2>今日早报</h2>
+
+  <!-- 子导航 -->
+  <%- include('../partials/trader-subnav') %>
+
+  <% if (success) { %>
+  <div style="margin:12px 0;padding:10px 16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:6px;font-size:13px;color:#4ade80"><%= success %></div>
+  <% } %>
+  <% if (error) { %>
+  <div style="margin:12px 0;padding:10px 16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:6px;font-size:13px;color:#f87171"><%= error %></div>
+  <% } %>
+
+  <div class="dash-grid" style="margin-top:20px">
+
+    <!-- 左：今日事件（管线输出，去重后卡片化） -->
+    <div class="dash-section">
+      <h3 class="dash-section-title">📡 今日事件叙事
+        <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:6px" id="ev-count-label"></span>
+      </h3>
+      <%
+        // 前端去重：按 stock_mapping[0].code 取最高 rank（最小数字）
+        var deduped = [];
+        var seenPrimary = {};
+        var sortedEvents = (narrativeEvents || []).slice().sort(function(a,b){ return (a.rank||99)-(b.rank||99); });
+        sortedEvents.forEach(function(ev) {
+          var sm = ev.stock_mapping || [];
+          var primaryCode = (sm[0] && sm[0].code) ? sm[0].code : null;
+          if (primaryCode && seenPrimary[primaryCode]) return;
+          if (primaryCode) seenPrimary[primaryCode] = true;
+          deduped.push(ev);
+        });
+        var hiddenCount = (narrativeEvents||[]).length - deduped.length;
+      %>
+      <% if (deduped.length > 0) { %>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <% deduped.forEach(function(ev, i) {
+          var sm = ev.stock_mapping || [];
+          var bodyText = ev.trigger_event || ev.direct_reaction || '';
+          var titleText = (ev.title || '').slice(0, 70);
+          var isRedundant = bodyText.slice(0,30) === titleText.slice(0,30);
+        %>
+        <div style="padding:12px 14px;border:1px solid var(--border,#e5e7eb);border-radius:8px;font-size:12px">
+          <!-- 标题行 -->
+          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
+            <span style="font-weight:700;color:var(--primary,#3b82f6);flex-shrink:0;min-width:24px">#<%= ev.rank %></span>
+            <div style="flex:1;min-width:0">
+              <span style="font-weight:600;color:var(--text-primary,#1e293b);line-height:1.5"><%= titleText %></span>
+              <% if (ev.trading_window) { %>
+              <span style="color:#f59e0b;font-size:10px;margin-left:6px;white-space:nowrap">⏱ <%= ev.trading_window %></span>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- 关联股票 tag -->
+          <% if (sm.length > 0) { %>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+            <% sm.slice(0,5).forEach(function(s) { %>
+            <span style="font-size:10px;padding:2px 7px;border-radius:4px;
+              background:<%= s.type==='long'?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)' %>;
+              color:<%= s.type==='long'?'var(--cr-positive)':'var(--cr-negative)' %>;
+              font-family:monospace;cursor:default"
+              title="<%= (s.logic||'').slice(0,80) %>"><%= s.name || s.code %> <%= s.type==='long'?'↑':'↓' %></span>
+            <% }); %>
+          </div>
+          <% } %>
+
+          <!-- 正文折叠 -->
+          <% if (!isRedundant && bodyText.length > 0) { %>
+          <div>
+            <a href="#" onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none';this.textContent=d.style.display==='none'?'展开分析 ▾':'收起 ▴';return false;"
+               style="font-size:10px;color:var(--primary,#3b82f6);text-decoration:none">展开分析 ▾</a>
+            <div style="display:none;margin-top:6px;color:var(--text-muted);line-height:1.65;font-size:11px"><%= bodyText.slice(0,300) %></div>
+          </div>
+          <% } %>
+
+          <!-- 板块传导 -->
+          <% var sector = ev.sector_transmission || ev.sector_impact || ''; %>
+          <% if (sector) { %>
+          <div style="margin-top:6px;font-size:10px;color:#6b7280;border-top:1px solid var(--border,#f1f5f9);padding-top:5px">
+            📊 <%= sector.slice(0,100) %>
+          </div>
+          <% } %>
+        </div>
+        <% }); %>
+      </div>
+      <% if (hiddenCount > 0) { %>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:8px">
+        ℹ️ 已折叠 <%= hiddenCount %> 条重复事件（同核心股更低优先级），原始共 <%= (narrativeEvents||[]).length %> 条
+      </p>
+      <% } %>
+      <% } else { %>
+      <div class="dash-empty"><p>暂无今日事件叙事数据</p></div>
+      <% } %>
+
+      <!-- V8.3: 🧬 传导路径 — transmission_signals.jsonl 结构化信号 -->
+      <% if (transmissionSignals && transmissionSignals.length > 0) { %>
+      <div style="margin-top:20px;border-top:1px solid var(--border,#e5e7eb);padding-top:14px">
+        <h3 style="font-size:14px;font-weight:700;color:var(--text-primary,#1e293b);margin-bottom:10px">🧬 传导路径</h3>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <% transmissionSignals.forEach(function(group) { %>
+          <div style="padding:10px 12px;border:1px solid var(--border,#e5e7eb);border-radius:8px;font-size:11px">
+            <div style="font-weight:700;color:var(--primary,#3b82f6);margin-bottom:6px">
+              🔗 <%= group.event_name %> → <%= group.signals.length %> 条传导
+            </div>
+            <% group.signals.sort(function(a,b){ return b.confidence - a.confidence; }).forEach(function(s) { %>
+            <% var stars = s.confidence >= 0.8 ? '★★★' : s.confidence >= 0.6 ? '★★☆' : s.confidence >= 0.4 ? '★☆☆' : '···'; %>
+            <% var dirIcon = s.direction === 'long' ? '🟢' : '🔴'; %>
+            <div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border,#f8fafc)">
+              <span style="color:#f59e0b;flex-shrink:0;font-size:10px"><%= stars %></span>
+              <span style="flex-shrink:0"><%= dirIcon %></span>
+              <span style="font-weight:600;color:var(--text-primary,#1e293b)"><%= s.target.name %></span>
+              <% if (s.target.code) { %><span style="color:var(--text-muted);font-family:monospace;font-size:10px"><%= s.target.code %></span><% } %>
+              <span style="color:var(--primary,#3b82f6);margin-left:auto;font-size:10px;white-space:nowrap"><%= (s.confidence*100).toFixed(0) %>%</span>
+            </div>
+            <% if (s.transmission && s.transmission.path_names && s.transmission.path_names.length > 1) { %>
+            <div style="font-size:9px;color:var(--text-muted);margin-top:1px;padding-left:10px">
+              ↳ <%= s.transmission.path_names.join(' → ') %>
+            </div>
+            <% } %>
+            </div>
+            <% }); %>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- 右：补录表单 -->
+    <div class="dash-section">
+      <h3 class="dash-section-title">➕ 补录事件</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+        输入 URL 自动抓取标题/摘要，或手动填写。录入后下次 <code>generate_strategy_reflection</code> 运行时自动消费。
+      </p>
+      <form method="POST" action="/admin/trader/event-feed/analyze" class="calc-form" style="gap:12px">
+        <label style="font-size:12px">
+          文章 URL（可选，自动抓取标题）
+          <input type="url" name="url" class="calc-input" placeholder="https://..." style="margin-top:4px">
+        </label>
+        <label style="font-size:12px">
+          标题（URL 无法解析时手填）
+          <input type="text" name="manual_title" class="calc-input" placeholder="如：美联储暗示9月降息…" style="margin-top:4px">
+        </label>
+        <label style="font-size:12px">
+          摘要 / 核心内容
+          <textarea name="manual_summary" class="calc-input" rows="4" placeholder="事件背景、核心数据、市场影响…" style="margin-top:4px;resize:vertical"></textarea>
+        </label>
+        <button type="submit" class="btn" style="margin-top:4px">录入并等待分析</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 已录入事件列表 -->
+  <% if (eventCatalog && eventCatalog.length > 0) { %>
+  <div class="dash-section" style="margin-top:20px">
+    <h3 class="dash-section-title">📋 已录入事件
+      <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:6px"><%= eventCatalog.length %> 条</span>
+    </h3>
+    <table class="data-table" style="width:100%">
+      <thead>
+        <tr><th>录入时间</th><th>来源</th><th>标题</th><th>摘要</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% eventCatalog.slice(0,20).forEach(function(e) { %>
+        <tr>
+          <td class="mono" style="font-size:11px;white-space:nowrap"><%= (e.added_at||'').slice(0,16) %></td>
+          <td style="font-size:11px">
+            <% if (e.url) { %>
+            <a href="<%= e.url %>" target="_blank" style="color:var(--primary,#3b82f6);font-size:11px">URL</a>
+            <% } else { %>
+            <span style="color:var(--text-muted)">手动</span>
+            <% } %>
+          </td>
+          <td style="font-size:12px;font-weight:600;max-width:240px"><%= (e.title||'').slice(0,60) %></td>
+          <td style="font-size:11px;color:var(--text-muted);max-width:300px"><%= (e.summary||'').slice(0,100) %></td>
+          <td>
+            <form method="POST" action="/admin/trader/event-feed/delete" style="display:inline" onsubmit="return confirm('删除此事件？')">
+              <input type="hidden" name="id" value="<%= e.id %>">
+              <button type="submit" class="btn" style="background:var(--danger,#ef4444);border-color:var(--danger,#ef4444);font-size:11px;padding:3px 8px">删</button>
+            </form>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:8px">
+      💡 录入的事件会在下次 <code>generate_strategy_reflection.py</code> 运行时被 LLM 消费分析
+    </p>
+  </div>
+  <% } %>
+
+</div>
+
+<%- include('../partials/layout-bottom') %>
+</body>
+</html>

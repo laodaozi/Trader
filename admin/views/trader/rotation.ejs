@@ -1,0 +1,143 @@
+<%- include('../partials/layout-top') %>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'trader' }) %>
+
+<div class="dash-container">
+  <h2>市场状态</h2>
+
+  <!-- 子导航 -->
+  <%- include('../partials/trader-subnav') %>
+
+  <% if (error) { %>
+    <div class="dash-empty" style="margin-top:20px"><p>⚠️ <%= error %></p></div>
+  <% } else { %>
+
+  <%
+    // 最新轮动快照（rotation_factor.py 每日产出）
+    var latest = rotationHistory && rotationHistory[0];
+    var phaseColor = !latest ? 'var(--text-muted)'
+      : latest.phase === '启动' ? 'var(--success)'
+      : latest.phase === '加速' ? '#f59e0b'
+      : latest.phase === '混沌' ? '#9ca3af'
+      : 'var(--text-muted)';
+  %>
+
+  <!-- ── 置顶结论：市场状态 × 策略适配 ── -->
+  <div style="margin:16px 0;padding:14px 18px;border-radius:8px;border-left:4px solid <%= phaseColor %>;background:rgba(0,0,0,.04)">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:.8px;margin-bottom:6px">当前市场判断</div>
+    <% if (latest) { %>
+    <div style="font-size:22px;font-weight:800;color:<%= phaseColor %>"><%= latest.phase %></div>
+    <div style="font-size:13px;color:var(--text-muted);margin-top:4px">
+      强度 <b><%= latest.intensity && latest.intensity.intensity !== undefined ? latest.intensity.intensity : latest.intensity %></b>
+      · 日期 <b><%= latest.date %></b>
+      · Top 3：<b><%= (latest.top3||[]).map(function(s){return s.name;}).join(' / ') %></b>
+    </div>
+    <% if (latest.key_thesis) { %>
+    <div style="margin-top:8px;font-size:13px;line-height:1.6"><%= latest.key_thesis %></div>
+    <% } %>
+    <% } else { %>
+    <div style="color:var(--text-muted)">暂无轮动数据</div>
+    <% } %>
+  </div>
+
+  <!-- ── 策略胜率：权威数据在信号归档 ── -->
+  <% if (globalWinRates && globalWinRates.length > 0) { %>
+  <div style="margin:16px 0;padding:10px 16px;background:var(--surface-2,#1e293b);border:1px solid var(--border,#334155);border-radius:8px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <span style="font-size:12px;color:var(--text-muted);font-weight:600">🎯 策略胜率</span>
+    <% globalWinRates.forEach(function(g) {
+      var wr = g.winRate;
+      var cls = wr===null?'var(--text-muted)':wr>=55?'#4ade80':wr>=45?'#fbbf24':'#f87171';
+    %>
+    <span style="font-size:13px;font-weight:700;color:<%= cls %>"><%= g.strategy %> <%= wr!==null?wr+'%':'—' %></span>
+    <% }); %>
+    <a href="/admin/trader/tracker" style="font-size:11px;color:var(--primary,#3b82f6);margin-left:auto">完整胜率分析 →</a>
+  </div>
+  <% } %>
+
+  <!-- ── 28 日轮动历史 ── -->
+  <% if (rotationHistory && rotationHistory.length > 0) { %>
+  <div class="dash-section" style="margin-top:20px">
+    <h3 class="dash-section-title">📈 轮动因子历史（<%= rotationHistory.length %> 日）</h3>
+    <div style="overflow-x:auto">
+      <table class="data-table" style="width:100%">
+        <thead>
+          <tr><th>日期</th><th>阶段</th><th>强度</th><th>Top1</th><th>Top2</th><th>Top3</th></tr>
+        </thead>
+        <tbody>
+          <% rotationHistory.forEach(function(r, i) {
+            var pc = r.phase==='启动'?'var(--success)':r.phase==='加速'?'#f59e0b':r.phase==='混沌'?'#9ca3af':'var(--text-muted)';
+            var iv = r.intensity && r.intensity.intensity !== undefined ? r.intensity.intensity : r.intensity;
+            var top = r.top3 || [];
+          %>
+          <tr style="<%= i===0?'font-weight:700;background:rgba(59,130,246,.04)':'' %>">
+            <td class="mono"><%= r.date %></td>
+            <td style="color:<%= pc %>;font-weight:600"><%= r.phase %></td>
+            <td><%= iv %></td>
+            <td><%= top[0]?top[0].name+' '+top[0].stage:'—' %></td>
+            <td><%= top[1]?top[1].name+' '+top[1].stage:'—' %></td>
+            <td><%= top[2]?top[2].name+' '+top[2].stage:'—' %></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- ── 手写轮动快照（可编辑，更新 rotation_snapshot.json）── -->
+  <div class="dash-section" style="margin-top:20px">
+    <h3 class="dash-section-title">🧭 主观轮动判断
+      <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:8px">
+        <% if(rotationSnapshot&&rotationSnapshot.updated_at){ %>更新: <%= rotationSnapshot.updated_at.slice(0,10) %><% } %>
+      </span>
+    </h3>
+    <% if (rotationSnapshot && rotationSnapshot.direction) { %>
+    <div style="padding:14px;background:var(--cr-surface-alt,#f9fafb);border:1px solid var(--cr-border,#e5e7eb);border-radius:6px;margin-bottom:14px">
+      <div style="font-size:18px;font-weight:700;color:var(--primary,#3b82f6)"><%= rotationSnapshot.direction %></div>
+      <div style="margin-top:8px;display:grid;grid-template-columns:80px 1fr;gap:4px 10px;font-size:12px">
+        <span style="color:var(--text-muted)">催化剂</span><span><%= rotationSnapshot.catalyst||'—' %></span>
+        <span style="color:var(--text-muted)">证据</span><span><%= rotationSnapshot.evidence||'—' %></span>
+        <span style="color:var(--text-muted)">领先信号</span><span><%= rotationSnapshot.lead_signals||'—' %></span>
+        <span style="color:var(--text-muted)">观察标的</span><span><%= rotationSnapshot.watchlist||'—' %></span>
+        <span style="color:#f59e0b">存疑</span><span style="color:#f59e0b"><%= rotationSnapshot.doubt||'—' %></span>
+      </div>
+      <div style="margin-top:8px">
+        <div style="width:<%= rotationSnapshot.confidence||0 %>%;max-width:100%;height:5px;background:var(--primary,#3b82f6);border-radius:3px"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:3px">置信度 <%= rotationSnapshot.confidence||0 %>%</div>
+      </div>
+    </div>
+    <% } %>
+    <details <%= !rotationSnapshot||!rotationSnapshot.direction?'open':'' %>>
+      <summary style="cursor:pointer;font-size:13px;color:var(--primary,#3b82f6);margin-bottom:10px">
+        <%= rotationSnapshot&&rotationSnapshot.direction?'✏️ 更新判断':'📝 写入轮动判断' %>
+      </summary>
+      <form method="POST" action="/admin/trader/reflection/rotation-snapshot">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+          <label style="font-size:12px">主方向<br><input type="text" name="direction" value="<%=(rotationSnapshot&&rotationSnapshot.direction)||''%>" placeholder="如：AI应用商业化" style="width:100%;margin-top:4px"></label>
+          <label style="font-size:12px">置信度 0-100<br><input type="number" name="confidence" min="0" max="100" value="<%=(rotationSnapshot&&rotationSnapshot.confidence)||50%>" style="width:100%;margin-top:4px"></label>
+          <label style="font-size:12px">催化剂<br><input type="text" name="catalyst" value="<%=(rotationSnapshot&&rotationSnapshot.catalyst)||''%>" placeholder="政策/事件/季节性" style="width:100%;margin-top:4px"></label>
+          <label style="font-size:12px">支撑证据<br><input type="text" name="evidence" value="<%=(rotationSnapshot&&rotationSnapshot.evidence)||''%>" placeholder="信号数量/资金动向" style="width:100%;margin-top:4px"></label>
+          <label style="font-size:12px">领先信号<br><input type="text" name="lead_signals" value="<%=(rotationSnapshot&&rotationSnapshot.lead_signals)||''%>" style="width:100%;margin-top:4px"></label>
+          <label style="font-size:12px">观察标的<br><input type="text" name="watchlist" value="<%=(rotationSnapshot&&rotationSnapshot.watchlist)||''%>" style="width:100%;margin-top:4px"></label>
+        </div>
+        <label style="font-size:12px;display:block;margin-top:10px">存疑点<br><input type="text" name="doubt" value="<%=(rotationSnapshot&&rotationSnapshot.doubt)||''%>" placeholder="最大不确定性" style="width:100%;margin-top:4px"></label>
+        <button type="submit" class="btn" style="margin-top:14px">保存</button>
+      </form>
+    </details>
+  </div>
+
+  <!-- ── 今日 global_conclusion ── -->
+  <% if (morningConclusion) { %>
+  <div class="dash-section" style="margin-top:20px">
+    <h3 class="dash-section-title">📰 今日宏观结论</h3>
+    <div style="font-size:13px;line-height:1.75;color:var(--text);background:var(--cr-surface-alt,#f9fafb);padding:14px;border-radius:6px"><%= morningConclusion %></div>
+  </div>
+  <% } %>
+
+  <% } %>
+</div>
+
+<%- include('../partials/layout-bottom') %>
+</body>
+</html>

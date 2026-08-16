@@ -9,10 +9,10 @@
   .model-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px }
   .model-card-header h3 { margin:0; font-size:15px; font-weight:600 }
   .model-badge { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--cr-bg-tertiary); color:var(--cr-text-secondary); text-transform:uppercase }
-  .model-badge.alpha { background:#dcfce7; color:#166534 }
-  .model-badge.etf { background:#dbeafe; color:#1e40af }
-  .model-badge.commodity { background:#fef3c7; color:#92400e }
-  .model-badge.concept { background:#fce7f3; color:#9d174d }
+  .model-badge.alpha { background:rgba(38,166,154,.15); color:var(--cr-positive) }
+  .model-badge.etf { background:rgba(41,98,255,.15); color:#5b8bff }
+  .model-badge.commodity { background:rgba(245,158,11,.15); color:var(--cr-warn) }
+  .model-badge.concept { background:rgba(167,139,250,.15); color:var(--cr-info) }
   .model-desc { font-size:13px; color:var(--cr-text-secondary); margin-bottom:12px; line-height:1.5 }
   .model-stats { display:flex; gap:16px; font-size:13px }
   .model-stat { display:flex; flex-direction:column; align-items:center }
@@ -26,19 +26,8 @@
 <%- include('../partials/nav', { active: 'trader' }) %>
 
 <div class="dash-container">
-  <h2><%= title %></h2>
-
-  <div class="subnav">
-    <a href="/admin/trader" class="subnav-tab">概览</a>
-    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
-    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
-    <a href="/admin/trader/model-library" class="subnav-tab active">策略库</a>
-    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
-    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
-    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
-    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
-    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
-  </div>
+  <h2><%= title %></h2>  <!-- 子导航 -->
+  <%- include('../partials/trader-subnav') %>
 
   <div class="model-cards">
     <% models.forEach(m => { %>

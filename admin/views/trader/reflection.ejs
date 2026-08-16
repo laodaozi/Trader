@@ -1,244 +1,331 @@
 <%- include('../partials/layout-top') %>
 </head>
 <body>
-<%- include('../partials/nav', { active: 'reflection' }) %>
+<%- include('../partials/nav', { active: 'trader' }) %>
 
 <div class="dash-container">
-  <h2>🔁 项目复盘 — Loop Learning</h2>
-  <p style="font-size:0.85em;color:var(--text-muted);margin:-8px 0 16px">跨模块闭环反思 · AI策略 × 信号命中 × 执行偏差 · 定期与 Claude 复盘</p>
-
-  <!-- 子导航 -->
-  <div class="subnav">
-    <a href="/admin/trader" class="subnav-tab">概览</a>
-    <a href="/admin/trader/strategy" class="subnav-tab">自选池诊断</a>
-    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
-    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
-    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
-    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
-    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
-    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
-    <a href="/admin/trader/reflection" class="subnav-tab active">策略反思</a>
-  </div>
+  <h2>🔁 策略反思</h2>
+  <p style="font-size:0.85em;color:var(--text-muted);margin:-8px 0 16px">AI策略 × 信号命中 × 执行偏差</p>
+  <%- include('../partials/trader-subnav') %>
 
   <% if (error) { %>
     <div class="dash-empty" style="margin-top:20px"><p>⚠️ <%= error %></p></div>
   <% } else { %>
 
-  <!-- ── 当前轮动快照 ── -->
-  <div class="dash-section" id="rotation-snapshot" style="margin-top:20px">
-    <h3 class="dash-section-title">🧭 当前轮动判断</h3>
-    <% if (rotationSnapshot) { %>
-    <div style="padding:16px;background:var(--cr-surface-alt);border:1px solid var(--cr-border);border-radius:var(--cr-radius);margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-        <div>
-          <div style="font-size:11px;color:var(--cr-text-secondary)">主方向</div>
-          <div style="font-size:22px;font-weight:700;color:var(--cr-primary)"><%= rotationSnapshot.direction||'—' %></div>
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--cr-text-secondary)">置信度</div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-            <div style="width:80px;height:6px;background:var(--cr-border);border-radius:3px">
-              <div style="width:<%=rotationSnapshot.confidence||0%>%;height:100%;background:var(--cr-primary);border-radius:3px"></div>
-            </div>
-            <span style="font-size:13px;font-weight:600"><%= rotationSnapshot.confidence||0 %>%</span>
-          </div>
-        </div>
-        <div style="font-size:10px;color:var(--cr-text-secondary);margin-left:auto">更新: <%= rotationSnapshot.updated_at?rotationSnapshot.updated_at.slice(0,16).replace('T',' '):'—' %></div>
-      </div>
-      <table class="data-table" style="margin-top:12px;width:100%">
-        <tr><td style="width:80px;color:var(--cr-text-secondary);font-size:12px">催化剂</td><td><%= rotationSnapshot.catalyst||'—' %></td></tr>
-        <tr><td style="color:var(--cr-text-secondary);font-size:12px">支撑证据</td><td><%= rotationSnapshot.evidence||'—' %></td></tr>
-        <tr><td style="color:var(--cr-text-secondary);font-size:12px">领先信号</td><td><%= rotationSnapshot.lead_signals||'—' %></td></tr>
-        <tr><td style="color:var(--cr-text-secondary);font-size:12px">观察标的</td><td><%= rotationSnapshot.watchlist||'—' %></td></tr>
-        <tr><td style="color:var(--cr-warn);font-size:12px">存疑</td><td style="color:var(--cr-warn)"><%= rotationSnapshot.doubt||'—' %></td></tr>
-      </table>
-    </div>
-    <% } %>
-    <details <%=!rotationSnapshot?'open':''%>>
-      <summary style="cursor:pointer;font-size:13px;color:var(--cr-primary);margin-bottom:10px"><%= rotationSnapshot?'✏️ 更新判断':'📝 写入首个轮动判断' %></summary>
-      <form method="POST" action="/admin/trader/reflection/rotation-snapshot">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-          <label style="font-size:12px">主方向<br><input type="text" name="direction" value="<%=(rotationSnapshot&&rotationSnapshot.direction)||''%>" placeholder="如：半导体设备" style="width:100%;margin-top:4px"></label>
-          <label style="font-size:12px">置信度 0-100<br><input type="number" name="confidence" min="0" max="100" value="<%=(rotationSnapshot&&rotationSnapshot.confidence)||50%>" style="width:100%;margin-top:4px"></label>
-          <label style="font-size:12px">催化剂<br><input type="text" name="catalyst" value="<%=(rotationSnapshot&&rotationSnapshot.catalyst)||''%>" placeholder="政策/事件/季节性" style="width:100%;margin-top:4px"></label>
-          <label style="font-size:12px">支撑证据<br><input type="text" name="evidence" value="<%=(rotationSnapshot&&rotationSnapshot.evidence)||''%>" placeholder="信号数量/资金动向" style="width:100%;margin-top:4px"></label>
-          <label style="font-size:12px">领先信号标的<br><input type="text" name="lead_signals" value="<%=(rotationSnapshot&&rotationSnapshot.lead_signals)||''%>" placeholder="NX/涨停标的" style="width:100%;margin-top:4px"></label>
-          <label style="font-size:12px">观察标的（逗号分隔）<br><input type="text" name="watchlist" value="<%=(rotationSnapshot&&rotationSnapshot.watchlist)||''%>" placeholder="688012, 002371" style="width:100%;margin-top:4px"></label>
-        </div>
-        <label style="font-size:12px;display:block;margin-top:10px">存疑点<br><input type="text" name="doubt" value="<%=(rotationSnapshot&&rotationSnapshot.doubt)||''%>" placeholder="当前最大的不确定性" style="width:100%;margin-top:4px"></label>
-        <button type="submit" class="btn" style="margin-top:14px">保存快照</button>
-      </form>
-    </details>
-  </div>
+  <!-- ══════ 双栏：左=AI反思主内容  右=轮动+矩阵+概览 ══════ -->
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;margin-top:20px;align-items:start">
 
-    <!-- ═══ LLM 策略反思（generate_strategy_reflection.py 产出） ═══ -->
+    <!-- ── 左栏：AI 策略反思 ── -->
+    <div>
     <% if (llmReflection && llmReflection.reflections && llmReflection.reflections.length > 0) { %>
-    <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">🤖 AI 策略反思
-        <span style="font-size:0.65em;font-weight:400;color:var(--text-muted);margin-left:8px"><%= llmReflection.model || '' %> · <%= llmReflection.period || '' %></span>
-      </h3>
+    <div class="dash-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3 class="dash-section-title" style="margin:0">🤖 AI 策略反思</h3>
+        <span style="font-size:11px;color:var(--text-muted)"><%= llmReflection.generated_at ? llmReflection.generated_at.slice(0,16).replace('T',' ') : '' %> · <%= llmReflection.model || '' %></span>
+      </div>
 
-      <!-- 核心摘要 -->
       <% if (llmReflection.summary) { %>
-      <div style="background:rgba(59,130,246,0.06);border-left:3px solid var(--primary);padding:12px 16px;margin:12px 0;border-radius:4px">
-        <div style="font-weight:700;color:var(--primary);font-size:0.95em">💡 核心判断</div>
-        <div style="margin-top:6px;line-height:1.7;color:var(--text)"><%= llmReflection.summary %></div>
+      <div style="background:rgba(59,130,246,0.08);border-left:3px solid var(--primary,#3b82f6);padding:10px 14px;margin-bottom:14px;border-radius:4px">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--primary,#3b82f6);letter-spacing:.5px">核心判断</span>
+        <div style="margin-top:5px;font-size:13px;font-weight:600;line-height:1.6;color:var(--text-primary,#f1f5f9)"><%= llmReflection.summary %></div>
       </div>
       <% } %>
 
-      <!-- 反思卡片 -->
-      <% const confColors = { high: '#22c55e', medium: '#f59e0b', low: '#9ca3af' }; %>
-      <% llmReflection.reflections.forEach(r => {
-        let icon = '📰';
-        if (r.section.includes('轮动')) icon = '🔄';
-        else if (r.section.includes('标的')) icon = '🎯';
-        else if (r.section.includes('因子')) icon = '🔬';
-        else if (r.section.includes('事件')) icon = '📡';
-        const conf = r.confidence || 'low';
+      <% llmReflection.reflections.forEach(function(r, idx) {
+        var icon = '📰';
+        if (r.section.indexOf('轮动') !== -1) icon = '🔄';
+        else if (r.section.indexOf('标的') !== -1) icon = '🎯';
+        else if (r.section.indexOf('因子') !== -1) icon = '🔬';
+        else if (r.section.indexOf('事件') !== -1) icon = '📡';
+        var conf = r.confidence || 'low';
+        var confColor = {high:'#22c55e',medium:'#f59e0b',low:'#9ca3af'}[conf] || '#9ca3af';
+        var confLabel = {high:'高置信',medium:'中置信',low:'低置信'}[conf] || conf;
       %>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin:10px 0">
-        <div style="font-weight:700;font-size:0.9em;color:var(--primary);margin-bottom:8px">
-          <%= icon %> <%= r.section %>
-          <span style="font-size:0.7em;color:<%= confColors[conf] || '#9ca3af' %>;margin-left:8px"><%= conf %></span>
-        </div>
-        <div style="font-size:0.88em;line-height:1.75;color:var(--text);white-space:pre-wrap"><%= r.content %></div>
-      </div>
-      <% }) %>
+      <details style="margin:8px 0" <%= idx===0?'open':'' %>>
+        <summary style="cursor:pointer;padding:10px 14px;background:var(--surface-2,#1e293b);border:1px solid var(--border,#334155);border-radius:6px;list-style:none;display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;user-select:none">
+          <span><%= icon %> <%= r.section %></span>
+          <span style="font-size:10px;padding:2px 6px;border-radius:3px;color:<%= confColor %>;background:rgba(0,0,0,.2);margin-left:auto"><%= confLabel %></span>
+          <span style="font-size:10px;color:var(--text-muted)">▾</span>
+        </summary>
+        <div style="padding:12px 14px;border:1px solid var(--border,#334155);border-top:none;border-radius:0 0 6px 6px;font-size:12px;line-height:1.85;color:var(--text-secondary,#94a3b8)"><%= r.content %></div>
+      </details>
+      <% }); %>
 
-      <!-- 元数据 -->
-      <div style="font-size:0.72em;color:var(--text-muted);text-align:center;padding:8px">
-        <%= llmReflection.generated_at || '' %>
-        <% if (llmReflection.tokens) { %> | tokens: in=<%= llmReflection.tokens.input %> out=<%= llmReflection.tokens.output %><% } %>
+      <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border,#334155)">
+        <span style="font-size:10px;color:var(--text-muted)"><% if (llmReflection.tokens) { %>tokens: in=<%= llmReflection.tokens.input %> out=<%= llmReflection.tokens.output %><% } %></span>
+        <button id="wechat-gen-btn" class="btn" style="font-size:11px;padding:5px 12px" onclick="generateWechat(this)">📱 生成微信稿</button>
       </div>
+      <div id="wechat-output" style="display:none;margin-top:12px">
+        <textarea id="wechat-text" rows="10" style="width:100%;font-size:12px;line-height:1.8;padding:10px;border:1px solid var(--border,#334155);border-radius:6px;background:var(--surface-2,#1e293b);color:var(--text-primary,#f1f5f9);resize:vertical"></textarea>
+        <button onclick="copyWechat()" class="btn" style="margin-top:8px;font-size:12px">复制</button>
+      </div>
+      <script>
+      function generateWechat(btn) {
+        btn.disabled = true; btn.textContent = '生成中…';
+        var reflData = <%- JSON.stringify(llmReflection) %>;
+        var sections = (reflData.reflections||[]).map(function(r){ return r.section+': '+r.content; }).join('\n\n');
+        fetch('/admin/trader/reflection/wechat-draft', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ reflection_text: sections, generated_at: reflData.generated_at })
+        }).then(function(r){ return r.json(); }).then(function(d){
+          document.getElementById('wechat-text').value = d.draft || d.error || '生成失败';
+          document.getElementById('wechat-output').style.display = 'block';
+          btn.disabled = false; btn.textContent = '重新生成';
+        }).catch(function(e){ btn.disabled = false; btn.textContent = '重新生成'; alert('请求失败: '+e.message); });
+      }
+      function copyWechat() {
+        var ta = document.getElementById('wechat-text'); ta.select(); document.execCommand('copy'); alert('已复制');
+      }
+      </script>
     </div>
     <% } else { %>
-    <div class="dash-section" style="margin-top:20px">
+    <div class="dash-section">
       <h3 class="dash-section-title">🤖 AI 策略反思</h3>
       <div class="dash-empty" style="padding:20px">
-        <p>⚠️ 暂无 LLM 策略反思数据</p>
-        <p style="font-size:0.85em;color:var(--text-muted)">请运行: <code>python3.9 core/scripts/generate_strategy_reflection.py</code></p>
+        <p>⚠️ 暂无数据 — 请运行 <code>python3.9 core/scripts/generate_strategy_reflection.py</code></p>
       </div>
     </div>
     <% } %>
+    </div><!-- /左栏 -->
 
-    <!-- 数据概览卡片 -->
-    <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">📊 数据概览</h3>
-      <table class="data-table" style="width:auto">
-        <thead>
-          <tr><th>数据源</th><th>总条数</th><th>最新日期</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>反思日志</strong> (tracker_reflection.py)</td>
-            <td><%= stats.totalReflections %></td>
-            <td><%= stats.latestReflection %></td>
-          </tr>
-          <tr>
-            <td><strong>策略执行</strong> (strategy_exec.py)</td>
-            <td><%= stats.totalStrategies %></td>
-            <td><%= stats.latestStrategy %></td>
-          </tr>
-          <tr>
-            <td><strong>扫描日志</strong> (scanner.py)</td>
-            <td><%= stats.totalScannerRuns %></td>
-            <td><%= stats.latestScanner %></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- ── 右栏 ── -->
+    <div style="display:flex;flex-direction:column;gap:14px">
 
-    <!-- 最新反思日志 -->
+      <!-- 轮动快照（紧凑） -->
+      <div class="dash-section" id="rotation-snapshot">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <h3 class="dash-section-title" style="margin:0;font-size:12px">🧭 轮动判断</h3>
+          <% if (rotationSnapshot && rotationSnapshot.updated_at) {
+               var snapAge = Math.floor((Date.now() - new Date(rotationSnapshot.updated_at).getTime()) / 86400000);
+               if (snapAge >= 7) { %>
+            <span style="font-size:10px;font-weight:600;color:#fbbf24;background:rgba(245,158,11,0.12);padding:2px 6px;border-radius:4px">⚠️ <%= snapAge %>天未更新</span>
+          <% } } %>
+        </div>
+        <% if (rotationSnapshot) { %>
+        <div style="font-size:13px;font-weight:700;color:var(--primary,#3b82f6);margin-bottom:5px"><%= rotationSnapshot.direction||'—' %></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="flex:1;height:4px;background:var(--border,#334155);border-radius:2px">
+            <div style="width:<%=rotationSnapshot.confidence||0%>%;height:100%;background:var(--primary,#3b82f6);border-radius:2px"></div>
+          </div>
+          <span style="font-size:11px;font-weight:600;color:var(--text-muted)"><%= rotationSnapshot.confidence||0 %>%</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.7">
+          <div><b style="color:var(--text-primary,#f1f5f9)">催化剂：</b><%= rotationSnapshot.catalyst||'—' %></div>
+          <div><b style="color:var(--text-primary,#f1f5f9)">观察标的：</b><%= rotationSnapshot.watchlist||'—' %></div>
+          <% if (rotationSnapshot.doubt) { %><div style="color:#fbbf24"><b>存疑：</b><%= rotationSnapshot.doubt %></div><% } %>
+        </div>
+        <% } else { %><div style="color:var(--text-muted);font-size:12px">暂无快照</div><% } %>
+        <details style="margin-top:8px">
+          <summary style="font-size:11px;color:var(--primary,#3b82f6);cursor:pointer"><%= rotationSnapshot?'✏️ 更新':'📝 录入' %></summary>
+          <form method="POST" action="/admin/trader/reflection/rotation-snapshot" style="margin-top:8px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <label style="font-size:11px">主方向<br><input type="text" name="direction" value="<%=(rotationSnapshot&&rotationSnapshot.direction)||''%>" style="width:100%;margin-top:3px;font-size:11px"></label>
+              <label style="font-size:11px">置信度<br><input type="number" name="confidence" min="0" max="100" value="<%=(rotationSnapshot&&rotationSnapshot.confidence)||50%>" style="width:100%;margin-top:3px;font-size:11px"></label>
+              <label style="font-size:11px;grid-column:1/-1">催化剂<br><input type="text" name="catalyst" value="<%=(rotationSnapshot&&rotationSnapshot.catalyst)||''%>" style="width:100%;margin-top:3px;font-size:11px"></label>
+              <label style="font-size:11px;grid-column:1/-1">支撑证据<br><input type="text" name="evidence" value="<%=(rotationSnapshot&&rotationSnapshot.evidence)||''%>" style="width:100%;margin-top:3px;font-size:11px"></label>
+              <label style="font-size:11px;grid-column:1/-1">观察标的<br><input type="text" name="watchlist" value="<%=(rotationSnapshot&&rotationSnapshot.watchlist)||''%>" style="width:100%;margin-top:3px;font-size:11px"></label>
+              <label style="font-size:11px;grid-column:1/-1">存疑点<br><input type="text" name="doubt" value="<%=(rotationSnapshot&&rotationSnapshot.doubt)||''%>" style="width:100%;margin-top:3px;font-size:11px"></label>
+              <label style="font-size:11px;grid-column:1/-1">领先信号<br><input type="text" name="lead_signals" value="<%=(rotationSnapshot&&rotationSnapshot.lead_signals)||''%>" style="width:100%;margin-top:3px;font-size:11px"></label>
+            </div>
+            <button type="submit" class="btn" style="margin-top:8px;font-size:11px">保存</button>
+          </form>
+        </details>
+      </div>
+
+      <!-- 策略×Horizon 矩阵 -->
+      <% if (typeof trackerMatrix !== 'undefined' && trackerMatrix && trackerMatrix.strategies.length > 0) { %>
+      <div class="dash-section">
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:8px">
+          <h3 class="dash-section-title" style="margin:0;font-size:12px">📐 策略胜率矩阵</h3>
+          <span style="font-size:10px;color:var(--text-muted)">n=<%= trackerMatrix.totalUniq %></span>
+        </div>
+        <table class="data-table" style="width:100%">
+          <thead>
+            <tr>
+              <th style="font-size:11px">策略</th>
+              <% trackerMatrix.horizons.forEach(function(h){ %><th style="text-align:center;font-size:11px"><%= h %>日</th><% }); %>
+            </tr>
+          </thead>
+          <tbody>
+            <% trackerMatrix.strategies.forEach(function(s) { %>
+            <tr>
+              <td style="font-weight:600;font-size:12px"><%= s %></td>
+              <% trackerMatrix.horizons.forEach(function(h) {
+                   var cell = (trackerMatrix.matrix[s] || {})[h] || {};
+                   var n    = (cell.win||0) + (cell.lose||0);
+                   var wr   = n > 0 ? Math.round(cell.win/n*100) : null;
+                   var wrColor = wr===null ? 'var(--text-muted)' : wr>=55 ? '#4ade80' : wr>=45 ? '#fbbf24' : '#f87171';
+                   var lowSample = n > 0 && n < 10;
+              %>
+              <td style="text-align:center;padding:8px 4px">
+                <% if (wr !== null) { %>
+                  <span style="font-weight:700;font-size:13px;color:<%= wrColor %>"><%= wr %>%<% if(lowSample){%><sup style="font-size:8px;color:#9ca3af">*</sup><%}%></span>
+                  <span style="font-size:9px;color:var(--text-muted);display:block">W<%= cell.win %>/L<%= cell.lose %></span>
+                <% } else { %>
+                  <span style="color:var(--text-muted);font-size:11px">—</span>
+                <% } %>
+              </td>
+              <% }); %>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+        <div style="margin-top:5px;font-size:10px;color:var(--text-muted)">🟢≥55% 🟡45-54% 🔴&lt;45% · *n&lt;10仅供参考</div>
+      </div>
+      <% } %>
+
+      <!-- 回测模型胜率（backtest_winrate.json） -->
+      <% if (winrateData && winrateData.models) {
+           var modelList2 = Object.keys(winrateData.models).map(function(k){ return Object.assign({key:k}, winrateData.models[k]); })
+             .filter(function(m){ return m.sample_size > 0; })
+             .sort(function(a,b){ return (b.win_rate||0)-(a.win_rate||0); });
+      %>
+      <div class="dash-section">
+        <h3 class="dash-section-title" style="margin-bottom:8px;font-size:12px">📈 回测模型胜率</h3>
+        <% modelList2.forEach(function(m) {
+             var wr2 = Math.round(m.win_rate||0);   // win_rate 已是百分比（如 66.7）
+             var wr2Color = wr2>=55?'#4ade80':wr2>=45?'#fbbf24':'#f87171';
+             var wr2Width = Math.min(wr2, 100);
+        %>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:11px">
+          <span style="color:var(--text-muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<%= m.name || m.key %>"><%= m.name || m.key %></span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:50px;height:3px;background:var(--border,#334155);border-radius:2px">
+              <div style="width:<%= wr2Width %>%;height:100%;background:<%= wr2Color %>;border-radius:2px"></div>
+            </div>
+            <span style="font-weight:700;color:<%= wr2Color %>;width:30px;text-align:right"><%= wr2 %>%</span>
+            <span style="color:var(--text-muted);font-size:9px">n=<%= m.sample_size %></span>
+          </div>
+        </div>
+        <% }); %>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px"><%= winrateData.start_date %> ~ <%= winrateData.end_date %></div>
+      </div>
+      <% } %>
+
+      <!-- 数据概览（3行紧凑） -->
+      <div class="dash-section">
+        <h3 class="dash-section-title" style="margin-bottom:8px;font-size:12px">📊 数据概览</h3>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--text-muted)">反思日志</span>
+            <span style="font-weight:600"><%= stats.totalReflections %> 条 · <%= stats.latestReflection %></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--text-muted)">策略执行</span>
+            <span style="font-weight:600"><%= stats.totalStrategies %> 条 · <%= stats.latestStrategy %></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--text-muted)">扫描日志</span>
+            <span style="font-weight:600"><%= stats.totalScannerRuns %> 次</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /右栏 -->
+  </div><!-- /双栏 -->
+
+  <!-- ══════ 底部全宽：反思日志 + 策略执行 + 扫描结果 ══════ -->
+
+    <!-- 最新反思日志（按标的去重，每只只显示最新一条） -->
     <% if (reflections.length > 0) { %>
     <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">📝 最新反思日志（近20条）</h3>
+      <%
+        // 去重：同 code 只取最新一条（reflections 已经是倒序）
+        var seenCodes = {};
+        var dedupedReflections = reflections.filter(function(r) {
+          var key = r.code || r.name || Math.random();
+          if (seenCodes[key]) return false;
+          seenCodes[key] = true;
+          return true;
+        });
+      %>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">
+        <h3 class="dash-section-title" style="margin:0">📝 反思日志</h3>
+        <span style="font-size:11px;color:var(--text-muted)">每只标的最新1条 · 共 <%= dedupedReflections.length %> 只</span>
+        <a href="#all-reflections" onclick="document.getElementById('all-refl-block').style.display='block';this.style.display='none';return false;" style="font-size:11px;color:var(--primary,#3b82f6);margin-left:auto">展开全部 <%= reflections.length %> 条</a>
+      </div>
       <table class="data-table">
         <thead>
-          <tr><th>日期</th><th>类型</th><th>概述</th><th>详情</th></tr>
+          <tr><th>日期</th><th>标的</th><th>策略/周期</th><th>结果</th><th>最终收益</th><th>最大收益</th></tr>
         </thead>
         <tbody>
-          <% reflections.forEach(r => { %>
+          <% dedupedReflections.forEach(function(r) {
+               var rDate   = r.signal_date || r.track_date || r.date || '-';
+               var rName   = r.name ? (r.name + ' ' + (r.code||'')) : (r.code || '-');
+               var rStrat  = (r.strategy || '-') + ' · ' + (r.horizon ? r.horizon+'日' : '-');
+               var rResult = r.result || '-';
+               var rFinal  = r.final_return != null ? ((r.final_return*100).toFixed(1)+'%') : '-';
+               var rMax    = r.max_return  != null ? ((r.max_return*100).toFixed(1)+'%')  : '-';
+               var resultCls = rResult==='WIN'||rResult==='HIT' ? 'track-hit' : rResult==='LOSE'||rResult==='MISS' ? 'track-miss' : 'track-nodata';
+          %>
             <tr>
-              <td><%= r.date || r.timestamp || '-' %></td>
-              <td><%= r.type || r.category || '-' %></td>
-              <td><%= (r.summary || r.title || JSON.stringify(r).slice(0, 80)) %></td>
-              <td><pre style="margin:0;max-width:500px;white-space:pre-wrap;font-size:0.85em"><%= JSON.stringify(r, null, 2).slice(0, 500) %></pre></td>
+              <td class="track-sm"><%= rDate %></td>
+              <td><%= rName %></td>
+              <td style="font-size:11px;color:var(--text-muted)"><%= rStrat %></td>
+              <td class="<%= resultCls %>" style="font-weight:600"><%= rResult %></td>
+              <td class="<%= r.final_return > 0 ? 'track-success' : r.final_return < 0 ? 'track-danger' : '' %>"><%= rFinal %></td>
+              <td class="track-success"><%= rMax %></td>
             </tr>
-          <% }) %>
+          <% }); %>
         </tbody>
       </table>
+      <div id="all-refl-block" style="display:none;margin-top:12px">
+        <table class="data-table">
+          <thead>
+            <tr><th>日期</th><th>标的</th><th>策略/周期</th><th>结果</th><th>最终收益</th><th>最大收益</th></tr>
+          </thead>
+          <tbody>
+            <% reflections.forEach(function(r) {
+                 var rDate   = r.signal_date || r.track_date || r.date || '-';
+                 var rName   = r.name ? (r.name + ' ' + (r.code||'')) : (r.code || '-');
+                 var rStrat  = (r.strategy || '-') + ' · ' + (r.horizon ? r.horizon+'日' : '-');
+                 var rResult = r.result || '-';
+                 var rFinal  = r.final_return != null ? ((r.final_return*100).toFixed(1)+'%') : '-';
+                 var rMax    = r.max_return  != null ? ((r.max_return*100).toFixed(1)+'%')  : '-';
+                 var resultCls = rResult==='WIN'||rResult==='HIT' ? 'track-hit' : rResult==='LOSE'||rResult==='MISS' ? 'track-miss' : 'track-nodata';
+            %>
+              <tr>
+                <td class="track-sm"><%= rDate %></td>
+                <td><%= rName %></td>
+                <td style="font-size:11px;color:var(--text-muted)"><%= rStrat %></td>
+                <td class="<%= resultCls %>" style="font-weight:600"><%= rResult %></td>
+                <td class="<%= r.final_return > 0 ? 'track-success' : r.final_return < 0 ? 'track-danger' : '' %>"><%= rFinal %></td>
+                <td class="track-success"><%= rMax %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
     </div>
     <% } %>
-
-    <!-- A1 胜率矩阵 — V7.5 接入 tracker 真实数据 -->
-    <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">📈 策略胜率回顾（tracker 真实标记）</h3>
-      <% if (trackerStats) { %>
-      <div class="dash-cards" style="justify-content:flex-start;gap:12px;margin-bottom:16px">
-        <div class="dash-card" style="flex:0 0 auto;padding:12px 20px;text-align:center">
-          <div class="dash-card-value" style="color:var(--cr-positive)"><%= trackerStats.totalHit || 0 %></div>
-          <span class="dash-card-label">HIT</span>
-        </div>
-        <div class="dash-card" style="flex:0 0 auto;padding:12px 20px;text-align:center">
-          <div class="dash-card-value" style="color:var(--cr-negative)"><%= trackerStats.totalMiss || 0 %></div>
-          <span class="dash-card-label">MISS</span>
-        </div>
-        <div class="dash-card" style="flex:0 0 auto;padding:12px 20px;text-align:center">
-          <div class="dash-card-value"><%= trackerStats.totalPending || 0 %></div>
-          <span class="dash-card-label">Pending</span>
-        </div>
-        <div class="dash-card" style="flex:0 0 auto;padding:12px 20px;text-align:center">
-          <div class="dash-card-value" style="color:<%= (trackerStats.globalWinRate||0) >= 60 ? 'var(--cr-positive)' : 'var(--cr-warn)' %>">
-            <%= trackerStats.globalWinRate != null ? trackerStats.globalWinRate + '%' : 'N/A' %>
-          </div>
-          <span class="dash-card-label">全局胜率</span>
-        </div>
-      </div>
-      <% } %>
-      <% if (globalWinRates && globalWinRates.length > 0) { %>
-      <table class="track-table">
-        <thead>
-          <tr><th>策略</th><th>胜率</th><th>WIN</th><th>LOSE</th><th>持仓中</th><th>均最终回报</th></tr>
-        </thead>
-        <tbody>
-          <% globalWinRates.forEach(r => { %>
-          <tr>
-            <td style="font-weight:600"><%= r.strategy %></td>
-            <td style="font-weight:700;color:<%= r.winRate >= 60 ? 'var(--cr-positive)' : r.winRate >= 45 ? 'var(--cr-warn)' : 'var(--cr-negative)' %>">
-              <%= r.winRate != null ? r.winRate + '%' : 'N/A' %>
-            </td>
-            <td style="color:var(--cr-positive)"><%= r.win %></td>
-            <td style="color:var(--cr-negative)"><%= r.lose %></td>
-            <td style="color:var(--cr-text-2)"><%= r.hold %></td>
-            <td style="font-weight:600;color:<%= (r.avgFinalReturn||0) >= 0 ? 'var(--cr-positive)' : 'var(--cr-negative)' %>">
-              <%= r.avgFinalReturn != null ? r.avgFinalReturn + '%' : '—' %>
-            </td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-      <% } else { %>
-      <div class="dash-empty"><p>暂无 tracker 数据。在「信号跟踪」页标记 HIT/MISS 后此处自动汇总。</p></div>
-      <% } %>
-    </div>
 
     <!-- 最新策略执行 -->
     <% if (strategies.length > 0) { %>
     <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">⚙️ 最新策略执行（近10次）</h3>
+      <h3 class="dash-section-title">⚙️ 策略执行（近10次）</h3>
       <table class="data-table">
         <thead>
-          <tr><th>日期</th><th>持仓数</th><th>建议动作</th><th>概述</th></tr>
+          <tr><th>日期</th><th>代码/名称</th><th>信号</th><th>NX</th><th>得分</th><th>模型命中</th></tr>
         </thead>
         <tbody>
-          <% strategies.forEach(s => { %>
+          <% strategies.forEach(function(s) {
+               var sDate  = s.date || s.timestamp || '-';
+               var sStock = s.name ? (s.name + ' ' + (s.code||'')) : (s.code || '-');
+               var sSig   = s.signal_type || s.action || s.recommendation || '-';
+               var sNx    = s.nx || '-';
+               var sScore = s.score != null ? s.score : '-';
+               var sHits  = (s.model_hits || []).slice(0,3).join(' | ') || '-';
+               var sigCls = (sSig||'').indexOf('🔥') !== -1 ? 'track-miss' : (sSig||'').indexOf('✅') !== -1 ? 'track-success' : '';
+          %>
             <tr>
-              <td><%= s.date || s.timestamp || '-' %></td>
-              <td><%= s.position_count || s.positions?.length || '-' %></td>
-              <td><%= s.action || s.recommendation || '-' %></td>
-              <td><pre style="margin:0;max-width:400px;white-space:pre-wrap;font-size:0.85em"><%= JSON.stringify(s, null, 2).slice(0, 300) %></pre></td>
+              <td class="track-sm"><%= sDate %></td>
+              <td><%= sStock %></td>
+              <td class="<%= sigCls %>"><%= sSig %></td>
+              <td><%= sNx %></td>
+              <td style="font-weight:600"><%= sScore %></td>
+              <td style="font-size:11px;color:var(--text-muted)"><%= sHits %></td>
             </tr>
-          <% }) %>
+          <% }); %>
         </tbody>
       </table>
     </div>
@@ -247,20 +334,25 @@
     <!-- 最新扫描结果 -->
     <% if (scannerEntries.length > 0) { %>
     <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">🔍 最新扫描结果（近5次）</h3>
+      <h3 class="dash-section-title">🔍 扫描结果（近5次）</h3>
       <table class="data-table">
         <thead>
-          <tr><th>日期</th><th>信号数</th><th>模型</th><th>详情</th></tr>
+          <tr><th>日期</th><th>模型</th><th>代码/名称</th><th>理由</th></tr>
         </thead>
         <tbody>
-          <% scannerEntries.forEach(e => { %>
+          <% scannerEntries.forEach(function(e) {
+               var eDate   = e.date || e.timestamp || '-';
+               var eModel  = e.model || e.source || '-';
+               var eStock  = e.name ? (e.name + ' ' + (e.code||'')) : (e.code || '-');
+               var eReasons = (e.reasons || []).slice(0,2).join(' · ') || (e.signal_count != null ? (e.signal_count + ' 条信号') : '-');
+          %>
             <tr>
-              <td><%= e.date || e.timestamp || '-' %></td>
-              <td><%= e.signal_count || e.signals?.length || '-' %></td>
-              <td><%= e.model || e.source || '-' %></td>
-              <td><pre style="margin:0;max-width:400px;white-space:pre-wrap;font-size:0.85em"><%= JSON.stringify(e, null, 2).slice(0, 300) %></pre></td>
+              <td class="track-sm"><%= eDate %></td>
+              <td style="font-weight:600;color:var(--primary,#3b82f6)"><%= eModel %></td>
+              <td><%= eStock %></td>
+              <td style="font-size:11px;color:var(--text-muted)"><%= eReasons %></td>
             </tr>
-          <% }) %>
+          <% }); %>
         </tbody>
       </table>
     </div>

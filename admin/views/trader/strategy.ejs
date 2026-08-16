@@ -5,19 +5,8 @@
 
 <div class="dash-container">
   <h2><%= title %></h2>
-
   <!-- 子导航 -->
-  <div class="subnav">
-    <a href="/admin/trader" class="subnav-tab">概览</a>
-    <a href="/admin/trader/strategy" class="subnav-tab active">自选池诊断</a>
-    <a href="/admin/trader/tracker" class="subnav-tab">信号跟踪</a>
-    <a href="/admin/trader/model-library" class="subnav-tab">策略库</a>
-    <a href="/admin/trader/backtest" class="subnav-tab">策略回测</a>
-    <a href="/admin/trader/watchlist" class="subnav-tab">自选股</a>
-    <a href="/admin/trader/article-stats" class="subnav-tab">文章统计</a>
-    <a href="/admin/trader/drawdown" class="subnav-tab">回撤统计</a>
-    <a href="/admin/trader/reflection" class="subnav-tab">策略反思</a>
-  </div>
+  <%- include('../partials/trader-subnav') %>
 
   <!-- 日期选择 -->
   <div class="toolbar" style="margin-top:16px">
@@ -29,11 +18,44 @@
     </select>
   </div>
 
+  <!-- 模型胜率排名 -->
+  <% if (typeof winrateRanking !== 'undefined' && winrateRanking && winrateRanking.models && winrateRanking.models.length) { %>
+    <div class="dash-panel" style="margin-top:20px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <h3 style="margin:0;font-size:15px">📊 模型胜率排名</h3>
+        <span style="font-size:12px;color:#888">回测更新: <%= winrateRanking.generated_at || '—' %></span>
+      </div>
+      <table class="data-table" style="width:100%">
+        <thead>
+          <tr>
+            <th style="text-align:left">模型</th>
+            <th style="text-align:right">胜率</th>
+            <th style="text-align:right">均收益</th>
+            <th style="text-align:right">样本</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% winrateRanking.models.forEach(m => { %>
+            <tr>
+              <td style="text-align:left"><%= m.name %> <span style="color:var(--cr-text-secondary);font-size:11px">(<%= m.key %>)</span></td>
+              <% var _wr = m.win_rate; var _wrColor = _wr == null ? 'var(--cr-text-secondary)' : (_wr >= 55 ? 'var(--cr-positive)' : _wr >= 45 ? 'var(--cr-warn)' : 'var(--cr-negative)'); %>
+              <td style="text-align:right;font-weight:600;color:<%= _wrColor %>"><%= _wr != null ? _wr.toFixed(1) + '%' : '—' %></td>
+              <% var _ar = m.avg_return; var _arColor = _ar == null ? 'var(--cr-text-secondary)' : (_ar >= 0 ? 'var(--cr-positive)' : 'var(--cr-negative)'); %>
+              <td style="text-align:right;color:<%= _arColor %>"><%= _ar != null ? (_ar >= 0 ? '+' : '') + _ar.toFixed(2) + '%' : '—' %></td>
+              <td style="text-align:right;color:var(--cr-text-secondary)"><%= m.sample_size %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+
   <% if (error) { %>
     <div class="dash-empty"><p>⚠️ <%= error %></p></div>
   <% } else if (strategy) { %>
+
     <!-- 摘要卡片 -->
-    <div class="dash-cards" style="justify-content:flex-start;gap:14px">
+    <div class="dash-cards" style="justify-content:flex-start;gap:14px;margin-top:20px">
       <div class="dash-card" style="flex:0 0 auto;padding:14px 24px;min-width:80px;text-align:center">
         <span style="font-size:28px;font-weight:700"><%= strategy.count %></span>
         <span class="dash-card-label">总标的</span>
@@ -56,133 +78,205 @@
       </div>
     </div>
 
-    <!-- NX 分布 -->
-    <div class="dash-grid" style="margin-top:20px">
-      <div class="dash-section">
-        <h3 class="dash-section-title">NX 分布</h3>
-        <div style="display:flex;gap:24px;padding:12px 16px">
-          <div style="text-align:center"><span class="track-success" style="font-size:20px;font-weight:700"><%= strategy.nxDist.buy || 0 %></span><br><span class="track-dim" style="font-size:12px">买点</span></div>
-          <div style="text-align:center"><span class="track-neutral" style="font-size:20px;font-weight:700"><%= strategy.nxDist.rising || 0 %></span><br><span class="track-dim" style="font-size:12px">升势</span></div>
-          <div style="text-align:center"><span class="track-danger" style="font-size:20px;font-weight:700"><%= strategy.nxDist.sell || 0 %></span><br><span class="track-dim" style="font-size:12px">卖点</span></div>
-        </div>
-      </div>
-      <div class="dash-section">
-        <h3 class="dash-section-title">周线 / 资金方向</h3>
-        <div style="display:flex;gap:24px;padding:12px 16px">
-          <div>
-            <span class="track-dim" style="font-weight:600;font-size:12px">周线方向</span>
-            <% Object.entries(strategy.weeklyDirDist).forEach(([k,v]) => { %>
-              <div style="margin-top:4px"><%= k %>: <strong><%= v %></strong></div>
-            <% }) %>
-          </div>
-          <div>
-            <span class="track-dim" style="font-weight:600;font-size:12px">资金方向</span>
-            <% Object.entries(strategy.capitalDirDist).forEach(([k,v]) => { %>
-              <div style="margin-top:4px"><%= k %>: <strong><%= v %></strong></div>
-            <% }) %>
+    <!-- 今日主线：事件摘要 -->
+    <% if (typeof narrativeEvents !== 'undefined' && narrativeEvents && narrativeEvents.length > 0) { %>
+    <div class="dash-section" style="margin-top:20px">
+      <h3 class="dash-section-title">📰 今日主线事件
+        <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:6px"><%= narrativeEvents.length %> 条（已去重）</span>
+      </h3>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <% narrativeEvents.slice(0,6).forEach(function(ev) { %>
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border:1px solid var(--border,#e5e7eb);border-radius:8px;font-size:12px">
+          <span style="font-weight:700;color:var(--primary,#3b82f6);flex-shrink:0;min-width:24px">#<%= ev.rank %></span>
+          <div style="flex:1;min-width:0">
+            <span style="font-weight:600;color:var(--text-primary,#1e293b);line-height:1.5"><%= ev.title %></span>
+            <% if (ev.trading_window) { %>
+            <span style="color:#f59e0b;font-size:10px;margin-left:6px">⏱ <%= ev.trading_window %></span>
+            <% } %>
+            <% if (ev.stock_mapping && ev.stock_mapping.length > 0) { %>
+            <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">
+              <% ev.stock_mapping.forEach(function(sm) { %>
+              <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:<%= sm.type==='long'?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)' %>;color:<%= sm.type==='long'?'#16a34a':'#dc2626' %>;font-family:monospace"><%= sm.name || sm.code %></span>
+              <% }); %>
+            </div>
+            <% } %>
           </div>
         </div>
+        <% }); %>
       </div>
     </div>
+    <% } %>
 
-    <!-- 标的清单 -->
+    <!-- 选股卡片网格 -->
     <div class="dash-section" style="margin-top:20px">
-      <h3 class="dash-section-title">五维诊断清单</h3>
-      <div style="overflow-x:auto">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>代码</th>
-              <th>名称</th>
-              <th>信号</th>
-              <th>NX</th>
-              <th>均线</th>
-              <th>斐波</th>
-              <th>周线</th>
-              <th>资金</th>
-              <th>风报比</th>
-              <th>模型</th>
-              <th>得分</th>
-              <th>入场区间</th>
-              <th>止损</th>
-              <th>目标</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% strategy.stocks.forEach(s => { %>
-              <tr class="<%= (s.signal_type || '').includes('🔥') ? 'track-bg-attack' : (s.signal_type || '').includes('✅') ? 'track-bg-buy' : '' %>">
-                <td style="font-family:monospace;font-size:12px"><%= s.code %></td>
-                <td><%= s.name %></td>
-                <td><%= s.signal_type || '—' %></td>
-                <td><%= s.nx || '—' %></td>
-                <td><%= (typeof s.ma_align === 'boolean' ? (s.ma_align ? '✅' : '❌') : s.ma_align) || '—' %></td>
-                <td><%= (typeof s.fib_zone === 'boolean' ? (s.fib_zone ? '✅' : '❌') : s.fib_zone) || '—' %></td>
-                <td><%= s.weekly_dir || '—' %></td>
-                <td><%= s.capital_dir || '—' %></td>
-                <td><%= s.rr || '—' %></td>
-                <td style="font-size:11px"><%= (s.model_hits || []).join(', ') || '—' %></td>
-                <td style="font-weight:700;font-size:<%= (s.score||0) >= 55 ? '18px' : '14px' %>"><%= s.score || 0 %></td>
-                <td style="font-size:12px"><%= s.entry_low || '—' %>-<%= s.entry_high || '—' %></td>
-                <td style="font-size:12px"><%= s.stop_loss || '—' %></td>
-                <td style="font-size:12px"><%= (s.take_profit || []).join(', ') || '—' %></td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
+      <h3 class="dash-section-title">⚡ 今日选股清单
+        <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:6px"><%= strategy.stocks.length %> 只（已去重）</span>
+      </h3>
+
+      <!-- 筛选栏 -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="filter-btn active" data-filter="all" onclick="filterCards('all',this)">全部 (<%= strategy.stocks.length %>)</button>
+        <% if (strategy.attack > 0) { %>
+        <button class="filter-btn" data-filter="attack" onclick="filterCards('attack',this)">🔥 进攻 (<%= strategy.attack %>)</button>
+        <% } %>
+        <% if (strategy.buy > 0) { %>
+        <button class="filter-btn" data-filter="buy" onclick="filterCards('buy',this)">✅ 买入 (<%= strategy.buy %>)</button>
+        <% } %>
+        <button class="filter-btn" data-filter="event" onclick="filterCards('event',this)">📡 有事件关联</button>
+      </div>
+
+      <div id="stock-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+        <% strategy.stocks.forEach(function(s) {
+          var isAttack = (s.signal_type || '').includes('🔥');
+          var isBuy    = (s.signal_type || '').includes('✅');
+          var eventRefs = s.event_refs || [];
+          var hasEvent  = eventRefs.length > 0;
+          var cardClass = isAttack ? 'attack' : isBuy ? 'buy' : 'normal';
+          var borderColor = isAttack ? '#f97316' : isBuy ? '#22c55e' : '#e5e7eb';
+
+          // 五维字段可读化
+          function dimVal(v) {
+            if (v === true || v === 'true') return {text:'✅', color:'#16a34a'};
+            if (v === false || v === 'false') return {text:'❌', color:'#dc2626'};
+            if (!v || v === 'unknown') return {text:'—', color:'#9ca3af'};
+            return {text: String(v), color:'#374151'};
+          }
+          var maD   = dimVal(s.ma_align);
+          var fibD  = dimVal(s.fib_zone);
+          var nxMap = {buy:'买点 ▲', rising:'升势 →', sell:'卖点 ▼', neutral:'中性 —'};
+          var nxText = nxMap[s.nx] || s.nx || '—';
+          var nxColor= s.nx==='buy'?'#16a34a':s.nx==='sell'?'#dc2626':'#6b7280';
+        %>
+        <div class="stock-card"
+             data-signal="<%= cardClass %>"
+             data-has-event="<%= hasEvent %>"
+             style="border:1.5px solid <%= borderColor %>;border-radius:10px;padding:14px;background:var(--card-bg,#fff);position:relative">
+
+          <!-- 标头 -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div>
+              <span style="font-family:monospace;font-size:11px;color:#6b7280"><%= s.code %></span>
+              <div style="font-weight:700;font-size:15px;color:var(--text-primary,#1e293b)"><%= s.name %></div>
+              <% if (s.industry) { %><span style="font-size:11px;color:#6b7280"><%= s.industry %></span><% } %>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:22px;font-weight:800;color:<%= (s.score||0)>=60?'#f97316':(s.score||0)>=50?'#3b82f6':'#6b7280' %>"><%= s.score || 0 %></div>
+              <div style="font-size:10px;color:#9ca3af">得分</div>
+            </div>
+          </div>
+
+          <!-- 信号类型 + 事件关联徽章 -->
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">
+            <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:<%= isAttack?'rgba(249,115,22,.12)':isBuy?'rgba(34,197,94,.12)':'rgba(107,114,128,.1)' %>;color:<%= isAttack?'#ea580c':isBuy?'#16a34a':'#6b7280' %>"><%= s.signal_type || '观望' %></span>
+            <% if (eventRefs.length > 0) { %>
+              <% eventRefs.slice(0,3).forEach(function(rank) { %>
+              <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(59,130,246,.1);color:#2563eb;cursor:default" title="关联主线事件 #<%= rank %>">📡 #<%= rank %></span>
+              <% }); %>
+            <% } %>
+          </div>
+
+          <!-- 五维简览 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:10px;font-size:11px">
+            <div style="padding:4px 6px;background:var(--bg-subtle,#f8fafc);border-radius:4px">
+              <span style="color:#9ca3af">NX </span><span style="color:<%= nxColor %>;font-weight:600"><%= nxText %></span>
+            </div>
+            <div style="padding:4px 6px;background:var(--bg-subtle,#f8fafc);border-radius:4px">
+              <span style="color:#9ca3af">均线 </span><span style="color:<%= maD.color %>;font-weight:600"><%= maD.text %></span>
+            </div>
+            <div style="padding:4px 6px;background:var(--bg-subtle,#f8fafc);border-radius:4px">
+              <span style="color:#9ca3af">斐波 </span><span style="color:<%= fibD.color %>;font-weight:600"><%= fibD.text %></span>
+            </div>
+          </div>
+
+          <!-- 入场/止损/目标 -->
+          <% if (s.entry_low || s.stop_loss || (s.take_profit && s.take_profit.length)) { %>
+          <div style="font-size:11px;color:var(--cr-text-secondary);border-top:1px solid var(--cr-border);padding-top:8px;margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap">
+            <% if (s.entry_low) { %><span><span style="color:#9ca3af">入场</span> <%= s.entry_low %>-<%= s.entry_high || '?' %></span><% } %>
+            <% if (s.stop_loss) { %><span><span style="color:#9ca3af">止损</span> <span style="color:#dc2626"><%= s.stop_loss %></span></span><% } %>
+            <% if (s.take_profit && s.take_profit.length) { %><span><span style="color:#9ca3af">目标</span> <span style="color:#16a34a"><%= s.take_profit[0] %></span></span><% } %>
+          </div>
+          <% } %>
+
+          <!-- 操作按钮 -->
+          <div style="display:flex;gap:6px">
+            <button onclick="sendFeedback('<%= s.code %>','<%= s.name.replace(/'/g,'') %>','follow','<%= currentDate %>')" class="fb-btn fb-follow">✅ 关注</button>
+            <button onclick="sendFeedback('<%= s.code %>','<%= s.name.replace(/'/g,'') %>','watch','<%= currentDate %>')" class="fb-btn fb-watch">👁 观察</button>
+            <button onclick="sendFeedback('<%= s.code %>','<%= s.name.replace(/'/g,'') %>','skip','<%= currentDate %>')" class="fb-btn fb-skip">❌ 跳过</button>
+          </div>
+        </div>
+        <% }); %>
       </div>
     </div>
   <% } %>
 </div>
 
+<style>
+.filter-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary, #374151);
+  transition: all .15s;
+}
+.filter-btn.active, .filter-btn:hover {
+  background: var(--primary, #3b82f6);
+  color: #fff;
+  border-color: var(--primary, #3b82f6);
+}
+.fb-btn {
+  flex: 1;
+  padding: 5px 0;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid;
+  transition: opacity .15s;
+}
+.fb-btn:hover { opacity: .75; }
+.fb-follow { background: rgba(38,166,154,.12); color: var(--cr-positive); border-color: rgba(38,166,154,.35); }
+.fb-watch  { background: rgba(41,98,255,.14);  color: #5b8bff;            border-color: rgba(41,98,255,.35); }
+.fb-skip   { background: rgba(239,83,80,.12);  color: var(--cr-negative); border-color: rgba(239,83,80,.35); }
+.stock-card { transition: box-shadow .15s; }
+.stock-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+</style>
 
-<% if (globalWinRates && globalWinRates.length > 0) { %>
-<div class="dash-section" style="margin-top:24px">
-  <h3 class="dash-section-title">📊 策略胜率排行（来自 tracker 真实标记）</h3>
-  <table class="track-table" style="margin-top:10px">
-    <thead>
-      <tr>
-        <th>策略</th>
-        <th>胜率</th>
-        <th>WIN</th>
-        <th>LOSE</th>
-        <th>持仓中</th>
-        <th>已结</th>
-        <th>止损率</th>
-        <th>均最大回报</th>
-        <th>均最大回撤</th>
-        <th>均最终回报</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% globalWinRates.forEach(r => { %>
-        <tr>
-          <td style="font-weight:600"><%= r.strategy %></td>
-          <td style="font-weight:700;color:<%= r.winRate >= 60 ? 'var(--cr-positive)' : r.winRate >= 45 ? 'var(--cr-warn)' : 'var(--cr-negative)' %>">
-            <%= r.winRate != null ? r.winRate + '%' : 'N/A' %>
-          </td>
-          <td style="color:var(--cr-positive)"><%= r.win %></td>
-          <td style="color:var(--cr-negative)"><%= r.lose %></td>
-          <td style="color:var(--cr-text-2)"><%= r.hold %></td>
-          <td><%= r.closed %></td>
-          <td><%= r.hitStopRate != null ? r.hitStopRate + '%' : '—' %></td>
-          <td><%= r.avgMaxReturn != null ? r.avgMaxReturn + '%' : '—' %></td>
-          <td style="color:var(--cr-negative)"><%= r.avgMaxDd != null ? r.avgMaxDd + '%' : '—' %></td>
-          <td style="font-weight:600;color:<%= (r.avgFinalReturn||0) >= 0 ? 'var(--cr-positive)' : 'var(--cr-negative)' %>">
-            <%= r.avgFinalReturn != null ? r.avgFinalReturn + '%' : '—' %>
-          </td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
-  <p style="font-size:11px;color:var(--cr-text-2);margin-top:8px">
-    * 胜率 = WIN/(WIN+LOSE)，仅统计已结算信号。样本量较小时仅供参考，30条以上才有统计意义。
-  </p>
-</div>
-<% } else { %>
-<div class="dash-section" style="margin-top:24px">
-  <h3 class="dash-section-title">📊 策略胜率排行</h3>
-  <div class="dash-empty"><p>暂无 tracker 数据。在「信号跟踪」页手动标记 HIT/MISS 后此处自动汇总。</p></div>
-</div>
-<% } %>
+<script>
+function filterCards(filter, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.stock-card').forEach(card => {
+    let show = true;
+    if (filter === 'attack') show = card.dataset.signal === 'attack';
+    else if (filter === 'buy') show = card.dataset.signal === 'buy';
+    else if (filter === 'event') show = card.dataset.hasEvent === 'true';
+    card.style.display = show ? '' : 'none';
+  });
+}
+
+function sendFeedback(code, name, action, date) {
+  const btn = event.target;
+  const original = btn.textContent;
+  btn.disabled = true;
+  fetch('/admin/trader/strategy/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `code=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}&action=${action}&date=${date}`
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.ok) {
+      btn.textContent = action === 'follow' ? '✅ 已关注' : action === 'watch' ? '👁 已观察' : '❌ 已跳过';
+      btn.style.opacity = '0.5';
+    } else {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  })
+  .catch(() => { btn.disabled = false; btn.textContent = original; });
+}
+</script>
 
 <%- include('../partials/layout-bottom') %>

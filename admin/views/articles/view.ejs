@@ -1,0 +1,31 @@
+<%- include('../partials/layout-top') %>
+
+<style>
+  .article-view { max-width: 820px; margin: 0 auto; padding: 1.5rem; }
+  .article-view-back { display: inline-block; margin-bottom: 1rem; color: var(--cr-text-secondary, #94a3b8); font-size: .85rem; text-decoration: none; }
+  .article-view-back:hover { color: var(--cr-primary, #3b82f6); }
+  .article-body { background: var(--cr-surface, #111827); border: 1px solid var(--cr-border, #1e293b); border-radius: var(--cr-radius, 8px); padding: 2rem 2.25rem; line-height: 1.8; color: var(--cr-text, #e2e8f0); }
+  .article-body h1 { font-size: 1.6rem; margin: 0 0 1rem; line-height: 1.4; }
+  .article-body h2 { font-size: 1.25rem; margin: 1.75rem 0 .75rem; padding-top: .5rem; border-top: 1px solid var(--cr-border, #1e293b); }
+  .article-body h3 { font-size: 1.05rem; margin: 1.25rem 0 .5rem; color: var(--cr-text, #e2e8f0); }
+  .article-body p { margin: 0 0 1rem; }
+  .article-body strong { color: #fff; }
+  .article-body hr { border: none; border-top: 1px solid var(--cr-border, #1e293b); margin: 1.5rem 0; }
+  .article-body ul, .article-body ol { padding-left: 1.5rem; margin: 0 0 1rem; }
+  .article-body li { margin: .35rem 0; }
+  .article-body blockquote { border-left: 3px solid var(--cr-primary, #3b82f6); margin: 1rem 0; padding: .25rem 0 .25rem 1rem; color: var(--cr-text-secondary, #94a3b8); }
+  .article-body code { background: var(--cr-surface-alt, #1e293b); padding: .1rem .35rem; border-radius: 4px; font-size: .9em; }
+  .article-body a { color: var(--cr-primary, #3b82f6); }
+</style>
+</head>
+<body>
+<%- include('../partials/nav', { active: 'articles' }) %>
+
+<div class="article-view">
+  <a href="/admin/articles" class="article-view-back">← 返回文章列表</a>
+  <article class="article-body">
+    <%- contentHtml %>
+  </article>
+</div>
+
+<%- include('../partials/layout-bottom') %>

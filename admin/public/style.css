@@ -25,6 +25,37 @@
   --cr-shadow-md: 0 2px 8px rgba(0,0,0,0.4);
   --cr-transition: 0.15s ease;
 
+  /* V9.3: 无前缀别名 —— 修复 trader 视图 83 处悬空变量引用（此前静默失效，回退继承色） */
+  --text-muted: var(--cr-text-secondary);
+  --text-secondary: var(--cr-text-secondary);
+  --success: var(--cr-positive);
+  --danger: var(--cr-negative);
+  --warn: var(--cr-warn);
+  --warning: var(--cr-warn);
+  --primary: var(--cr-primary);
+  --info: var(--cr-info);
+  --border: var(--cr-border);
+  --surface: var(--cr-surface);
+
+  /* V9.3b: 补齐剩余悬空变量 —— architecture/model-library/rotation 视图 */
+  --bg: var(--cr-bg);
+  --text: var(--cr-text);
+  --primary-light: var(--cr-primary);
+  --primary-pale: rgba(41,98,255,0.08);
+  --accent-amber: var(--cr-accent);
+  --accent-pale: rgba(245,158,11,0.08);
+  --cr-card-bg: var(--cr-surface);
+  --cr-warning: var(--cr-warn);
+  --cr-bg-tertiary: var(--cr-surface-dark);
+  --cr-text-primary: var(--cr-text);
+  --cr-text-tertiary: var(--cr-text-secondary);
+
+  /* V9.6b: Ultrareview 发现 strategy 页 3 个悬空浅色变量 —— 暗底不可读，映射到暗色令牌 */
+  --text-primary: var(--cr-text);
+  --card-bg: var(--cr-surface);
+  --bg-subtle: var(--cr-surface-dark);
+  --surface-2: var(--cr-surface-dark);
+
   /* health 页面专用 tokens（暗色主题，复用 /m 色板语义） */
   --cr-health-pass: #4ade80;
   --cr-health-pass-soft: rgba(34,197,94,0.08);
@@ -242,6 +273,8 @@ select:focus, input:focus { outline: none; border-color: var(--cr-primary); }
 /* 子导航 */
 .subnav { display: flex; gap: 4px; margin: 16px 0 0; border-bottom: 1px solid var(--cr-border); }
 .subnav-tab { padding: 8px 16px; color: var(--cr-text-secondary); text-decoration: none; font-size: 13px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color var(--cr-transition), border-color var(--cr-transition); }
+.subgroup-link { display:inline-flex; align-items:center; gap:4px; padding:5px 12px; font-size:12px; color:var(--cr-text-secondary); background:var(--cr-surface); border:1px solid var(--cr-border); border-radius:6px; text-decoration:none; transition:all var(--cr-transition); }
+.subgroup-link:hover { color:var(--cr-text); border-color:var(--cr-primary); }
 .subnav-tab:hover { color: var(--cr-text); }
 .subnav-tab.active { color: var(--cr-primary); border-bottom-color: var(--cr-primary); font-weight: 600; }
 
@@ -277,6 +310,15 @@ select:focus, input:focus { outline: none; border-color: var(--cr-primary); }
   border: 1px solid var(--cr-border);
 }
 .dash-section-title { font-size: 15px; font-weight: 600; margin: 0 0 14px; color: var(--cr-text); }
+/* V9.5: 补齐 strategy.ejs 使用但全局缺失的面板容器（此前裸渲染，无边框/背景） */
+.dash-panel {
+  background: var(--cr-surface);
+  border-radius: var(--cr-radius);
+  padding: 20px 24px;
+  box-shadow: var(--cr-shadow);
+  border: 1px solid var(--cr-border);
+}
+.dash-panel-title { font-size: 15px; font-weight: 600; margin: 0 0 14px; color: var(--cr-text); }
 
 /* 信号表格 */
 .sig-table { width: 100%; border-collapse: collapse; font-size: 13px; }
