@@ -101,7 +101,7 @@ def trace_transmission(
         }
 
         # 只输出 high/medium 信号
-        if level in ("high", "medium") or conf >= 0.2:
+        if level in ("high", "medium"):
             signals.append(signal)
 
     # 按置信度降序

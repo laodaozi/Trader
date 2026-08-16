@@ -16,7 +16,6 @@ Cron（收盘后运行）：
   0 16 * * 1-5  cd /opt/cycleradar-trader && /usr/bin/python3.9 core/scripts/tracker_closer.py >> data/logs/tracker_closer.log 2>&1
 """
 
-from __future__ import annotations
 
 import argparse
 import json

@@ -13,15 +13,9 @@
 
 import json
 import re
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-
-# report_agent 依赖 score.py / factor_agent.py，它们在 core/ 目录下
-_CORE_DIR = Path(__file__).resolve().parents[1]
-if str(_CORE_DIR) not in sys.path:
-    sys.path.insert(0, str(_CORE_DIR))
 
 from core.writing.prompt_registry import (
     SignalSourceMeta,
@@ -162,6 +156,7 @@ def generate_role_article(
         from core.report_agent import call_claude_api
         text = call_claude_api(system_prompt, user_prompt, model=model, tier="premium")
     except Exception as e:
+        print(f"  ❌ [{role}] LLM 调用失败({type(e).__name__}): {e}")
         return None
 
     html_match = re.search(r"```html\s*\n(.*?)\n```", text, re.DOTALL)
@@ -261,7 +256,8 @@ def generate_ma_article(
     try:
         from core.report_agent import call_claude_api
         text = call_claude_api(system_prompt, user_prompt, model=model, tier="premium")
-    except Exception:
+    except Exception as e:
+        print(f"  ❌ [兼并重组] LLM 调用失败({type(e).__name__}): {e}")
         return None
 
     html_match = re.search(r"```html\s*\n(.*?)\n```", text, re.DOTALL)
@@ -328,77 +324,6 @@ def run_pipeline(
     return report
 
 
-def _wrap_html(body: str, title: str, date: str) -> str:
-    """将裸 HTML 片段包装为完整的可渲染页面。
-    若 body 已含 <article> 标签则直接使用，否则自动包裹。
-    """
-    # 若 LLM 输出已含 <article>，不额外套一层
-    if re.search(r"<article[\s>]", body):
-        content = body
-    else:
-        content = f"<article>\n{body}\n</article>"
-
-    return f"""<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{title}</title>
-<style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
-    background: #f5f5f5;
-    color: #1a1a1a;
-    line-height: 1.75;
-    padding: 20px 16px 60px;
-  }}
-  article {{
-    max-width: 720px;
-    margin: 0 auto;
-    background: #fff;
-    border-radius: 12px;
-    padding: 32px 28px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.06);
-  }}
-  h1 {{
-    font-size: 1.45rem;
-    font-weight: 700;
-    color: #111;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 2px solid #e8e8e8;
-  }}
-  h2 {{
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #333;
-    margin: 28px 0 12px;
-    padding-left: 10px;
-    border-left: 3px solid #1a73e8;
-  }}
-  p {{
-    margin-bottom: 14px;
-    font-size: 0.95rem;
-    color: #333;
-  }}
-  strong {{ color: #111; }}
-  section {{ margin-bottom: 8px; }}
-  #risk p {{ color: #666; font-size: 0.88rem; }}
-  .meta {{
-    font-size: 0.78rem;
-    color: #999;
-    margin-bottom: 20px;
-  }}
-</style>
-</head>
-<body>
-<div class="meta" style="max-width:720px;margin:0 auto 8px;padding:0 4px;font-size:0.78rem;color:#999;">CycleRadar Trader · {date}</div>
-{content}
-</body>
-</html>"""
-
-
 def save_articles(report: PipelineReport) -> List[Path]:
     """保存所有角色文章到 output/article/ 目录。"""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -409,10 +334,7 @@ def save_articles(report: PipelineReport) -> List[Path]:
         safe_name = re.sub(r"[^\w\-]", "", article.source_name)[:20]
         filename = f"article_{report.date.replace('-', '')}_{safe_role}_{safe_name}.html"
         path = OUTPUT_DIR / filename
-        title = f"{article.role} · {report.date}"
-        # LLM 可能输出带 <article> 的片段，直接传入即可；_wrap_html 内部处理
-        full_html = _wrap_html(article.html, title, report.date)
-        path.write_text(full_html, encoding="utf-8")
+        path.write_text(article.html, encoding="utf-8")
         saved.append(path)
 
     report_path = OUTPUT_DIR / f"report_{report.date.replace('-', '')}.json"

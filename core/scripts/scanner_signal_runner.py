@@ -100,6 +100,26 @@ def main():
 
     t0 = time.time()
 
+    # ── tracer：生成本次 run_id，贯穿整个扫描周期 ──
+    try:
+        from core.utils.tracer import trace, new_run_id
+        from core.utils.events import EVT
+        _trace_ok = True
+    except ImportError:
+        _trace_ok = False
+        def trace(*a, **kw): pass  # noqa: E731
+        class EVT:  # noqa: E302
+            SCANNER_RUN_STARTED = "ScannerRunStarted"
+            SCANNER_RUN_COMPLETED = "ScannerRunCompleted"
+            SCANNER_RUN_FAILED = "ScannerRunFailed"
+        def new_run_id(): return "noop"  # noqa: E731
+
+    run_id = new_run_id()
+    trace(EVT.SCANNER_RUN_STARTED,
+          input={"date": scan_date, "dry_run": args.dry_run},
+          output={},
+          run_id=run_id)
+
     try:
         # ── 1. 执行全量扫描 ──
         logger.info("▶ Step 1: 启动 scanner.scan()（14 模型全量扫描）")
@@ -113,12 +133,17 @@ def main():
         if not result or not result.get("hits"):
             logger.warning("scanner.scan() 返回空结果或空 hits，停止信号写入")
             logger.warning("可能原因：非交易日 / 数据源不可用 / 无候选股")
+            trace(EVT.SCANNER_RUN_COMPLETED,
+                  input={"date": scan_date},
+                  output={"written": 0, "reason": "empty_hits"},
+                  status="skipped",
+                  run_id=run_id,
+                  latency_ms=int((time.time() - t0) * 1000))
             return 1
 
-        logger.info(
-            f"扫描完成 — {len(result.get('hits', {}))} 个模型命中, "
-            f"候选数={result.get('candidate_count', '?')}"
-        )
+        candidates = result.get("candidate_count", 0)
+        model_count = len(result.get("hits", {}))
+        logger.info(f"扫描完成 — {model_count} 个模型命中, 候选数={candidates}")
 
         # ── 2. 调 adapter 写入信号 ──
         logger.info("▶ Step 2: emit_scanner_signals → write_signal")
@@ -128,18 +153,23 @@ def main():
             result,
             dry_run=args.dry_run,
             verbose=args.verbose,
+            run_id=run_id,          # 传入 run_id 供 adapter trace 使用
         )
 
         elapsed = time.time() - t0
-        logger.info(
-            f"✅ scanner_signals 完成 — {count} 条信号, "
-            f"耗时 {elapsed:.1f}s"
-        )
+        logger.info(f"✅ scanner_signals 完成 — {count} 条信号, 耗时 {elapsed:.1f}s")
+
+        trace(EVT.SCANNER_RUN_COMPLETED,
+              input={"date": scan_date, "candidates": candidates, "models": model_count},
+              output={"written": count, "dry_run": args.dry_run},
+              run_id=run_id,
+              latency_ms=int(elapsed * 1000))
 
         # ── 3. 摘要输出 ──
         print(f"\n📊 scanner_signals 摘要 | {scan_date}")
         print(f"   写入: {count} 条信号")
         print(f"   耗时: {elapsed:.1f}s")
+        print(f"   run_id: {run_id}")
         if not args.dry_run:
             print(f"   目标: {DATA_DIR}/upstream_signals.jsonl")
 
@@ -147,8 +177,16 @@ def main():
 
     except Exception:
         elapsed = time.time() - t0
+        err = traceback.format_exc()
         logger.error(f"❌ scanner_signals 失败 (耗时 {elapsed:.1f}s)")
-        logger.error(traceback.format_exc())
+        logger.error(err)
+        trace(EVT.SCANNER_RUN_FAILED,
+              input={"date": scan_date},
+              output={},
+              status="failed",
+              error=err.strip().splitlines()[-1],  # 只记最后一行
+              run_id=run_id,
+              latency_ms=int(elapsed * 1000))
         return 1
 
 

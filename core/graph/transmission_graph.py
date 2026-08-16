@@ -242,22 +242,13 @@ class TransmissionGraph:
 
     # ── 进化 ───────────────────────────────────────────────────────────────────
 
-    # ── 边类型权重上限（渐进式，防止过拟合）────────────────────────────────
-    _CEILINGS: dict[str, float] = {
-        "AFFECTS":    2.0,   # event → sector
-        "CONTAINS":   0.6,   # sector → stock
-        "UPSTREAM":   1.5,   # sector → upstream sector
-        "DOWNSTREAM": 1.5,   # sector → downstream sector
-    }
-
     def reinforce_edge(self, from_id: str, to_id: str, delta: float = 0.05):
-        """预测方向与市场一致 → 加强传导边权重（type-aware ceiling）。"""
+        """预测方向与市场一致 → 加强传导边权重。"""
         for idx in self.adj_out.get(from_id, []):
             e = self.edges[idx]
             if e["to"] == to_id:
-                e["hit_count"] = e.get("hit_count", 0) + 1
-                ceiling = self._CEILINGS.get(e.get("type", ""), 2.0)
-                e["weight"] = min(ceiling, e["weight"] + delta)
+                e["hit_count"] += 1
+                e["weight"] = min(2.0, e["weight"] + delta)
                 return
 
     def weaken_edge(self, from_id: str, to_id: str, delta: float = 0.10):
@@ -265,33 +256,9 @@ class TransmissionGraph:
         for idx in self.adj_out.get(from_id, []):
             e = self.edges[idx]
             if e["to"] == to_id:
-                e["miss_count"] = e.get("miss_count", 0) + 1
+                e["miss_count"] += 1
                 e["weight"] = max(0.1, e["weight"] - delta)
                 return
-
-    def _clamp_to_ceilings(self):
-        """将所有边裁剪到类型特定的上限内（幂等操作）。"""
-        for e in self.edges:
-            ceiling = self._CEILINGS.get(e.get("type", ""), 2.0)
-            if e["weight"] > ceiling:
-                e["weight"] = ceiling
-
-    def decay_all_edges(self, factor: float = 0.995):
-        """每日衰减所有边权重（仅在 hit/miss > 0 时生效，避免冷启动边被压到 0）。
-        
-        衰减公式：weight = weight * factor
-        
-        适用场景：cron 每日 reinforce 后调用，防止权重因重复命中而无限膨胀。
-        """
-        decayed = 0
-        for e in self.edges:
-            if e.get("hit_count", 0) > 0 or e.get("miss_count", 0) > 0:
-                old_w = e["weight"]
-                e["weight"] = round(old_w * factor, 4)
-                decayed += 1
-        # Enforce type-specific ceilings (also fixes pre-existing over-ceiling weights)
-        self._clamp_to_ceilings()
-        return decayed
 
     # ── 序列化 ─────────────────────────────────────────────────────────────────
 
@@ -322,6 +289,123 @@ class TransmissionGraph:
         return g
 
     # ── 工厂方法 ───────────────────────────────────────────────────────────────
+
+    @classmethod
+    def build_from_signals(cls,
+                           signals_path: Path | None = None,
+                           library_path: Path | None = None) -> "TransmissionGraph":
+        """从 transmission_signals.jsonl 动态构建传导图谱（每日真实信号）。
+
+        优先读取今日信号；若文件不存在或为空则回退到 build_from_library()。
+        不调用 LLM，不读静态 transmission_graph.json。
+        """
+        import datetime
+
+        sig_path = signals_path or (_BASE / "data" / "transmission_signals.jsonl")
+
+        if not sig_path.exists():
+            return cls.build_from_library(library_path)
+
+        # 新鲜度检查：文件超过 48h 回退到静态图（两天内都算可用）
+        mtime = datetime.datetime.fromtimestamp(sig_path.stat().st_mtime)
+        age_hours = (datetime.datetime.now() - mtime).total_seconds() / 3600
+        if age_hours > 48:
+            return cls.build_from_library(library_path)
+
+        # 加载 event_library 用于补充事件元数据
+        lib_path = library_path or LIBRARY_PATH
+        event_meta: dict[str, dict] = {}
+        if lib_path.exists():
+            try:
+                lib = json.loads(lib_path.read_text(encoding="utf-8"))
+                for ev in lib.get("events", []):
+                    event_meta[ev["id"]] = ev
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        g = cls()
+        seen_signals: set[str] = set()
+
+        with open(sig_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    sig = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                sig_id = sig.get("signal_id", "")
+                if sig_id in seen_signals:
+                    continue
+                seen_signals.add(sig_id)
+
+                event_id = sig.get("event_id", "")
+                if not event_id:
+                    continue
+
+                # ── 事件节点 ──
+                ev_node_id = f"event:{event_id}"
+                if ev_node_id not in g.nodes:
+                    meta = event_meta.get(event_id, {})
+                    g.add_node(ev_node_id, "event",
+                               name=meta.get("name", sig.get("event_name", event_id)),
+                               tier=meta.get("tier", 2),
+                               category=meta.get("category", sig.get("event_category", "")),
+                               direction=sig.get("direction", "long"))
+
+                # ── 目标节点（sector 或 stock）──
+                target = sig.get("target", {})
+                target_type = target.get("type", "sector")
+                target_name = target.get("name", "")
+                target_code = target.get("code", "")
+                if not target_name:
+                    continue
+
+                if target_type == "stock":
+                    t_id = f"stock:{target_code}" if target_code else f"stock:{target_name}"
+                    g.add_node(t_id, "stock", name=target_name, code=target_code)
+                else:
+                    t_id = f"sector:{target_name}"
+                    g.add_node(t_id, "sector", name=target_name)
+
+                # ── 边：沿 transmission.path 重建路径 ──
+                tx = sig.get("transmission", {})
+                path = tx.get("path", [])
+                confidence = sig.get("confidence", 0.5)
+
+                if len(path) >= 2:
+                    # 按路径逐段添加边
+                    for i in range(len(path) - 1):
+                        from_raw = path[i]
+                        to_raw = path[i + 1]
+                        # 规范化：path 里已有 "event:xxx" / "sector:xxx" 格式
+                        if not from_raw.startswith(("event:", "sector:", "stock:")):
+                            from_raw = f"sector:{from_raw}"
+                        if not to_raw.startswith(("event:", "sector:", "stock:")):
+                            to_raw = f"sector:{to_raw}"
+
+                        # 确保节点存在
+                        if from_raw not in g.nodes:
+                            prefix = from_raw.split(":")[0]
+                            g.add_node(from_raw, prefix, name=from_raw.split(":", 1)[1])
+                        if to_raw not in g.nodes:
+                            prefix = to_raw.split(":")[0]
+                            g.add_node(to_raw, prefix, name=to_raw.split(":", 1)[1])
+
+                        edge_type = "AFFECTS" if i == 0 else "DOWNSTREAM"
+                        g.add_edge(from_raw, to_raw, edge_type, weight=confidence)
+                else:
+                    # 无路径信息，直接连 event → target
+                    edge_type = "AFFECTS"
+                    g.add_edge(ev_node_id, t_id, edge_type, weight=confidence)
+
+        # 若没读到任何信号，回退静态图
+        if not g.nodes:
+            return cls.build_from_library(library_path)
+
+        return g
 
     @classmethod
     def build_from_library(cls, library_path: Path | None = None) -> "TransmissionGraph":

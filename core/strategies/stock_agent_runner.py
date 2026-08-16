@@ -32,6 +32,17 @@ import score
 from stock_agent import INDUSTRY_LEADERS, build_smart_pool, build_stock_pool, score_multi_catalyst, _catalyst_reasons
 from stock_agent_adapter import emit_signals
 
+# ── V7.8: 五维技术分析（MA/斐波/NX），ECS MCP 已验证可用 ──
+try:
+    import sys as _sys
+    # 需要项目根 /opt/cycleradar-trader 在 sys.path，因为 import 路径是 core.strategy_exec
+    _sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+    from core.strategy_exec import analyze_one as _analyze_one
+    _FIVE_DIM_AVAILABLE = True
+except Exception as _e:
+    _FIVE_DIM_AVAILABLE = False
+    print(f"  ⚠ five-dim import failed: {_e}")
+
 
 def get_scan_top10(date_str: str) -> list[dict]:
     """从 score.py scan 结果读取 TOP10 行业。"""
@@ -135,6 +146,15 @@ def main():
             "stop_loss": info.get("stop_loss"),
             "industry": industry,
             "catalyst_breakdown": catalyst["breakdown"],
+            # 五维占位，analyze_one 在排序后补全
+            "nx": "neutral",
+            "ma_align": "unknown",
+            "fib_zone": "unknown",
+            "weekly_dir": industry,
+            "capital_dir": "中性",
+            "rr": None,
+            "model_hits": [],
+            "signal_type": "✅ 买入",
         })
 
     # 按 catalyst_score 降序排序，取前 15
@@ -145,6 +165,47 @@ def main():
         print("\n  ⚠ 无选股信号产出")
         return
 
+    # ── V7.8: 五维技术分析补全（MA/斐波/NX）────────────────
+    if _FIVE_DIM_AVAILABLE:
+        print(f"\n  ── 五维技术分析（MA/斐波/NX） ──")
+        for p in picks:
+            try:
+                tech = _analyze_one(p["code"], p["name"], date_str)
+                p["nx"]         = tech.get("nx", "neutral")
+                p["ma_align"]   = tech.get("ma_align", "unknown")
+                p["fib_zone"]   = tech.get("fib_zone", "unknown")
+                p["weekly_dir"] = tech.get("weekly_dir") or p.get("industry", "")
+                p["capital_dir"]= tech.get("capital_dir", "中性")
+                p["rr"]         = tech.get("rr")
+                p["model_hits"] = tech.get("model_hits", [])
+                p["signal_type"]= tech.get("signal_type", "✅ 买入")
+                # 用 analyze_one 的更精准 entry/stop/target 覆盖
+                if tech.get("entry_low") and tech["entry_low"] > 0:
+                    p["entry_price"]  = tech["entry_low"]
+                    p["target_price"] = tech["take_profit"][0] if tech.get("take_profit") else p.get("target_price")
+                    p["stop_loss"]    = tech["stop_loss"]
+                print(f"    {p['code']} nx={p['nx']} ma={p['ma_align']} fib={p['fib_zone']}")
+            except Exception as _e:
+                print(f"    {p['code']} five-dim error: {_e}")
+                p.setdefault("nx", "neutral")
+                p.setdefault("ma_align", "unknown")
+                p.setdefault("fib_zone", "unknown")
+                p.setdefault("weekly_dir", p.get("industry", ""))
+                p.setdefault("capital_dir", "中性")
+                p.setdefault("rr", None)
+                p.setdefault("model_hits", [])
+                p.setdefault("signal_type", "✅ 买入")
+    else:
+        for p in picks:
+            p.setdefault("nx", "neutral")
+            p.setdefault("ma_align", "unknown")
+            p.setdefault("fib_zone", "unknown")
+            p.setdefault("weekly_dir", p.get("industry", ""))
+            p.setdefault("capital_dir", "中性")
+            p.setdefault("rr", None)
+            p.setdefault("model_hits", [])
+            p.setdefault("signal_type", "✅ 买入")
+
     print(f"\n  ── 信号产出: {len(picks)} 条 ──")
     for i, p in enumerate(picks[:10]):
         reasons_str = ' | '.join(p['reasons'][:2])
@@ -154,6 +215,38 @@ def main():
         print(f"  {i+1}. [{p['tier']}] {p['code']} {p['name']} "
               f"catalyst={p['catalyst_score']:.1f}  "
               f"{reasons_str}{price_str}")
+
+    # ── Step 3.5: V8.0 event_refs 注入 + 当日 code 去重 ──────────
+    # (a) 从 event_narrative_latest.json 建立 code→event_rank 索引
+    import json as _json, pathlib as _pl
+    _nar_path = _pl.Path(__file__).parent.parent.parent / "data" / "event_narrative_latest.json"
+    _code_to_event_ranks: dict = {}
+    try:
+        _nar = _json.loads(_nar_path.read_text(encoding="utf-8"))
+        for _ev in _nar.get("events", []):
+            _rank = _ev.get("rank", 99)
+            for _sm in (_ev.get("stock_mapping") or []):
+                _c = str(_sm.get("code", "")).replace("sh", "").replace("sz", "")
+                _code_to_event_ranks.setdefault(_c, []).append(_rank)
+    except Exception:
+        pass
+    # (b) 注入 event_refs 字段
+    for p in picks:
+        _bare = p["code"].replace("sh", "").replace("sz", "").replace(".", "")
+        p["event_refs"] = sorted(set(_code_to_event_ranks.get(_bare, [])))
+
+    # (c) 当日同 code 去重：只保留 catalyst_score 最高那条
+    _seen_codes: dict = {}
+    for p in picks:
+        _c = p["code"]
+        if _c not in _seen_codes or p["catalyst_score"] > _seen_codes[_c]["catalyst_score"]:
+            _seen_codes[_c] = p
+    picks_deduped = list(_seen_codes.values())
+    picks_deduped.sort(key=lambda p: -p["catalyst_score"])
+    _dedup_removed = len(picks) - len(picks_deduped)
+    if _dedup_removed:
+        print(f"  ℹ️  当日 code 去重: 移除 {_dedup_removed} 条重复（保留最高分）")
+    picks = picks_deduped
 
     # ── Step 4: 写入 signal ──────────────────────────
     if args.dry_run:

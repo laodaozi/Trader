@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -386,6 +387,23 @@ def _enforce_capacity(pool: dict, date: str, max_size: int = 50, timeout_days: i
 
 # ── 综合入池（三源自动导入）────────────────────────────────
 
+def _strip_llm_score(text: str) -> str:
+    """切除 LLM 在自由文本中瞎编的评分——如"整体评分63分""综合评分75分""5/10分"等。
+
+    LLM 的 score 非计算值，只是幻觉，必须从 reason 中剥离。
+    真实评分由 update_watchlist_signals.py 的 _compute_composite_score 产出。
+    """
+    # 模式1: "评分XX分" / "综合评分XX分" / "整体评分XX分"
+    text = re.sub(r"(?:综合|整体|总体)?评分\s*\d{1,3}\s*[,，\s]*", "", text)
+    # 模式2: "XX分" 出现在评分语境（前有"给"/"评"/"打"）
+    text = re.sub(r"(?:评为?|打)\s*\d{1,3}\s*分\s*", "", text)
+    # 模式3: "X/10分" / "X.X/10" 评分格式
+    text = re.sub(r"\d{1,2}\.\d?\s*/\s*10\s*分?", "", text)
+    # 清理多余标点
+    text = re.sub(r"[,，。]\s*[,，。]", "，", text).strip("，。 ")
+    return text
+
+
 def composite_inflow(
     scan_result: Optional[dict],
     sector_themes: Optional[list[dict]],
@@ -465,7 +483,9 @@ def composite_inflow(
                     lc = assess_lifecycle(bars)
                 except Exception:
                     pass
-            reason = f"cycleradar 上游·{confidence}·{logic[:40]}" if logic else f"cycleradar 上游·{confidence}"
+            # V8.3: 切除 LLM 在 logic 文本里瞎编的"评分XX分"（实际评分由 update_watchlist_signals 计算）
+            clean_logic = _strip_llm_score(logic) if logic else ""
+            reason = f"cycleradar·{confidence}·{clean_logic[:40]}" if clean_logic else f"cycleradar·{confidence}"
             add_to_pool(code, name, date, reason=reason, lifecycle=lc)
             existing.add(code)
             added += 1
@@ -484,7 +504,9 @@ def composite_inflow(
 # V3.9.4: 上游信号（cycleradar → trader 文件契约对接）
 # ═══════════════════════════════════════════════════════
 
-UPSTREAM_CONTRACT_FILE = Path(__file__).parent.parent / "data" / "upstream_signals.jsonl"
+# V7.6 融合：trader 契约独立文件（daily.py._write_trader_contract 产出），
+# 与 /m 信号总线 upstream_signals.jsonl 分离，避免全量覆盖写冲突。
+UPSTREAM_CONTRACT_FILE = Path(__file__).parent.parent / "data" / "trader_contract.jsonl"
 
 
 def load_upstream_signals(today: str, max_age_days: int = 5) -> dict:

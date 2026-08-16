@@ -534,6 +534,35 @@ if __name__ == "__main__":
             with open(snap_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(snapshot, ensure_ascii=False) + "\n")
             print(f"  ✅ 已写轮动快照到 rotation_snapshots.jsonl")
+
+            # V7.10: 同步覆写 rotation_snapshot.json（供 Admin 轮动判断页展示）
+            # 由量化因子自动生成，不再依赖手填
+            import datetime as _dt
+            # intensity 可能是 dict（rotation_intensity 结构）或 float
+            _intensity_val = intensity if isinstance(intensity, (int, float)) else (
+                intensity.get("score", intensity.get("value", 0)) if isinstance(intensity, dict) else 0
+            )
+            top3_names = "、".join(r["name"] for r in ranking[:3]) if ranking[:3] else "暂无"
+            etf_buy  = [s for s in etf_signals if s.get("direction") == "long"]
+            etf_sell = [s for s in etf_signals if s.get("direction") == "short"]
+            snap_single = {
+                "updated_at": _dt.datetime.now().isoformat(timespec="seconds") + "+08:00",
+                "direction": key_thesis or f"{phase}阶段，轮动因子待确认",
+                "confidence": max(30, min(90, int(_intensity_val))) if _intensity_val else 30,
+                "catalyst": f"轮动因子计算：{phase}阶段 | 强度{_intensity_val:.1f}" if _intensity_val else phase,
+                "evidence": f"ETF信号 {len(etf_signals)} 条：做多 {len(etf_buy)}、做空 {len(etf_sell)}",
+                "lead_signals": f"领先板块：{top3_names}",
+                "watchlist": "、".join(
+                    s.get("asset", "") for s in etf_buy[:3] if s.get("asset")
+                ) or "观望",
+                "doubt": f"当前阶段{phase}，置信度偏低，需结合事件叙事交叉验证" if _intensity_val < 50 else "",
+            }
+            snap_single_path = snap_dir / "rotation_snapshot.json"
+            import json as _json
+            snap_single_path.write_text(
+                _json.dumps(snap_single, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            print(f"  ✅ 已同步更新 rotation_snapshot.json（Admin 轮动判断页）")
     else:
         print(f"\n  ⚠ 无 ETF 信号产出（无匹配 ETF 的行业）")
 

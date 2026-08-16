@@ -1068,8 +1068,8 @@ ETF_SYSTEM_PROMPT = """\
 # LLM 调用
 # ══════════════════════════════════════════════════════
 
-# V3.2 Sprint 4: 多模型智能路由
-# 按任务层级分配不同能力模型，核心产品用 Opus，结构化任务用 Sonnet，预处理用 Haiku
+# V7.7: 多模型智能路由 — 统一走 S1 代理，带 DeepSeek 终极兜底
+# s1- 前缀仅 Opus 系列需要；Sonnet/Haiku 走代理但不带 s1- 前缀
 MODEL_TIERS = {
     "premium":  "claude-sonnet-4-6",              # 日报（Sonnet 性价比最优，Opus 做 fallback）
     "standard": "claude-sonnet-4-6",              # 晨报等（结构化生成）
@@ -1077,7 +1077,7 @@ MODEL_TIERS = {
 }
 
 MODEL_FALLBACK = {
-    "premium":  ["claude-opus-4-6", "claude-sonnet-4-5-20250929"],
+    "premium":  ["s1-claude-opus-4-6", "claude-sonnet-4-5-20250929"],
     "standard": ["claude-sonnet-4-5-20250929", "claude-haiku-4-5-20251001"],
     "cheap":    ["claude-sonnet-4-6"],
 }
@@ -1094,14 +1094,43 @@ def select_model(tier: str = "premium") -> str:
     return MODEL_TIERS.get(tier, MODEL_TIERS["premium"])
 
 
+def _call_until_ok_report(fn, *, deadline_sec=600, backoff_start=5, backoff_cap=60):
+    """网关/网络瞬断时指数退避重试（与 generate_strategy_reflection 同源）。
+    只对网络类错误重试，鉴权/参数错立即抛。"""
+    import anthropic as _ant
+    NET_ERRS = [_ant.APIConnectionError, _ant.APITimeoutError, _ant.RateLimitError]
+    try:
+        import openai as _oai
+        NET_ERRS += [_oai.APIConnectionError, _oai.APITimeoutError, _oai.RateLimitError]
+    except ImportError:
+        pass
+    NET_ERRS = tuple(NET_ERRS)
+    import time as _time
+    start = _time.time()
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            return fn()
+        except NET_ERRS as e:
+            elapsed = _time.time() - start
+            if elapsed >= deadline_sec:
+                print(f"  ✗ 已重试 {attempt} 次 / {int(elapsed)}s 仍未调通，放弃")
+                raise
+            wait = min(backoff_start * attempt, backoff_cap)
+            print(f"  第{attempt}次连接失败({type(e).__name__})，{wait}s后重试... [已耗时{int(elapsed)}s]")
+            _time.sleep(wait)
+
+
 def call_claude_api(system: str, user_prompt: str,
                     model: str | None = None,
                     tier: str = "premium") -> str:
     """调用 Claude API，返回完整文本响应。
 
-    V3.2 Sprint 4: 支持 tier 参数按任务分层路由。
+    V7.7: S1 代理模型 + 每模型 _call_until_ok 重试 + DeepSeek 终极兜底。
     - 显式传 model 优先（用于临时覆盖，如 --model 参数）
     - 否则按 tier 选择默认模型 + 降级链
+    - 所有 Claude 模型失败后，自动降级到 deepseek-chat
     """
     import anthropic
     import os
@@ -1118,11 +1147,11 @@ def call_claude_api(system: str, user_prompt: str,
         timeout=180.0,
     )
 
-    # 构造模型尝试顺序
+    # 构造模型尝试顺序（V7.7: 走 S1 代理）
     if model:
-        # 显式指定模型，按原有逻辑
+        # 显式指定模型 + 降级链
         MODELS_TO_TRY = [model,
-                         "claude-opus-4-7",
+                         "s1-claude-opus-4-7",
                          "claude-sonnet-4-6",
                          "claude-sonnet-4-5-20250929"]
     else:
@@ -1147,13 +1176,17 @@ def call_claude_api(system: str, user_prompt: str,
             continue
         try:
             print(f"  尝试模型: {m}")
-            with client.messages.stream(
-                model=m,
-                max_tokens=20000,
-                system=system,
-                messages=[{"role": "user", "content": user_prompt}],
-            ) as stream:
-                response = stream.get_final_message()
+
+            def _do_call(model_id=m):
+                with client.messages.stream(
+                    model=model_id,
+                    max_tokens=20000,
+                    system=system,
+                    messages=[{"role": "user", "content": user_prompt}],
+                ) as stream:
+                    return stream.get_final_message()
+
+            response = _call_until_ok_report(_do_call)
 
             text = response.content[0].text
             usage = response.usage
@@ -1176,17 +1209,21 @@ def call_claude_api(system: str, user_prompt: str,
             while needs_continuation and continuation_count < MAX_CONTINUATIONS:
                 continuation_count += 1
                 print(f"  ⚠ 续写第{continuation_count}次...")
-                with client.messages.stream(
-                    model=m,
-                    max_tokens=20000,
-                    system=system,
-                    messages=[
-                        {"role": "user", "content": user_prompt},
-                        {"role": "assistant", "content": text},
-                        {"role": "user", "content": "你的JSON输出不完整,请从断点处继续输出剩余内容。只输出剩余部分,不要重复。确保JSON完整闭合并以 ``` 结束。"},
-                    ],
-                ) as cont_stream:
-                    continuation = cont_stream.get_final_message()
+
+                def _do_continuation(model_id=m, prev_text=text):
+                    with client.messages.stream(
+                        model=model_id,
+                        max_tokens=20000,
+                        system=system,
+                        messages=[
+                            {"role": "user", "content": user_prompt},
+                            {"role": "assistant", "content": prev_text},
+                            {"role": "user", "content": "你的JSON输出不完整,请从断点处继续输出剩余内容。只输出剩余部分,不要重复。确保JSON完整闭合并以 ``` 结束。"},
+                        ],
+                    ) as cont_stream:
+                        return cont_stream.get_final_message()
+
+                continuation = _call_until_ok_report(_do_continuation)
                 cont_text = continuation.content[0].text
                 cont_usage = continuation.usage
                 cont_stop = continuation.stop_reason
@@ -1216,7 +1253,57 @@ def call_claude_api(system: str, user_prompt: str,
             else:
                 raise
 
-    raise RuntimeError(f"所有模型都不可用。最后一个错误: {last_error}")
+    # V7.7: DeepSeek 终极兜底 — 先试代理 deepseek-v4-pro，再试直连
+    print(f"  所有 Claude 模型失败, 尝试 deepseek 兜底...")
+    try:
+        import openai
+    except ImportError:
+        raise RuntimeError(f"所有 Claude 模型不可用且 openai 未安装，无法降级 DeepSeek。最后错误: {last_error}")
+
+    # 方案1: 通过 S1 代理调 deepseek-v4-pro
+    if base_url:
+        try:
+            proxy_ds = openai.OpenAI(api_key=api_key, base_url=base_url.rstrip('/').rsplit('/v1', 1)[0] + "/v1")
+            def _do_proxy_deepseek():
+                return proxy_ds.chat.completions.create(
+                    model="deepseek-v4-pro",
+                    max_tokens=20000,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                )
+            ds_resp = _call_until_ok_report(_do_proxy_deepseek)
+            text = ds_resp.choices[0].message.content
+            print(f"  deepseek-v4-pro (via proxy) ✓ (tokens: {ds_resp.usage.total_tokens if ds_resp.usage else '?'})")
+            return text
+        except Exception as e:
+            print(f"  deepseek-v4-pro (proxy) 失败: {e}")
+
+    # 方案2: DeepSeek 直连
+    ds_key = os.environ.get("DEEPSEEK_API_KEY")
+    if not ds_key:
+        raise RuntimeError(f"所有 Claude 模型失败，代理 DeepSeek 也失败，且无 DEEPSEEK_API_KEY。最后错误: {last_error}")
+
+    ds_client = openai.OpenAI(
+        api_key=ds_key,
+        base_url="https://api.deepseek.com/v1",
+    )
+
+    def _do_deepseek():
+        return ds_client.chat.completions.create(
+            model="deepseek-chat",
+            max_tokens=20000,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+
+    ds_resp = _call_until_ok_report(_do_deepseek)
+    text = ds_resp.choices[0].message.content
+    print(f"  deepseek-chat ✓ (tokens: {ds_resp.usage.total_tokens if ds_resp.usage else '?'})")
+    return text
 
 
 def parse_llm_output(text: str) -> tuple[dict | None, str | None]:

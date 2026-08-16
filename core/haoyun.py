@@ -130,7 +130,7 @@ def _is_account_ath(date: str) -> tuple[bool, float]:
     status = _get_account_status()
     capital = status["total_capital"]
     history = status["daily_pnl_history"]
-    today_pnl = history[-1]["pnl"] if history else 0.0
+    today_pnl = history[-1].get("pnl", 0) if history else 0.0
     current_value = capital + today_pnl
 
     if not history:

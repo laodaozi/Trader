@@ -38,6 +38,10 @@ else
   exit 1
 fi
 
+# ── 1.5 V7.7: MCP 新闻灌入（enrich 前补充数据源，RSS 断流时保底）──
+log "📡 MCP 新闻灌入..."
+/usr/bin/python3.9 "$PROJECT_ROOT/core/scripts/ingest_mcp_news.py" 2>&1 | tail -3 || log "⚠ MCP 灌入失败（不阻塞 enrich）"
+
 # ── 2. 处理 ingest DB（核心优先路径：/admin/ingest 手动填入的公众号全文）──
 INGEST_COUNT=0
 TODAY=$(date +%Y-%m-%d)
@@ -153,36 +157,17 @@ else
   log "📝 手动信源: manual.jsonl 不存在，跳过"
 fi
 
-# ── 4. 处理 RSS 信源（回退） ──
-WEWE_DB="/opt/wewe-rss-deploy/data/wewe-rss.db"
+# ── 4. [已废弃] RSS 信源 — V7.7 起不再使用 WeWe RSS，数据源改为 MCP news + URL ingest ──
+# 原 Step 4 读 wewe-rss.db，现由 Step 1.5 MCP 灌入 + Step 2 ingest DB 替代
 RSS_COUNT=0
 
-if [ -f "$WEWE_DB" ]; then
-  RSS_COUNT=$(python3.9 -c "
-import sqlite3
-db = sqlite3.connect('$WEWE_DB')
-cur = db.cursor()
-cur.execute(\"SELECT COUNT(*) FROM articles WHERE publish_time >= strftime('%s','now','-1 day')\")
-print(cur.fetchone()[0])
-" 2>/dev/null || echo 0)
-
-  if [ "$RSS_COUNT" -gt 0 ]; then
-    log "📡 RSS 信源: ${RSS_COUNT} 条（24h内）"
-    python3.9 "$PROJECT_ROOT/core/scripts/enrich_hot_events.py" 2>&1 | tail -5
-  else
-    log "📡 RSS 信源: 24h 内无新文章"
-  fi
-else
-  log "📡 RSS 信源: DB 不存在，跳过"
-fi
-
 # ── 5. 汇总 ──
-log "✅ enrich_nightly_cron.sh 完成 (ingest=${INGEST_COUNT}, manual=${MANUAL_COUNT}, rss=${RSS_COUNT})"
+log "✅ enrich_nightly_cron.sh 完成 (mcp+ingest=${INGEST_COUNT}, manual=${MANUAL_COUNT})"
 
 # ── 6. 写 pipeline_status.json ──
 python3 -c "
 import json
 from pathlib import Path
-status = {'date': '$(date +%Y-%m-%d)', 'enriched': $((INGEST_COUNT + MANUAL_COUNT + RSS_COUNT)), 'generated': 0, 'run_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)'}
+status = {'date': '$(date +%Y-%m-%d)', 'enriched': $((INGEST_COUNT + MANUAL_COUNT)), 'generated': 0, 'run_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)'}
 Path('$PROJECT_ROOT/data/pipeline_status.json').write_text(json.dumps(status, ensure_ascii=False, indent=2))
 "

@@ -222,6 +222,11 @@ def write_signal(signal_dict: dict[str, Any], *, normalize: bool = True, skip_du
             signal["direction"] = normalize_direction(signal["direction"])
         if "confidence" in signal:
             signal["confidence"] = normalize_confidence(signal["confidence"])
+        # V7.8: 统一剥离 sh/sz 前缀，保留纯6位数字代码，避免同一标的重复信号
+        if "asset" in signal and isinstance(signal["asset"], str):
+            _a = signal["asset"]
+            if len(_a) > 6 and _a[:2].lower() in ("sh", "sz", "hk"):
+                signal["asset"] = _a[2:]
 
     signal.setdefault("metadata", {})
 

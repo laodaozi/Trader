@@ -1,0 +1,1037 @@
+{
+  "date": "2026-08-13",
+  "scanned_at": "2026-08-13T06:35:03.118712",
+  "industries_scanned": 50,
+  "rankings": [
+    {
+      "name": "房地产",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0335,
+      "fund_flow": 1402833538.0,
+      "limit_rise": 0,
+      "rank": 1,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "通信",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0236,
+      "fund_flow": 13172450628.0,
+      "limit_rise": 0,
+      "rank": 2,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "半导体",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0199,
+      "fund_flow": 5991699930.0,
+      "limit_rise": 0,
+      "rank": 3,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "电力设备",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0194,
+      "fund_flow": 1916820199.0,
+      "limit_rise": 0,
+      "rank": 4,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "非金属材料",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0193,
+      "fund_flow": 401669883.0,
+      "limit_rise": 0,
+      "rank": 5,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "电子",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.019,
+      "fund_flow": 10763730542.0,
+      "limit_rise": 0,
+      "rank": 6,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "光学光电子",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0183,
+      "fund_flow": 956998872.0,
+      "limit_rise": 0,
+      "rank": 7,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "食品饮料行业",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0178,
+      "fund_flow": 1321712074.0,
+      "limit_rise": 0,
+      "rank": 8,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "通用设备",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0177,
+      "fund_flow": 1251180718.0,
+      "limit_rise": 0,
+      "rank": 9,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "电网设备",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0164,
+      "fund_flow": 1077881304.0,
+      "limit_rise": 0,
+      "rank": 10,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "机械设备",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0158,
+      "fund_flow": 1432514884.0,
+      "limit_rise": 0,
+      "rank": 11,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "专用设备",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0156,
+      "fund_flow": 625789199.0,
+      "limit_rise": 0,
+      "rank": 12,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "影视院线",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0142,
+      "fund_flow": 231520478.0,
+      "limit_rise": 0,
+      "rank": 13,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "文化传媒",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0137,
+      "fund_flow": 1093827581.0,
+      "limit_rise": 0,
+      "rank": 14,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "商贸零售",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.013,
+      "fund_flow": 7360383.0,
+      "limit_rise": 0,
+      "rank": 15,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "社会服务",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.013,
+      "fund_flow": 207366767.0,
+      "limit_rise": 0,
+      "rank": 16,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "电新行业",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0127,
+      "fund_flow": 3430770791.0,
+      "limit_rise": 0,
+      "rank": 17,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "工业金属",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0124,
+      "fund_flow": 40609018.0,
+      "limit_rise": 0,
+      "rank": 18,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "有色金属",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0121,
+      "fund_flow": 70465512.0,
+      "limit_rise": 0,
+      "rank": 19,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "环保",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0118,
+      "fund_flow": 89835692.0,
+      "limit_rise": 0,
+      "rank": 20,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "能源金属",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0115,
+      "fund_flow": 172301605.0,
+      "limit_rise": 0,
+      "rank": 21,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "轻工制造",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0113,
+      "fund_flow": 208943811.0,
+      "limit_rise": 0,
+      "rank": 22,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "家用电器",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0104,
+      "fund_flow": 21327951.0,
+      "limit_rise": 0,
+      "rank": 23,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "铁路公路",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0103,
+      "fund_flow": 126928949.0,
+      "limit_rise": 0,
+      "rank": 24,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "交运设备",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0098,
+      "fund_flow": 1760696963.0,
+      "limit_rise": 0,
+      "rank": 25,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "钢铁",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.008,
+      "fund_flow": 72111385.0,
+      "limit_rise": 0,
+      "rank": 26,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "多元金融",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0078,
+      "fund_flow": 87344397.0,
+      "limit_rise": 0,
+      "rank": 27,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "交通运输",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0073,
+      "fund_flow": 223379716.0,
+      "limit_rise": 0,
+      "rank": 28,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "非银金融",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0068,
+      "fund_flow": 14194834.0,
+      "limit_rise": 0,
+      "rank": 29,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "汽车整车",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0063,
+      "fund_flow": 656920315.0,
+      "limit_rise": 0,
+      "rank": 30,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "机场",
+      "score_auto": 1.0,
+      "stage": "观望",
+      "price_chg": 0.0044,
+      "fund_flow": 26451074.0,
+      "limit_rise": 0,
+      "rank": 31,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 1
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "电子化学品",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0189,
+      "fund_flow": -125579553.0,
+      "limit_rise": 0,
+      "rank": 32,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "贵金属",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0154,
+      "fund_flow": -305447858.0,
+      "limit_rise": 0,
+      "rank": 33,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "建筑工程",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0145,
+      "fund_flow": -460147449.0,
+      "limit_rise": 0,
+      "rank": 34,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "小金属",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0131,
+      "fund_flow": -278730742.0,
+      "limit_rise": 0,
+      "rank": 35,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "建筑材料",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0131,
+      "fund_flow": -385533562.0,
+      "limit_rise": 0,
+      "rank": 36,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "IT服务",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0127,
+      "fund_flow": -131411433.0,
+      "limit_rise": 0,
+      "rank": 37,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "电机",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0127,
+      "fund_flow": -142772296.0,
+      "limit_rise": 0,
+      "rank": 38,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "计算机",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0102,
+      "fund_flow": -1429967788.0,
+      "limit_rise": 0,
+      "rank": 39,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "国防军工",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.01,
+      "fund_flow": -269477487.0,
+      "limit_rise": 0,
+      "rank": 40,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "基础化工",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0099,
+      "fund_flow": -613898627.0,
+      "limit_rise": 0,
+      "rank": 41,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "农林牧渔",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.009,
+      "fund_flow": -70786067.0,
+      "limit_rise": 0,
+      "rank": 42,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "纺服行业",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0072,
+      "fund_flow": -52998943.0,
+      "limit_rise": 0,
+      "rank": 43,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "证券",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0068,
+      "fund_flow": -164640405.0,
+      "limit_rise": 0,
+      "rank": 44,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "化学制药",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0064,
+      "fund_flow": -117126681.0,
+      "limit_rise": 0,
+      "rank": 45,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "医药",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0053,
+      "fund_flow": -3167565501.0,
+      "limit_rise": 0,
+      "rank": 46,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "航运港口",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0051,
+      "fund_flow": -104252159.0,
+      "limit_rise": 0,
+      "rank": 47,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "出版",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0046,
+      "fund_flow": -20945686.0,
+      "limit_rise": 0,
+      "rank": 48,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "公用事业",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0038,
+      "fund_flow": -70308237.0,
+      "limit_rise": 0,
+      "rank": 49,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    },
+    {
+      "name": "美容护理",
+      "score_auto": 0.0,
+      "stage": "观望",
+      "price_chg": 0.0009,
+      "fund_flow": -62849660.0,
+      "limit_rise": 0,
+      "rank": 50,
+      "scores": {
+        "A1": 0,
+        "A2": 0,
+        "B1": 0
+      },
+      "weekly_flow": 0.0,
+      "consecutive_top10": 0
+    }
+  ],
+  "rotation_signals": [
+    {
+      "type": "new_entry",
+      "name": "房地产",
+      "industry": "房地产",
+      "detail": "房地产 新进入 TOP10（#1，观望）",
+      "rank": 1,
+      "prev_rank": null,
+      "score": 1.0,
+      "prev_score": null,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "new_entry",
+      "name": "半导体",
+      "industry": "半导体",
+      "detail": "半导体 新进入 TOP10（#3，观望）",
+      "rank": 3,
+      "prev_rank": null,
+      "score": 1.0,
+      "prev_score": null,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "new_entry",
+      "name": "电力设备",
+      "industry": "电力设备",
+      "detail": "电力设备 新进入 TOP10（#4，观望）",
+      "rank": 4,
+      "prev_rank": null,
+      "score": 1.0,
+      "prev_score": null,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "new_entry",
+      "name": "非金属材料",
+      "industry": "非金属材料",
+      "detail": "非金属材料 新进入 TOP10（#5，观望）",
+      "rank": 5,
+      "prev_rank": null,
+      "score": 1.0,
+      "prev_score": null,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "new_entry",
+      "name": "电子",
+      "industry": "电子",
+      "detail": "电子 新进入 TOP10（#6，观望）",
+      "rank": 6,
+      "prev_rank": null,
+      "score": 1.0,
+      "prev_score": null,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "new_entry",
+      "name": "光学光电子",
+      "industry": "光学光电子",
+      "detail": "光学光电子 新进入 TOP10（#7，观望）",
+      "rank": 7,
+      "prev_rank": null,
+      "score": 1.0,
+      "prev_score": null,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "new_entry",
+      "name": "食品饮料行业",
+      "industry": "食品饮料行业",
+      "detail": "食品饮料行业 新进入 TOP10（#8，观望）",
+      "rank": 8,
+      "prev_rank": null,
+      "score": 1.0,
+      "prev_score": null,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "new_entry",
+      "name": "通用设备",
+      "industry": "通用设备",
+      "detail": "通用设备 新进入 TOP10（#9，观望）",
+      "rank": 9,
+      "prev_rank": null,
+      "score": 1.0,
+      "prev_score": null,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "new_entry",
+      "name": "电网设备",
+      "industry": "电网设备",
+      "detail": "电网设备 新进入 TOP10（#10，观望）",
+      "rank": 10,
+      "prev_rank": null,
+      "score": 1.0,
+      "prev_score": null,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "exit",
+      "name": "电机",
+      "industry": "电机",
+      "detail": "电机 跌出 TOP10（前 #1）",
+      "rank": 1,
+      "prev_rank": 1,
+      "score": 0.0,
+      "prev_score": 1.0,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "exit",
+      "name": "生物制品",
+      "industry": "生物制品",
+      "detail": "生物制品 跌出 TOP10（前 #2）",
+      "rank": 2,
+      "prev_rank": 2,
+      "score": 0.0,
+      "prev_score": 1.0,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "exit",
+      "name": "石油石化",
+      "industry": "石油石化",
+      "detail": "石油石化 跌出 TOP10（前 #3）",
+      "rank": 3,
+      "prev_rank": 3,
+      "score": 0.0,
+      "prev_score": 1.0,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "exit",
+      "name": "纺服行业",
+      "industry": "纺服行业",
+      "detail": "纺服行业 跌出 TOP10（前 #4）",
+      "rank": 4,
+      "prev_rank": 4,
+      "score": 0.0,
+      "prev_score": 1.0,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "exit",
+      "name": "交运设备",
+      "industry": "交运设备",
+      "detail": "交运设备 跌出 TOP10（前 #5）",
+      "rank": 5,
+      "prev_rank": 5,
+      "score": 1.0,
+      "prev_score": 1.0,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "exit",
+      "name": "建筑工程",
+      "industry": "建筑工程",
+      "detail": "建筑工程 跌出 TOP10（前 #6）",
+      "rank": 6,
+      "prev_rank": 6,
+      "score": 0.0,
+      "prev_score": 1.0,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "exit",
+      "name": "铁路公路",
+      "industry": "铁路公路",
+      "detail": "铁路公路 跌出 TOP10（前 #7）",
+      "rank": 7,
+      "prev_rank": 7,
+      "score": 1.0,
+      "prev_score": 1.0,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "exit",
+      "name": "计算机",
+      "industry": "计算机",
+      "detail": "计算机 跌出 TOP10（前 #8）",
+      "rank": 8,
+      "prev_rank": 8,
+      "score": 0.0,
+      "prev_score": 1.0,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "exit",
+      "name": "银行",
+      "industry": "银行",
+      "detail": "银行 跌出 TOP10（前 #9）",
+      "rank": 9,
+      "prev_rank": 9,
+      "score": 0.0,
+      "prev_score": 1.0,
+      "date": "2026-08-13",
+      "stage": "观望"
+    },
+    {
+      "type": "rank_up",
+      "name": "通信",
+      "industry": "通信",
+      "detail": "通信 #10→#2（↑8）",
+      "rank": 2,
+      "prev_rank": 10,
+      "score": 1.0,
+      "prev_score": 1.0,
+      "date": "2026-08-13",
+      "stage": "观望"
+    }
+  ]
+}

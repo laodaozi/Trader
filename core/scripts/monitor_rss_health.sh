@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# monitor_rss_health.sh — RSS 数据管道健康监控（L1 监控层 + L2 告警层）
+# monitor_rss_health.sh — 数据源管道健康监控（source_articles.db，V7.7 起）
 #
 # 监控维度：
-#   1. PM2 进程存活（wewe-rss）
-#   2. DB 最后写入时间（articles 表整体新鲜度）
-#   3. 逐 feed 新鲜度（每个公众号最后文章时间）
-#   4. 错误日志异常（最近 1h 401 频率）
+#   1. source_articles.db 文件存在性
+#   2. 最新 created_at 新鲜度（与 mobile.js _getSourceArticlesHealth 对齐）
+#   3. 近 24h 文章数量（0 条告警 CRITICAL）
+#   4. LLM 产出管线新鲜度（V7.9 — reflection/narrative/alpha mtime >26h WARN）
 #
 # 告警等级：
-#   CRITICAL — 全部 feed 断流 >24h 或 PM2 挂了
-#   WARN     — 任一 feed 断流 >6h 或部分 feed 断流
+#   CRITICAL — DB 不存在 / 近24h 0 条 / 断流 >24h
+#   WARN     — 断流 6-24h
 #   INFO     — 健康报告（每日摘要）
 #
 # 去重：同一告警条件 2h 内不重复（状态文件）
@@ -20,21 +20,20 @@
 #   手动触发：         bash monitor_rss_health.sh --force
 #   日报模式：         bash monitor_rss_health.sh --daily
 #
+# V7.7: 原 WeWe RSS / wewe-rss.db / PM2 监控已废弃，改为监控 source_articles.db
+#
 set -euo pipefail
 
 # ── 配置 ──
-DB_PATH="/opt/cycleradar-trader/admin/data/wewe-rss.db"
-PM2_NAME="wewe-rss"
+SOURCE_DB_PATH="/opt/cycleradar-trader/data/source_articles.db"
 LOG_DIR="/opt/cycleradar-trader/data/logs"
 STATE_FILE="$LOG_DIR/rss_health_state"
 HEALTH_LOG="$LOG_DIR/rss_health.log"
-PM2_ERROR_LOG="/root/.pm2/logs/wewe-rss-error.log"
 
 # 阈值（小时）
 WARN_THRESHOLD=6
 CRITICAL_THRESHOLD=24
 DEDUP_WINDOW=120  # 去重窗口（分钟）：同一告警不重复
-ALERT_COUNT_THRESHOLD=10  # 最近 1h 内 401 错误数量阈值
 
 FORCE=false
 DAILY=false
@@ -56,7 +55,7 @@ log() { echo "[$NOW] $*" >> "$HEALTH_LOG"; }
 
 alert() {
   local level="$1"  # CRITICAL | WARN | INFO
-  local key="$2"    # 去重键（如 "all_stale:24h"）
+  local key="$2"    # 去重键
   local msg="$3"
 
   # 去重检查
@@ -88,11 +87,11 @@ alert() {
   log "$prefix [$level] $msg"
 
   # stdout（cron 会邮件发送）
-  echo "$prefix [RSS-Health][$level] $NOW — $msg"
+  echo "$prefix [DataSource-Health][$level] $NOW — $msg"
 
   # DingTalk webhook（如果配置了）
   if [ -n "${DINGTALK_WEBHOOK:-}" ]; then
-    local dt_msg="[RSS-Health][$level] $NOW\\n$msg"
+    local dt_msg="[DataSource-Health][$level] $NOW\\n$msg"
     curl -s -X POST "$DINGTALK_WEBHOOK" \
       -H "Content-Type: application/json" \
       -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"$dt_msg\"}}" > /dev/null 2>&1 || true
@@ -103,169 +102,173 @@ alert() {
   mv "${STATE_FILE}.tmp" "$STATE_FILE"
 }
 
-# ── 检查 1: PM2 进程存活 ──
-check_pm2() {
-  if command -v pm2 &>/dev/null; then
-    if pm2 list 2>/dev/null | grep -q "$PM2_NAME.*online"; then
-      log "✅ PM2: wewe-rss online"
-      return 0
-    else
-      local status
-      status=$(pm2 list 2>/dev/null | grep "$PM2_NAME" || echo "NOT FOUND")
-      alert "CRITICAL" "pm2_down" "wewe-rss PM2 进程异常: $status"
-      return 1
-    fi
-  else
-    log "⚠️  PM2 not found on this host"
-    return 2
+# ── 检查 1: DB 文件存在性 ──
+check_db_exists() {
+  if [ ! -f "$SOURCE_DB_PATH" ]; then
+    alert "CRITICAL" "db_missing" "source_articles.db 不存在: $SOURCE_DB_PATH — MCP ingest 未运行或路径错误"
+    return 1
   fi
+  log "✅ source_articles.db 存在: $SOURCE_DB_PATH"
+  return 0
 }
 
-# ── 检查 2: DB 整体新鲜度（最后文章时间） ──
+# ── 检查 2: 最新 created_at 新鲜度（与 mobile.js _getSourceArticlesHealth 逻辑对齐）──
 check_db_freshness() {
-  local last_ts
-  last_ts=$(sqlite3 "$DB_PATH" "SELECT COALESCE(MAX(publish_time), 0) FROM articles;" 2>/dev/null || echo "0")
+  local last_ts_str
+  last_ts_str=$(sqlite3 "$SOURCE_DB_PATH" \
+    "SELECT MAX(created_at) FROM source_articles WHERE fetch_status='success';" \
+    2>/dev/null || echo "")
 
-  if [ "$last_ts" = "0" ] || [ -z "$last_ts" ]; then
-    alert "CRITICAL" "db_empty" "DB 中无文章数据 — 可能从未拉取或 DB 损坏"
+  if [ -z "$last_ts_str" ] || [ "$last_ts_str" = "NULL" ]; then
+    alert "CRITICAL" "db_empty" "source_articles 表无 fetch_status=success 的记录 — ingest 从未成功写入"
+    echo "9999"
+    return 1
+  fi
+
+  # 兼容 SQLite ISO8601 字符串（2026-07-24T10:00:00）
+  local last_ts
+  last_ts=$(date -d "$last_ts_str" +%s 2>/dev/null \
+    || date -j -f "%Y-%m-%dT%H:%M:%S" "${last_ts_str%%.*}" +%s 2>/dev/null \
+    || echo "0")
+
+  if [ "$last_ts" = "0" ]; then
+    log "⚠️  created_at 解析失败: $last_ts_str"
+    echo "9999"
     return 1
   fi
 
   local age_hours=$(( (NOW_TS - last_ts) / 3600 ))
   local last_time
-  last_time=$(date -d "@$last_ts" '+%Y-%m-%d %H:%M' 2>/dev/null || echo "未知")
+  last_time=$(date -d "@$last_ts" '+%Y-%m-%d %H:%M' 2>/dev/null \
+    || date -r "$last_ts" '+%Y-%m-%d %H:%M' 2>/dev/null \
+    || echo "$last_ts_str")
 
   if [ "$age_hours" -ge "$CRITICAL_THRESHOLD" ]; then
-    alert "CRITICAL" "db_all_stale:${age_hours}h" "所有 feed 最新文章距今 ${age_hours}h（$last_time），断流超过 ${CRITICAL_THRESHOLD}h"
+    alert "CRITICAL" "db_stale:${age_hours}h" "source_articles 断流 ${age_hours}h（最新: $last_time）— MCP ingest 可能挂了"
   elif [ "$age_hours" -ge "$WARN_THRESHOLD" ]; then
-    alert "WARN" "db_stale:${age_hours}h" "整体最新文章距今 ${age_hours}h（$last_time），关注是否断流"
+    alert "WARN" "db_degraded:${age_hours}h" "source_articles ${age_hours}h 未更新（最新: $last_time）"
   else
-    log "✅ DB 最新文章: ${age_hours}h 前（$last_time）"
+    echo "✅ source_articles 最新记录: ${age_hours}h 前（$last_time）"
   fi
-
-  echo "$age_hours"
 }
 
-# ── 检查 3: 逐 feed 新鲜度 ──
-check_per_feed() {
-  sqlite3 "$DB_PATH" "SELECT f.mp_name, COALESCE(MAX(a.publish_time), 0) FROM feeds f LEFT JOIN articles a ON a.mp_id = f.id GROUP BY f.id;" 2>/dev/null | \
-  while IFS='|' read -r name last_ts; do
-    if [ "$last_ts" = "0" ] || [ -z "$last_ts" ]; then
-      log "⚠️  $name: 无文章（可能从未拉取）"
-      continue
-    fi
-    local age=$(( (NOW_TS - last_ts) / 3600 ))
-    local ltime
-    ltime=$(date -d "@$last_ts" '+%m-%d %H:%M' 2>/dev/null || echo "?")
-    if [ "$age" -ge "$CRITICAL_THRESHOLD" ]; then
-      alert "WARN" "feed_${name}:${age}h" "[$name] 断流 ${age}h（最后: $ltime）"
-    elif [ "$age" -ge "$WARN_THRESHOLD" ]; then
-      log "⚠️  [$name] ${age}h 未更新（最后: $ltime）"
-    else
-      log "   [$name] ${age}h 前更新"
-    fi
-  done
-}
+# ── 检查 3: 近 24h 文章数量 ──
+check_article_count() {
+  local yesterday
+  yesterday=$(date -d '1 day ago' '+%Y-%m-%d' 2>/dev/null \
+    || date -v-1d '+%Y-%m-%d' 2>/dev/null \
+    || echo "")
 
-# ── 检查 4: 401 错误频率 ──
-check_401_rate() {
-  if [ ! -f "$PM2_ERROR_LOG" ]; then
-    log "   PM2 error log 不存在，跳过 401 检查"
-    return
-  fi
-
-  local one_hour_ago
-  one_hour_ago=$(date -d '1 hour ago' '+%Y-%m-%d %H:%M' 2>/dev/null || date -v-1H '+%Y-%m-%d %H:%M' 2>/dev/null || echo "")
-  if [ -z "$one_hour_ago" ]; then
+  if [ -z "$yesterday" ]; then
+    log "   date 命令不支持，跳过近24h数量检查"
     return
   fi
 
   local count
-  count=$(grep -c "暂无可用读书账号" "$PM2_ERROR_LOG" 2>/dev/null || echo "0")
+  count=$(sqlite3 "$SOURCE_DB_PATH" \
+    "SELECT COUNT(*) FROM source_articles WHERE fetch_status='success' AND publish_date >= '$yesterday';" \
+    2>/dev/null || echo "0")
 
-  if [ "$count" -ge "$ALERT_COUNT_THRESHOLD" ]; then
-    alert "CRITICAL" "token_401:${count}" "微信读书账号 token 过期！最近 1h 内 401 错误 ${count} 次 — 需要手动重新扫码"
-  elif [ "$count" -gt 0 ]; then
-    log "⚠️  最近 1h 内 401 错误 ${count} 次（阈值: $ALERT_COUNT_THRESHOLD）"
+  if [ "$count" = "0" ]; then
+    alert "CRITICAL" "no_recent_articles" "近 24h source_articles 0 条新文章 — enrich 无米下锅"
+  elif [ "$count" -lt 5 ]; then
+    alert "WARN" "low_article_count:${count}" "近 24h 仅 ${count} 条文章，数量偏低"
+  else
+    echo "✅ 近 24h 文章数: ${count} 条"
   fi
 }
 
 # ── 日报模式（--daily） ──
 print_daily_summary() {
   echo ""
-  echo "━━━━━━ RSS 健康日报 $(date '+%Y-%m-%d %H:%M') ━━━━━━"
+  echo "━━━━━━ 数据源健康日报 $(date '+%Y-%m-%d %H:%M') ━━━━━━"
   echo ""
 
-  # 整体统计
-  local total
-  total=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM articles;" 2>/dev/null || echo "?")
-  local last_time
-  local last_ts
-  last_ts=$(sqlite3 "$DB_PATH" "SELECT COALESCE(MAX(publish_time), 0) FROM articles;" 2>/dev/null || echo "0")
-  if [ "$last_ts" != "0" ]; then
-    last_time=$(date -d "@$last_ts" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "未知")
-  else
-    last_time="无数据"
+  if [ ! -f "$SOURCE_DB_PATH" ]; then
+    echo "🚨 source_articles.db 不存在！"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    return
   fi
+
+  # 总体统计
+  local total
+  total=$(sqlite3 "$SOURCE_DB_PATH" \
+    "SELECT COUNT(*) FROM source_articles WHERE fetch_status='success';" \
+    2>/dev/null || echo "?")
+
+  local last_ts_str
+  last_ts_str=$(sqlite3 "$SOURCE_DB_PATH" \
+    "SELECT MAX(created_at) FROM source_articles WHERE fetch_status='success';" \
+    2>/dev/null || echo "")
 
   local db_age=0
-  if [ "$last_ts" != "0" ]; then
-    db_age=$(( (NOW_TS - last_ts) / 3600 ))
-  fi
-
-  echo "📊 总体: $total 篇文章 | 最新: $last_time (${db_age}h 前)"
-
-  # PM2 状态
-  local pm2_status="未知"
-  if command -v pm2 &>/dev/null; then
-    pm2_status=$(pm2 list 2>/dev/null | grep "$PM2_NAME" | awk '{print $4}' || echo "NOT FOUND")
-  fi
-  echo "🔧 PM2: wewe-rss — $pm2_status"
-
-  # 账号状态
-  local acc_status
-  acc_status=$(sqlite3 "$DB_PATH" "SELECT id || ' (' || name || ') status=' || status FROM accounts LIMIT 1;" 2>/dev/null || echo "无账号")
-  echo "👤 账号: $acc_status"
-
-  # 401 频率
-  local err_count
-  err_count=$(grep -c "暂无可用读书账号" "$PM2_ERROR_LOG" 2>/dev/null || echo "0")
-  if [ "$err_count" -gt 0 ]; then
-    echo "⚠️  最近 401 错误: ${err_count} 次（需关注 token 状态）"
-  fi
-
-  echo ""
-  echo "── 逐 feed 状态 ──"
-  echo ""
-
-  sqlite3 "$DB_PATH" "SELECT f.mp_name, COALESCE(MAX(a.publish_time), 0), COUNT(a.id) FROM feeds f LEFT JOIN articles a ON a.mp_id = f.id GROUP BY f.id ORDER BY f.mp_name;" 2>/dev/null | \
-  while IFS='|' read -r name last_ts cnt; do
-    if [ "$last_ts" = "0" ] || [ -z "$last_ts" ]; then
-      printf "  %-16s %4s篇  无文章\n" "$name" "$cnt"
-    else
-      local age=$(( (NOW_TS - last_ts) / 3600 ))
-      local ltime
-      ltime=$(date -d "@$last_ts" '+%m-%d %H:%M' 2>/dev/null || echo "?")
-      local icon="✅"
-      if [ "$age" -ge "$CRITICAL_THRESHOLD" ]; then icon="🚨"; elif [ "$age" -ge "$WARN_THRESHOLD" ]; then icon="⚠️ "; fi
-      printf "  $icon %-14s %4s篇  %s (%dh)\n" "$name" "$cnt" "$ltime" "$age"
+  local last_time="无数据"
+  if [ -n "$last_ts_str" ] && [ "$last_ts_str" != "NULL" ]; then
+    local last_ts
+    last_ts=$(date -d "$last_ts_str" +%s 2>/dev/null \
+      || date -j -f "%Y-%m-%dT%H:%M:%S" "${last_ts_str%%.*}" +%s 2>/dev/null \
+      || echo "0")
+    if [ "$last_ts" != "0" ]; then
+      db_age=$(( (NOW_TS - last_ts) / 3600 ))
+      last_time=$(date -d "@$last_ts" '+%Y-%m-%d %H:%M:%S' 2>/dev/null \
+        || date -r "$last_ts" '+%Y-%m-%d %H:%M:%S' 2>/dev/null \
+        || echo "$last_ts_str")
     fi
-  done
+  fi
 
+  # 近24h数量
+  local yesterday
+  yesterday=$(date -d '1 day ago' '+%Y-%m-%d' 2>/dev/null \
+    || date -v-1d '+%Y-%m-%d' 2>/dev/null || echo "")
+  local recent_count="?"
+  if [ -n "$yesterday" ]; then
+    recent_count=$(sqlite3 "$SOURCE_DB_PATH" \
+      "SELECT COUNT(*) FROM source_articles WHERE fetch_status='success' AND publish_date >= '$yesterday';" \
+      2>/dev/null || echo "?")
+  fi
+
+  echo "📊 总体: $total 篇（fetch_status=success）| 最新: $last_time (${db_age}h 前)"
+  echo "📅 近 24h 新增: ${recent_count} 篇"
+  echo "📁 DB 路径: $SOURCE_DB_PATH"
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
 
-  alert "INFO" "daily_summary" "日报: $total 篇, 最新 ${db_age}h 前, PM2=$pm2_status, 401错误=${err_count}次"
+  alert "INFO" "daily_summary" "日报: total=$total recent24h=${recent_count} age=${db_age}h"
 
-  # 记录到专用日报日志
-  echo "[$NOW] total=$total last_ts=$last_ts age=${db_age}h pm2=$pm2_status 401=${err_count} feeds=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM feeds;" 2>/dev/null || echo "?")" >> "$LOG_DIR/rss_daily.log"
+  echo "[$NOW] total=$total recent24h=${recent_count} age=${db_age}h db=$SOURCE_DB_PATH" >> "$LOG_DIR/rss_daily.log"
+}
+
+# ── 检查 4: LLM 产出管线新鲜度（V7.9 — 反思/日报 cron 静默停摆检测）──
+# 教训：strategy_reflection 两次静默停摆（schema 漂移 / ThinkingBlock / 冻结路径），
+#       monitor 只盯数据源不盯 LLM 产出 → 陷阱记了没设防。此检查补齐。
+LLM_STALE_THRESHOLD=26  # 小时：反思每日 8:30 跑，>26h 未刷新即异常
+check_llm_outputs() {
+  local data_dir="/opt/cycleradar-trader/data"
+  # 目标：文件 → 期望刷新周期描述
+  local -a files=("strategy_reflection.json" "event_narrative_latest.json" "alpha_latest.json")
+  for f in "${files[@]}"; do
+    local path="$data_dir/$f"
+    if [ ! -f "$path" ]; then
+      alert "CRITICAL" "llm_missing:$f" "$f 不存在 — LLM 产出管线从未成功"
+      continue
+    fi
+    local mtime age_h
+    mtime=$(stat -c %Y "$path" 2>/dev/null || stat -f %m "$path" 2>/dev/null || echo 0)
+    age_h=$(( (NOW_TS - mtime) / 3600 ))
+    if [ "$age_h" -ge "$LLM_STALE_THRESHOLD" ]; then
+      alert "WARN" "llm_stale:$f:${age_h}h" "$f 已 ${age_h}h 未刷新 — 对应 cron 可能静默崩溃（查 log）"
+    else
+      echo "✅ $f: ${age_h}h 前刷新"
+    fi
+  done
 }
 
 # ── 主流程 ──
 main() {
   echo ""
-  echo "━━━ RSS Health Monitor ━━━"
+  echo "━━━ DataSource Health Monitor (source_articles.db) ━━━"
   echo "Time: $NOW"
   echo ""
 
@@ -274,23 +277,21 @@ main() {
     exit 0
   fi
 
-  # 检查 1: PM2
-  check_pm2
+  # 检查 1: DB 文件存在
+  check_db_exists || exit 1
 
-  # 检查 2: DB 整体新鲜度
-  local db_age
-  db_age=$(check_db_freshness)
+  # 检查 2: 新鲜度（直接调用，不用命令替换，alert 输出不被吞）
+  check_db_freshness
 
-  # 检查 3: 逐 feed
-  check_per_feed
+  # 检查 3: 近24h数量（同上）
+  check_article_count
 
-  # 检查 4: 401 错误频率
-  check_401_rate
+  # 检查 4: LLM 产出管线新鲜度（V7.9）
+  check_llm_outputs
 
-  # 汇总
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "  RSS Health Check Complete"
+  echo "  DataSource Health Check Complete"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
 }

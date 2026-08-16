@@ -26,6 +26,22 @@ if _sig_dir not in _sys.path:
 
 from upstream_signals import write_signal
 
+# tracer 可选导入（本地 dev / ECS 路径不同时降级为 noop）
+try:
+    import sys as _sys2, os as _os2
+    _proj_root = _os2.path.dirname(_os2.path.dirname(_os2.path.dirname(_os2.path.abspath(__file__))))
+    if _proj_root not in _sys2.path:
+        _sys2.path.insert(0, _proj_root)
+    from core.utils.tracer import trace as _trace
+    from core.utils.events import EVT as _EVT
+    _TRACE_OK = True
+except ImportError:
+    _TRACE_OK = False
+    def _trace(*a, **kw): pass  # noqa: E731
+    class _EVT:  # noqa: E302
+        SIGNAL_CANDIDATE = "SignalCandidateEvent"
+        SIGNAL_WRITTEN = "SignalWrittenEvent"
+
 
 def scanner_hits_to_signals(
     scan_result: dict,
@@ -50,6 +66,8 @@ def scanner_hits_to_signals(
         "name": "",
         "models": [],
         "reasons": [],
+        "calibrated_win_rate": None,
+        "calibrated_sample": 0,
     })
 
     for model_name, stock_list in hits.items():
@@ -64,6 +82,12 @@ def scanner_hits_to_signals(
             for r in s.get("reasons", []):
                 if r not in entry["reasons"]:
                     entry["reasons"].append(r)
+            # 胜率校准：取样本量最大的命中模型的胜率（scanner 已注入 calibrated_*）
+            cw = s.get("calibrated_win_rate")
+            cn = s.get("calibrated_sample", 0)
+            if cw is not None and cn > entry["calibrated_sample"]:
+                entry["calibrated_win_rate"] = cw
+                entry["calibrated_sample"] = cn
 
     # ── 2. 逐只产出信号 ──
     now = datetime.now().astimezone()
@@ -94,6 +118,8 @@ def scanner_hits_to_signals(
                 "resonance": resonance,
                 "reasons": info["reasons"],
                 "scan_date": scan_date,
+                "calibrated_win_rate": info["calibrated_win_rate"],
+                "calibrated_sample": info["calibrated_sample"],
             },
         }
         signals.append(signal)
@@ -106,6 +132,7 @@ def emit_scanner_signals(
     *,
     dry_run: bool = False,
     verbose: bool = True,
+    run_id: str = "",
 ) -> int:
     """将 scanner scan() 结果写入信号流。
 
@@ -126,19 +153,47 @@ def emit_scanner_signals(
                   f"| models={sig['metadata']['models']} "
                   f"| resonance={sig['metadata']['resonance']} "
                   f"| confidence={sig['confidence']}")
+            _trace(_EVT.SIGNAL_CANDIDATE,
+                   input={"code": sig["asset"], "name": sig["metadata"]["stock_name"],
+                          "models_hit": sig["metadata"]["models"]},
+                   output={"signal_id": sig["signal_id"], "confidence": sig["confidence"],
+                           "resonance": sig["metadata"]["resonance"]},
+                   status="dry_run",
+                   run_id=run_id)
         return len(signals)
 
     count = 0
     for sig in signals:
         try:
+            # trace 候选信号产出
+            _trace(_EVT.SIGNAL_CANDIDATE,
+                   input={"code": sig["asset"], "name": sig["metadata"]["stock_name"],
+                          "models_hit": sig["metadata"]["models"]},
+                   output={"signal_id": sig["signal_id"], "confidence": sig["confidence"],
+                           "resonance": sig["metadata"]["resonance"]},
+                   run_id=run_id)
+
             write_signal(sig)
             count += 1
+
+            # trace 写入成功
+            _trace(_EVT.SIGNAL_WRITTEN,
+                   input={"signal_id": sig["signal_id"]},
+                   output={"asset": sig["asset"], "confidence": sig["confidence"]},
+                   run_id=run_id)
+
             if verbose:
                 print(f"  ✓ {sig['asset']} {sig['metadata']['stock_name']} "
                       f"→ {sig['metadata']['model_count']}模型 "
                       f"({sig['metadata']['resonance']}共振) "
                       f"confidence={sig['confidence']}")
         except Exception as e:
+            _trace(_EVT.SIGNAL_CANDIDATE,
+                   input={"signal_id": sig["signal_id"]},
+                   output={},
+                   status="failed",
+                   error=str(e),
+                   run_id=run_id)
             print(f"  ⚠ scanner 信号写入失败 ({sig['metadata']['stock_name']}): {e}")
 
     print(f"\n[scanner_adapter] 写入 {count}/{len(signals)} 条信号")

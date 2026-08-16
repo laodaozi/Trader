@@ -140,7 +140,7 @@ def extract_wechat_themes(articles: list[dict]) -> list[dict]:
 
         client = anthropic.Anthropic(api_key=api_key, base_url=base_url)
 
-        # V3.2 Sprint 4: 从统一 MODEL_TIERS 读取 cheap 层级
+        # V7.7: 从统一 MODEL_TIERS 读取 cheap 层级（已改为 S1 代理模型）
         from report_agent import MODEL_TIERS, MODEL_FALLBACK
         CHEAP_MODELS = [MODEL_TIERS["cheap"]] + MODEL_FALLBACK["cheap"]
         last_err = None
@@ -196,7 +196,12 @@ def extract_wechat_themes(articles: list[dict]) -> list[dict]:
                     return []
             except Exception as e:
                 err_msg = str(e)
-                if "403" in err_msg or "not found" in err_msg.lower():
+                # V7.7: 扩大可重试错误范围（不仅 403/not found）
+                retryable = any(k in err_msg for k in
+                               ("403", "not found", "524", "529", "500", "502", "503",
+                                "overloaded", "timeout", "Timeout", "timed out", "rate_limit"))
+                if retryable:
+                    print(f"        → {model} 失败({err_msg[:60]}), 降级...")
                     last_err = e
                     continue
                 raise
@@ -207,7 +212,8 @@ def extract_wechat_themes(articles: list[dict]) -> list[dict]:
         print("        → anthropic 未安装，跳过主题提取")
         return []
     except Exception as e:
-        print(f"        → 主题提取失败: {e}")
+        # V7.7: 不再静默吞错 — 打印完整错误便于排查
+        print(f"        → 主题提取失败({type(e).__name__}): {e}")
         return []
 
 
@@ -949,7 +955,7 @@ def extract_news_events(morning_news, search_results: dict) -> list[dict]:
 
         client = anthropic.Anthropic(api_key=api_key, base_url=base_url)
 
-        # V3.2 Sprint 4: 统一 cheap 层级
+        # V7.7: 统一 cheap 层级（S1 代理模型）
         from report_agent import MODEL_TIERS, MODEL_FALLBACK
         CHEAP_MODELS = [MODEL_TIERS["cheap"]] + MODEL_FALLBACK["cheap"]
         last_err = None
@@ -1010,7 +1016,12 @@ def extract_news_events(morning_news, search_results: dict) -> list[dict]:
                     return []
             except Exception as e:
                 err_msg = str(e)
-                if "403" in err_msg or "not found" in err_msg.lower():
+                # V7.7: 扩大可重试错误范围
+                retryable = any(k in err_msg for k in
+                               ("403", "not found", "524", "529", "500", "502", "503",
+                                "overloaded", "timeout", "Timeout", "timed out", "rate_limit"))
+                if retryable:
+                    print(f"        → {model} 失败({err_msg[:60]}), 降级...")
                     last_err = e
                     continue
                 raise
@@ -1021,7 +1032,8 @@ def extract_news_events(morning_news, search_results: dict) -> list[dict]:
         print("        → anthropic 未安装，跳过新闻聚合")
         return []
     except Exception as e:
-        print(f"        → 新闻聚合失败: {e}")
+        # V7.7: 打印完整错误信息
+        print(f"        → 新闻聚合失败({type(e).__name__}): {e}")
         return []
 
 
@@ -2244,9 +2256,11 @@ def _save_pipeline_manifest(date_str: str, data: dict,
 # V3.9.4: 文件契约 — cycleradar → trader 上游信号对接
 # ══════════════════════════════════════════════════════
 
-# trader 侧数据目录（硬编码契约路径，不可配置）
-TRADER_DATA_DIR = Path(os.path.expanduser("~/交易员/data"))
-TRADER_CONTRACT_FILE = TRADER_DATA_DIR / "upstream_signals.jsonl"
+# V7.6 融合：trader 契约归位平台 data/（独立文件 trader_contract.jsonl），
+# 不再写交易员冻结目录；与 /m 信号总线 upstream_signals.jsonl 分离，避免覆盖冲突。
+# 消费端 pool_manager.UPSTREAM_CONTRACT_FILE 同步指向此文件。
+TRADER_DATA_DIR = PROJECT_ROOT.parent / "data"
+TRADER_CONTRACT_FILE = TRADER_DATA_DIR / "trader_contract.jsonl"
 
 # V4.3: cycleradar 自身数据目录（alpha_signals → /m 信号总线）
 CYCLERADAR_DATA_DIR = PROJECT_ROOT.parent / "data"
@@ -2943,6 +2957,24 @@ def main():
         print(f"\n  ⚠ 数据完整性降级（继续执行，质量可能受限）:")
         for issue in integrity["issues"]:
             print(f"    ⚠ {issue}")
+
+    # ── Phase 1.8: 事件驱动信号采集（T1/T2/T3/T4 检测器）──
+    print(f"\n  [Phase 1.8] 事件驱动信号采集...")
+    try:
+        from signals.event_monitor import run_daily as run_event_daily
+        event_signals = run_event_daily(run_id=f"daily-{date_str}")
+        data["event_signals"] = event_signals
+        if event_signals:
+            print(f"        → 触发 {len(event_signals)} 条事件信号:")
+            for s in event_signals[:5]:
+                print(f"          [{s.get('event_id','?'):30s}] {s.get('trigger_detail','')[:60]}")
+            if len(event_signals) > 5:
+                print(f"          ... 共 {len(event_signals)} 条")
+        else:
+            print(f"        → 今日无事件信号触发")
+    except Exception as e:
+        print(f"        → 事件信号采集失败（非阻塞）: {e}")
+        data["event_signals"] = []
 
     # Phase 2: LLM 事件解读引擎
     rotation_json = generate_report(data, dry_run=args.dry_run,

@@ -6,7 +6,6 @@ wechat_fetcher.py — 微信公众号文章正文抓取器
   2. 失败时 Playwright 兜底（慢但成功率高）
   3. 返回 FetchResult，fetch_status 明确分类
 """
-from __future__ import annotations
 import hashlib, re, time
 from dataclasses import dataclass, field
 from typing import Optional

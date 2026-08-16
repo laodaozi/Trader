@@ -392,17 +392,8 @@ def emit_event_signal(signal: dict, run_id: str = ""):
     return record
 
 
-# ── V8.3 dedup: 同 event_id 多次触发只追踪一次传导图谱 ────────────────────────
-_TRACED_EVENTS: set[str] = set()
-
-
 def _trace_transmission_for_signal(signal: dict):
     """内部：加载传导图谱，追踪事件传导路径，写入 transmission_signals.jsonl"""
-    event_id = signal["event_id"]
-    if event_id in _TRACED_EVENTS:
-        print(f"  [trace] {event_id} 已追踪，跳过", file=sys.stderr)
-        return
-    _TRACED_EVENTS.add(event_id)
     try:
         from core.graph.transmission_graph import TransmissionGraph
         from core.graph.event_evolution import trace_transmission, write_signals

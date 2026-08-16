@@ -2,7 +2,7 @@
 """
 热点事件 LLM 增强：从标题生成 thesis（核心观点）+ tickers（相关标的）
 用法：
-    python3 enrich_hot_events.py                     # 从 wewe-rss.db 读最近48h事件，逐条增强
+    python3 enrich_hot_events.py                     # 从 source_articles.db 读最近24h事件，逐条增强
     python3 enrich_hot_events.py --title "标题"       # 增强单条标题（调试）
     python3 enrich_hot_events.py --file events.json   # 增强 JSON 文件中的事件
 
@@ -24,17 +24,16 @@ from anthropic import Anthropic
 
 # ── 路径 ──
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-# 优先使用 wewe-rss 真实运行目录（/opt/wewe-rss-deploy/data/wewe-rss.db）
-# 旧副本 admin/data/wewe-rss.db 停止更新于 2026-06-11，仅作 fallback
-_WEWE_DB_PRIMARY = Path("/opt/wewe-rss-deploy/data/wewe-rss.db")
-_WEWE_DB_FALLBACK = PROJECT_ROOT / "admin" / "data" / "wewe-rss.db"
-WEWE_DB = _WEWE_DB_PRIMARY if _WEWE_DB_PRIMARY.exists() else _WEWE_DB_FALLBACK
+# V7.7: source_articles.db 为唯一数据源（MCP news + URL ingest 写入）
+SOURCE_ARTICLES_DB = PROJECT_ROOT / "data" / "source_articles.db"
 CACHE_FILE = PROJECT_ROOT / "data" / "hot_enrichment.json"
 
 # ── API ──
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com")
-MODEL = "claude-sonnet-4-6"  # 当前 token 唯一可用模型
+BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "https://new-api.finstep.cn")
+# V7.7: S1 代理 + 多模型降级链（参照 generate_strategy_reflection.py）
+# Sonnet/Haiku 不带 s1- 前缀（代理只有 Opus 系列注册了 s1- 别名）
+MODELS = ["claude-sonnet-4-6", "claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250929"]
 
 # ── Prompt ──
 SYSTEM_PROMPT = """你是一个事件驱动交易解读引擎。你的任务是从微信公众号文章中提炼：这件事对A股意味着什么，交易员现在应该关注什么。
@@ -63,9 +62,8 @@ SYSTEM_PROMPT = """你是一个事件驱动交易解读引擎。你的任务是�
 严格输出 JSON，无其他文字：
 {
   "thesis": "交易级洞察，30-60字。直接说：什么变了、影响什么方向、持续性如何。用「超预期」「证伪」「price in」「拐点」「抱团松动」「风格切换」等术语。",
-  "event_type": "从以下列表选一个最匹配的事件类型：policy_support / earnings_beat / earnings_miss / capacity_expansion / ma_restructuring / product_launch / price_hike / order_win / regulatory_penalty / supply_disruption / commodity_shock / sector_rotation / analyst_upgrade / fund_flow / management_change / index_rebalance / short_squeeze / technical_breakout / macro_data_release / sector_policy。若文章涉及多个事件，选驱动力最强的一个。非市场内容填 null。",
   "tickers": [
-    {"code": "sh/sz+6位数字", "name": "简称", "reason": "关联逻辑≤15字", "event_type": "该标的对应的事件类型，可与顶层不同"}
+    {"code": "sh/sz+6位数字", "name": "简称", "reason": "关联逻辑≤15字"}
   ]
 }
 
@@ -73,7 +71,7 @@ SYSTEM_PROMPT = """你是一个事件驱动交易解读引擎。你的任务是�
 
 - thesis 必须包含可证伪的判断（涨/跌/轮动/分化），不允许骑墙
 - 如果含「传」「据称」「或」，标注不确定性但依然给出基准判断
-- 营销/培训/广告类 → thesis="非市场分析内容", tickers=[], event_type=null
+- 营销/培训/广告类 → thesis="非市场分析内容", tickers=[]
 - 泛资讯汇总 → 提取其中最可能影响次日市场的方向
 - tickers 最多3只，宁可少推不硬凑，不确定代码就不输出
 - **正文中提到具体公司/股票名称的，优先推 ticker；正文无具体标的时再从标题推断**"""
@@ -126,20 +124,79 @@ def _save_cache(cache: dict):
 
 
 def _call_llm(title: str, source: str = "", content: str = "") -> dict:
-    """调 Claude Sonnet 生成 thesis + tickers"""
+    """调 LLM 生成 thesis + tickers（V7.7: 多模型降级 + 重试 + DeepSeek 兜底）"""
+    import anthropic
     client = Anthropic(api_key=API_KEY, base_url=BASE_URL)
     user_prompt = _build_user_prompt(title, source, content)
 
-    resp = client.messages.create(
-        model=MODEL,
-        max_tokens=512,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
+    last_error = None
+    for m in MODELS:
+        try:
+            attempt = 0
+            while True:
+                attempt += 1
+                try:
+                    resp = client.messages.create(
+                        model=m,
+                        max_tokens=512,
+                        system=SYSTEM_PROMPT,
+                        messages=[{"role": "user", "content": user_prompt}],
+                    )
+                    text = resp.content[0].text if resp.content else ""
+                    return _parse_llm_response(text)
+                except (anthropic.APIConnectionError, anthropic.APITimeoutError, anthropic.RateLimitError) as e:
+                    if attempt >= 3:
+                        raise
+                    wait = min(5 * attempt, 30)
+                    print(f"    重试 {m} ({type(e).__name__})，{wait}s后...", file=sys.stderr)
+                    time.sleep(wait)
+        except Exception as e:
+            err_msg = str(e)
+            print(f"    {m} 失败: {err_msg[:80]}，降级下一个...", file=sys.stderr)
+            last_error = e
+            continue
 
-    text = resp.content[0].text if resp.content else ""
-    # 尝试从响应中提取 JSON
-    return _parse_llm_response(text)
+    # DeepSeek 终极兜底 — 先试 S1 代理的 deepseek-v4-pro，再试 DeepSeek 直连
+    print(f"    所有 Claude 模型失败，尝试 deepseek 兜底...", file=sys.stderr)
+
+    # 方案1: 通过 S1 代理调 deepseek-v4-pro（复用 ANTHROPIC_API_KEY）
+    try:
+        import openai
+        proxy_ds = openai.OpenAI(api_key=API_KEY, base_url=BASE_URL + "/v1")
+        ds_resp = proxy_ds.chat.completions.create(
+            model="deepseek-v4-pro",
+            max_tokens=512,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        text = ds_resp.choices[0].message.content or ""
+        print(f"    deepseek-v4-pro (via proxy) ✓", file=sys.stderr)
+        return _parse_llm_response(text)
+    except ImportError:
+        raise RuntimeError(f"所有 Claude 模型失败且 openai 未安装。最后错误: {last_error}")
+    except Exception as proxy_err:
+        print(f"    deepseek-v4-pro (proxy) 失败: {proxy_err}", file=sys.stderr)
+
+    # 方案2: DeepSeek 直连（需单独 DEEPSEEK_API_KEY）
+    ds_key = os.environ.get("DEEPSEEK_API_KEY")
+    if not ds_key:
+        raise RuntimeError(f"所有 Claude 模型失败，代理 DeepSeek 也失败，且无 DEEPSEEK_API_KEY。最后错误: {last_error}")
+    try:
+        ds_client = openai.OpenAI(api_key=ds_key, base_url="https://api.deepseek.com/v1")
+        ds_resp = ds_client.chat.completions.create(
+            model="deepseek-chat",
+            max_tokens=512,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        text = ds_resp.choices[0].message.content or ""
+        return _parse_llm_response(text)
+    except Exception as e:
+        raise RuntimeError(f"DeepSeek 直连也失败: {e}。Claude 最后错误: {last_error}")
 
 
 def _parse_llm_response(text: str) -> dict:
@@ -234,77 +291,52 @@ def enrich_one(title: str, cache: dict, force: bool = False, source: str = "", c
         print(f"  ✅ [{source}] {title[:40]}... → thesis={result.get('thesis','')[:30]}...", file=sys.stderr)
         return result
     except Exception as e:
-        print(f"  ❌ [{source}] {title[:40]}... → {e}", file=sys.stderr)
-        return {"thesis": "", "tickers": [], "error": str(e)}
+        # V7.7: 明确标记失败，不静默返回空 thesis 伪装成功
+        print(f"  ❌ [{source}] {title[:40]}... → {type(e).__name__}: {e}", file=sys.stderr)
+        return {"thesis": "", "tickers": [], "error": str(e), "failed": True}
 
 
 def enrich_from_db(db_path: Path, cache: dict, force: bool = False) -> list:
-    """从 wewe-rss.db 读最近24h事件，按信源 tier 分配配额后增强。
+    """从 source_articles.db 读最近24h事件并增强。
 
-    配额规则（来自 source_registry.py）：
-      S — 全量抓（叙事平权）
-      A — ≤5条/源（微策神机/财闻私享/在下杜牛牛）
-      B — ≤3条/源（财经早餐/数据宝/小马白话期权）
-      C — ≤3条/源（台球之门/低吸波段王）
-    最终按 weight 降序输出，保证高权重信源优先展示。
+    V7.7: 替换 WeWe RSS，改读 source_articles.db（MCP news + URL ingest 写入）。
+    按 weight 降序输出，保证高权重信源优先展示。
     """
-    try:
-        from core.writing.source_registry import SOURCE_ROLES
-    except ImportError:
-        SOURCE_ROLES = {}
-
-    since = int(time.time()) - 86400  # 24h
+    today = time.strftime("%Y-%m-%d")
 
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
 
-    # 拉取24h内全部文章，带信源名
     all_rows = conn.execute(
-        """SELECT a.mp_id, a.title, a.publish_time,
-                  COALESCE(f.mp_name, a.mp_id) AS source,
-                  a.pic_url, a.content
-           FROM articles a LEFT JOIN feeds f ON a.mp_id = f.id
-           WHERE a.publish_time >= ?
-           ORDER BY a.publish_time DESC""",
-        (since,),
+        """SELECT source_id, source_name, title, url, content_text, content_len,
+                  tier, weight, publish_date, created_at
+           FROM source_articles
+           WHERE fetch_status = 'success'
+             AND publish_date >= date(?, '-1 day')
+           ORDER BY weight DESC, created_at DESC""",
+        (today,),
     ).fetchall()
     conn.close()
 
-    # 按信源分组，按 tier 配额截断
-    from collections import defaultdict
-    by_source: dict = defaultdict(list)
-    for row in all_rows:
-        by_source[row["mp_id"]].append(row)
-
-    selected = []
-    for mp_id, rows in by_source.items():
-        meta = SOURCE_ROLES.get(mp_id, {})
-        limit = meta.get("limit", 3)  # 未注册信源默认3条
-        weight = meta.get("weight", 0.5)
-        # limit=None 表示全量（S tier）
-        batch = rows if limit is None else rows[:limit]
-        for row in batch:
-            selected.append((weight, row))
-
-    # 按 weight 降序，同 weight 按时间降序
-    selected.sort(key=lambda x: (x[0], x[1]["publish_time"]), reverse=True)
-
     events = []
-    for weight, row in selected:
-        title = row["title"]
-        content = row["content"] or ""
-        source_name = row["source"] or ""
-        pub_date = time.strftime("%Y-%m-%d", time.gmtime(row["publish_time"]))
+    for row in all_rows:
+        title = row["title"] or ""
+        if not title:
+            continue
+        content = row["content_text"] or ""
+        source_name = row["source_name"] or ""
+        weight = row["weight"] or 0.5
+        pub_date = row["publish_date"] or today
         enrichment = enrich_one(title, cache, force, source=source_name, content=content, source_date=pub_date)
         events.append({
             "title": title,
-            "time": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(row["publish_time"])),
+            "time": row["created_at"] or "",
             "source": source_name,
-            "pic_url": row["pic_url"] or "",
+            "pic_url": "",
             "thesis": enrichment.get("thesis", ""),
-            "event_type": enrichment.get("event_type", None),
             "tickers": enrichment.get("tickers", []),
             "weight": weight,
+            "url": row["url"] or "",
         })
 
     return events
@@ -340,15 +372,15 @@ def main():
             enrichment = enrich_one(ev.get("title", ""), cache, force=args.force,
                                      source=ev.get("source", ""), content=ev.get("content", ""),
                                      source_date=ev.get("source_date", ""))
-            events.append({**ev, "thesis": enrichment.get("thesis", ""), "event_type": enrichment.get("event_type", None), "tickers": enrichment.get("tickers", [])})
+            events.append({**ev, "thesis": enrichment.get("thesis", ""), "tickers": enrichment.get("tickers", [])})
         print(json.dumps(events, ensure_ascii=False, indent=2))
         return
 
-    # 默认：从 DB 读事件
-    if not WEWE_DB.exists():
-        print(f"❌ DB 不存在: {WEWE_DB}", file=sys.stderr)
+    # 默认：从 source_articles.db 读事件
+    if not SOURCE_ARTICLES_DB.exists():
+        print(f"❌ DB 不存在: {SOURCE_ARTICLES_DB}（先跑 ingest_mcp_news.py 灌数据）", file=sys.stderr)
         sys.exit(1)
-    events = enrich_from_db(WEWE_DB, cache, force=args.force)
+    events = enrich_from_db(SOURCE_ARTICLES_DB, cache, force=args.force)
 
     print(json.dumps(events, ensure_ascii=False, indent=2))
 

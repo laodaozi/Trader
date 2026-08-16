@@ -53,13 +53,4 @@ python3.9 "$PROJECT_ROOT/core/signals/event_monitor.py" --run 2>&1 | tail -20
 SIGNAL_COUNT=$(wc -l < "$PROJECT_ROOT/data/event_signals.jsonl" 2>/dev/null || echo 0)
 TX_COUNT=$(wc -l < "$PROJECT_ROOT/data/transmission_signals.jsonl" 2>/dev/null || echo 0)
 
-log "📉 应用权重衰减..."
-python3.9 -c "
-from core.graph.transmission_graph import TransmissionGraph
-g = TransmissionGraph.load()
-n = g.decay_all_edges(factor=0.995)
-g.save()
-import sys; print('decayed', n, 'edges', file=sys.stderr)
-" 2>&1
-
 log "✅ event_monitor_cron.sh 完成 (累计信号=${SIGNAL_COUNT}, 传导信号=${TX_COUNT})"

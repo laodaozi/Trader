@@ -339,7 +339,7 @@ def _model_htji(code: str, name: str, kline: list[dict]) -> Optional[dict]:
     4. 今日收盘站上MA5 or 上影线触碰MA5
     5. 今日量 ≤ 1.5× 前一日量
     """
-    if len(kline) < 25:
+    if len(kline) < 61:
         return None
 
     closes  = [b["close"] for b in kline]
@@ -1023,7 +1023,7 @@ def _model_hydx(code: str, name: str, kline: list[dict]) -> Optional[dict]:
     5. 下影线 ≥ 上影线（买盘承接）
     6. 非 ST
     """
-    if len(kline) < 25:
+    if len(kline) < 26:
         return None
     today     = kline[-1]
     recent_5  = kline[-6:-1]    # 近5个交易日（不含今天）
@@ -1437,13 +1437,29 @@ def scan(
             if hit:
                 hits[model_name].append(hit)
 
-    # ── 3. 汇总 + 热点板块标注 ──
-    # 为命中股票补充热点板块标签
-    for stock_list in hits.values():
+    # ── 3. 汇总 + 热点板块标注 + 胜率校准注入 ──
+    # 读取回测胜率表（backtest_winrate.json），供 calibrated_win_rate 注入
+    _scan_winrate: dict = {}
+    _wf = Path(__file__).parent.parent / "data" / "backtest_winrate.json"
+    if _wf.exists():
+        try:
+            _scan_winrate = json.loads(_wf.read_text()).get("models", {})
+        except Exception:
+            pass
+    _name_to_key_scan = {v: k for k, v in MODEL_FUNCS.items()}
+
+    # 为命中股票补充热点板块标签 + 胜率标注
+    for model_name, stock_list in hits.items():
+        model_key = _name_to_key_scan.get(model_name, "")
+        wr_info = _scan_winrate.get(model_key, {})
         for stock in stock_list:
             sector = hot_code_to_sector.get(stock["code"])
             if sector and "reasons" in stock:
                 stock["reasons"].append(f"热点主线:{sector}")
+            # 注入胜率（样本≥5才注入）
+            if wr_info.get("sample_size", 0) >= 5:
+                stock["calibrated_win_rate"] = wr_info.get("win_rate", 0.0)
+                stock["calibrated_sample"]   = wr_info.get("sample_size", 0)
 
     # ── 龙一龙二过滤 ──
     hits = _apply_longtou_filter(hits, hot_code_to_sector, verbose=verbose)
@@ -1459,15 +1475,23 @@ def scan(
     history_file = Path(__file__).parent.parent / "data" / "scan_history.jsonl"
     history_file.parent.mkdir(parents=True, exist_ok=True)
     with open(history_file, "a", encoding="utf-8") as fh:
-        for model_key, stocks in hits.items():
+        for model_name, stocks in hits.items():
+            model_key = _name_to_key_scan.get(model_name, model_name)
+            winrate_info = _scan_winrate.get(model_key, {})
             for s in stocks:
-                fh.write(json.dumps({
+                entry = {
                     "date":    date,
-                    "model":   model_key,  # hits key 已是中文名
+                    "model":   model_name,        # 中文名（历史兼容）
+                    "model_key": model_key,       # 英文 key（新增）
                     "code":    s["code"],
                     "name":    s["name"],
                     "reasons": s.get("reasons", []),
-                }, ensure_ascii=False) + "\n")
+                }
+                if winrate_info.get("sample_size", 0) >= 5:
+                    entry["calibrated_win_rate"] = winrate_info.get("win_rate", 0.0)
+                    entry["calibrated_sample"]   = winrate_info.get("sample_size", 0)
+                    entry["calibrated_avg_ret"]  = winrate_info.get("avg_return", 0.0)
+                fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     # 清理缓存
     _reset_index_cache()

@@ -37,8 +37,6 @@ _root = Path(__file__).parent.parent
 if str(_root) not in sys.path:
     sys.path.insert(0, str(_root))
 
-from core.trader_mcp import mcp_call
-
 # ── 路径 ────────────────────────────────────────────────
 ROOT_DIR   = Path(__file__).parent.parent
 OUTPUT_DIR = ROOT_DIR / "output" / "tracker"
@@ -90,32 +88,106 @@ def _forward_kline(code: str, start_date: str, days: int) -> list[dict]:
     """
     获取 start_date 之后最多 days 个交易日的日线。
     返回 [{date, open, high, low, close}] 列表，按日期升序。
+
+    降级链（与 stock_analysis.py 保持一致，ECS cron 可用）：
+      1. akshare 东方财富（主源，2 次重试）
+      2. 腾讯直连 web.ifzq.gtimg.cn（降级，3 次退避）
+      3. 返回 []（NODATA/PENDING）
     """
-    end = _add_trade_days(start_date, days + 10)
-    result = mcp_call("market_quote", "get_kline", {
-        "keyword":           code,
-        "start_date":        start_date,
-        "end_date":          end,
-        "kline_type":        1,
-        "reinstatement_type": 2,
-    })
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_dt   = start_dt + timedelta(days=int(days * 1.6) + 10)  # 覆盖节假日
+    end_str  = end_dt.strftime("%Y-%m-%d")
 
-    raw = result if isinstance(result, list) else result.get("list", [])
-    bars = []
-    for b in raw:
-        date_str = b.get("trade_date", "")
-        if date_str <= start_date:
-            continue
-        bars.append({
-            "date":  date_str,
-            "open":  float(b.get("open_price", 0)),
-            "high":  float(b.get("high_price", 0)),
-            "low":   float(b.get("low_price", 0)),
-            "close": float(b.get("close_price", 0)),
-        })
+    # ── 主源：东方财富 akshare ──
+    rows = _kline_from_akshare(code, start_date, end_str)
 
+    # ── 降级：腾讯直连 ──
+    if not rows:
+        rows = _kline_from_tencent(code, start_dt, end_dt)
+
+    # 过滤掉 start_date 当天及之前，按日期升序，截取 days 条
+    bars = [b for b in rows if b["date"] > start_date]
     bars.sort(key=lambda b: b["date"])
     return bars[:days]
+
+
+def _kline_from_akshare(code: str, start_date: str, end_date: str) -> list[dict]:
+    """东方财富 akshare 前复权日线，2 次重试。"""
+    try:
+        import akshare as ak
+    except ImportError:
+        return []
+
+    start_ak = start_date.replace("-", "")
+    end_ak   = end_date.replace("-", "")
+    for attempt in range(2):
+        try:
+            df = ak.stock_zh_a_hist(
+                symbol=code,
+                period="daily",
+                start_date=start_ak,
+                end_date=end_ak,
+                adjust="qfq",
+            )
+            if df is not None and not df.empty:
+                rows = []
+                for _, r in df.iterrows():
+                    rows.append({
+                        "date":  str(r["日期"]),
+                        "open":  float(r["开盘"]),
+                        "high":  float(r["最高"]),
+                        "low":   float(r["最低"]),
+                        "close": float(r["收盘"]),
+                    })
+                return rows
+        except Exception:
+            if attempt == 0:
+                time.sleep(1.0)
+    return []
+
+
+def _kline_from_tencent(code: str, start_dt: datetime, end_dt: datetime) -> list[dict]:
+    """直连腾讯行情 API（web.ifzq.gtimg.cn），带 retry + exponential backoff。
+    ECS 上可用；akshare 的 stock_zh_a_hist_tx() 走 proxy.finance.qq.com 会被限流。
+    """
+    import requests
+
+    tx_code = ("sh" if code.startswith(("6", "9")) else "sz") + code
+    url = (
+        f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
+        f"?param={tx_code},day,{start_dt.strftime('%Y-%m-%d')},"
+        f"{end_dt.strftime('%Y-%m-%d')},640,qfq"
+    )
+
+    for attempt in range(3):
+        try:
+            r = requests.get(url, timeout=15)
+            r.raise_for_status()
+            data = r.json()
+            if data.get("code") != 0:
+                raise ValueError(f"API code={data.get('code')}")
+            stock_data = data.get("data", {}).get(tx_code, {})
+            klines = stock_data.get("qfqday") or stock_data.get("day") or []
+            if not klines:
+                if attempt < 2:
+                    time.sleep(1.0 * (2 ** attempt))
+                    continue
+                return []
+            rows = []
+            for row in klines:
+                # 腾讯格式: [日期, 开盘, 收盘, 最高, 最低, 成交量]
+                rows.append({
+                    "date":  str(row[0]),
+                    "open":  float(row[1]),
+                    "high":  float(row[3]),
+                    "low":   float(row[4]),
+                    "close": float(row[2]),
+                })
+            return rows
+        except Exception:
+            if attempt < 2:
+                time.sleep(1.0 * (2 ** attempt))
+    return []
 
 
 def _add_trade_days(date_str: str, n: int) -> str:
@@ -420,6 +492,53 @@ def _html_tracker(tracks: list[dict], date: str) -> str:
     if overall["total"] < 10:
         verdict_detail += f"  采样量不足（{overall['total']}条），结论仅供参考。"
 
+    # ── Confidence 汇总（回测胜率 vs 实盘胜率）──
+    _wf = ROOT_DIR / "data" / "backtest_winrate.json"
+    _backtest_rows = []
+    if _wf.exists():
+        try:
+            _wr = json.loads(_wf.read_text())
+            for mk, mv in _wr.get("models", {}).items():
+                if mv.get("sample_size", 0) >= 5:
+                    _backtest_rows.append((mk, mv["name"], mv["win_rate"], mv["sample_size"]))
+            _backtest_rows.sort(key=lambda x: -x[2])
+        except Exception:
+            pass
+
+    def _conf_table() -> str:
+        if not _backtest_rows:
+            return ""
+        live_hit  = overall["hit"]
+        live_miss = overall["miss"]
+        live_n    = live_hit + live_miss
+        live_wr   = round(live_hit / live_n * 100, 1) if live_n > 0 else None
+        live_cell = (f"<b style='color:{'#22c55e' if live_wr>=55 else '#f59e0b' if live_wr>=40 else '#ef4444'}'>"
+                     f"{live_wr}%</b> <span style='color:#9ca3af;font-size:10px'>n={live_n}</span>"
+                     if live_wr is not None else
+                     "<span style='color:#9ca3af;font-size:11px'>暂无实盘</span>")
+        rows_html = ""
+        for mk, mname, wr, n in _backtest_rows[:8]:
+            c = "#22c55e" if wr >= 55 else ("#f59e0b" if wr >= 45 else "#ef4444")
+            rows_html += (f"<tr><td style='padding:3px 8px;font-size:11px'>{mname}</td>"
+                          f"<td style='padding:3px 8px;font-size:11px;text-align:center'>"
+                          f"<b style='color:{c}'>{wr}%</b></td>"
+                          f"<td style='padding:3px 8px;font-size:11px;color:#9ca3af'>n={n}</td></tr>")
+        return f"""
+<div style="margin:16px 0;padding:12px 16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+  <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:10px">
+    📊 Confidence 校准
+    <span style="font-weight:400;color:#6b7280;margin-left:8px">实盘：{live_cell}</span>
+  </div>
+  <table style="border-collapse:collapse;width:100%">
+    <tr style="background:#f1f5f9">
+      <th style="padding:4px 8px;font-size:11px;text-align:left">模型</th>
+      <th style="padding:4px 8px;font-size:11px">回测胜率</th>
+      <th style="padding:4px 8px;font-size:11px">样本</th>
+    </tr>
+    {rows_html}
+  </table>
+</div>"""
+
     # ── 构建 HTML ──
     def statcard(label: str, value, color: str = "#1e293b", sub: str = "") -> str:
         return f"""<div class="stat">
@@ -538,6 +657,8 @@ def _html_tracker(tracks: list[dict], date: str) -> str:
   <h2 style="color:{'#22c55e' if overall['hit_rate']>=60 else '#f59e0b' if overall['hit_rate']>=40 else '#ef4444'}">{verdict}</h2>
   <p>{verdict_detail}</p>
 </div>
+
+{_conf_table()}
 
 <div class="summary">
   {statcard("总信号", overall['total'], "#1e293b")}

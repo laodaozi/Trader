@@ -2,51 +2,29 @@ import json, os, sys
 from datetime import datetime
 from pathlib import Path
 
-TRADER_STRATEGY = Path("/opt/cycleradar-trader/data/trader_strategy.jsonl")
-MORNING_JSON    = Path("/opt/cycleradar-trader/data/morning.json")
-CONTRACTS_DIR   = Path("/opt/trader/output/contracts")
-HOT_ENRICHMENT  = Path("/opt/cycleradar-trader/data/hot_enrichment.json")
+# tracer 可选导入
+try:
+    _base = Path(__file__).parent.parent.parent
+    if str(_base) not in sys.path:
+        sys.path.insert(0, str(_base))
+    from core.utils.tracer import trace as _trace, new_run_id as _new_run_id
+    from core.utils.events import EVT as _EVT
+    _TRACE_OK = True
+except ImportError:
+    _TRACE_OK = False
+    def _trace(*a, **kw): pass  # noqa: E731
+    def _new_run_id(): return "noop"  # noqa: E731
+    class _EVT:  # noqa: E302
+        CONTRACT_WRITTEN = "ContractWrittenEvent"
+        REPORT_AGENT_COMPLETED = "ReportAgentRunCompleted"
 
-
-# ── event_type 推断（V7.5）——根据 strategy + model_hits/reasons 规则映射 ──
-_REASON_EVENT_MAP = {
-    '并购重组': 'ma_restructuring',
-    '重组':     'ma_restructuring',
-    '政策':     'policy_support',
-    '涨价':     'price_hike',
-    '提价':     'price_hike',
-    '大单':     'order_win',
-    '中标':     'order_win',
-    '业绩超预期': 'earnings_beat',
-    '业绩超':   'earnings_beat',
-    '产能扩':   'capacity_expansion',
-    '扩产':     'capacity_expansion',
-    '管理层':   'management_change',
-    '行业政策': 'sector_policy',
-}
-_STRATEGY_EVENT_MAP = {
-    'rotation_factor':  'sector_rotation',
-    'commodity_radar':  'commodity_shock',
-    'report_agent':     'analyst_upgrade',
-    'wanjun_models':    'technical_breakout',
-    'ma_signals':       'technical_breakout',
-}
-
-def _infer_event_type(signal):
-    strategy = signal.get('strategy', '')
-    # 1. reasons/model_hits 关键词优先
-    reasons = signal.get('model_hits') or signal.get('reasons') or []
-    for r in reasons:
-        for kw, et in _REASON_EVENT_MAP.items():
-            if kw in str(r):
-                return et
-    # 2. strategy 默认映射
-    if strategy in _STRATEGY_EVENT_MAP:
-        return _STRATEGY_EVENT_MAP[strategy]
-    # 3. stock_agent 默认为技术突破
-    if strategy == 'stock_agent':
-        return 'technical_breakout'
-    return None
+# V7.6 融合：路径归位到平台 data/（与其他脚本一致），CYCLERADAR_DATA_DIR 可覆盖；
+# 契约文件输出到平台 data/，不再写交易员冻结目录 /opt/trader/output/contracts
+DATA_DIR        = Path(os.environ.get("CYCLERADAR_DATA_DIR", Path(__file__).parent.parent.parent / "data"))
+TRADER_STRATEGY = DATA_DIR / "trader_strategy.jsonl"
+MORNING_JSON    = DATA_DIR / "morning.json"
+CONTRACTS_DIR   = DATA_DIR
+HOT_ENRICHMENT  = DATA_DIR / "hot_enrichment.json"
 
 def _read_json(p):
     try:
@@ -75,21 +53,12 @@ def generate_alpha():
                     "entry_price": s.get("entry_low"),
                     "target_price": None,
                     "stop_loss": s.get("stop_loss"),
-                    "confidence": {
-                        "score": min(round(s.get("score",0)/20, 1), 5.0),
-                        "score_pct": round(min(s.get("score",0)/100, 1.0), 2),
-                        "calibration_status": "uncalibrated",
-                        "sample_size": 0,
-                        "calibrated_winrate": None,
-                        "rule_basis": s.get("strategy", "stock_agent")
-                    },
+                    "confidence": min(round(s.get("score",0)/20, 1), 5.0),
                     "time_window": "1w",
                     "event_source": s.get("source",""),
-                    "event_type": s.get("event_type") or _infer_event_type(s),
                     "thesis": f"{s.get('name','')} {s.get('strategy','')} score={s.get('score',0)}",
                     "sector_context": s.get("sector_context",""),
-                    "enhanced_nx": s.get("nx",""),
-                    "attribution": {"primary_driver": s.get("source","stock_agent"), "supporting": [], "market_beta": "unknown"}
+                    "enhanced_nx": s.get("nx","")
                 })
     if not date_str:
         date_str = datetime.now().strftime("%Y-%m-%d")
@@ -121,51 +90,41 @@ def generate_narrative():
             })
     hot = _read_json(HOT_ENRICHMENT)
     if hot:
-        # 兼容 list（旧格式）和 dict（新格式），按 source_date 降序
+        # 兼容 list（新格式）和 dict（旧格式），按 source_date 降序（发布日期新的优先），其次 enriched_at
         hot_items = hot if isinstance(hot, list) else list(hot.values())
         hot_items = sorted(hot_items,
-            key=lambda x: (x.get("source_date","") or x.get("enriched_at","")[:10]),
+            key=lambda x: (x.get("source_date", "") or x.get("enriched_at", "")[:10]),
             reverse=True)
-        seen_source_titles = set()  # 去重：同一篇文章只取一条
         for val in hot_items:
             if not isinstance(val, dict): continue
             ts = val.get("enriched_at","")
-            tickers = val.get("tickers",[])
             # ── decay 过期过滤 ──
-            decay_days = val.get("decay_days", 3)
+            decay_days = val.get("decay_days", 3)  # 默认 3 天，旧数据无此字段时用默认值
             if ts and isinstance(decay_days, (int, float)) and decay_days > 0:
                 try:
                     occurred = datetime.strptime(str(ts)[:10], "%Y-%m-%d")
                     if (today - occurred).days > int(decay_days):
-                        continue
+                        continue  # 事件已过期，跳过
                 except (ValueError, TypeError):
-                    pass
+                    pass  # 日期解析失败，保留（不误删）
             # ── end decay ──
-            thesis = val.get("thesis","")
-            # 过滤非市场内容
+            thesis = val.get("thesis", "")
+            # 过滤非市场内容（LLM 对营销/个人感悟类文章的标记）
             if not thesis or "非市场分析内容" in thesis:
                 continue
-            # ── 同一来源文章去重（title 相同只保留 tickers 最多的，列表已按 source_date 降序） ──
-            src_title = val.get("title","")
-            if src_title and src_title in seen_source_titles:
-                continue
-            if src_title:
-                seen_source_titles.add(src_title)
+            tickers = val.get("tickers", [])
             events.append({
                 "rank": len(events)+1,
-                "title": thesis[:100],
+                "title": val.get("thesis","")[:100],
                 "source": val.get("source", "ingest"),
                 "source_title": val.get("title",""),
-                "event_type": val.get("event_type", None),
-                "event_time": {
-                    "occurred_at": str(ts)[:10] if ts else date_str,
-                    "certainty": "developing",
-                    "decay_days": int(decay_days) if isinstance(decay_days, (int, float)) else 3
-                },
-                "interpretation": thesis,
-                "sector_impact": [],
-                "stock_impact": [{"code": t.get("code",""), "name": t.get("name",""), "logic": t.get("reason",""), "event_type": t.get("event_type", val.get("event_type", None))} for t in tickers[:5]],
-                "commodity_impact": ""
+                "trigger_event": val.get("thesis","")[:200],
+                "direct_reaction": "",
+                "time_dimension": str(ts)[:10] if ts else date_str,
+                "sector_transmission": [],
+                "valuation_impact": "",
+                "trading_window": "",
+                "stock_mapping": [{"code": t.get("code",""), "name": t.get("name",""), "type": "long", "logic": t.get("reason","")} for t in tickers[:5]],
             })
     narrative = {
         "date": date_str, "source": "cycleradar-trader server pipeline",
@@ -177,15 +136,39 @@ def generate_narrative():
     return narrative
 
 def main():
+    import time
+    t0 = time.time()
+    run_id = _new_run_id()
+
     CONTRACTS_DIR.mkdir(parents=True, exist_ok=True)
+
     alpha = generate_alpha()
-    with open(CONTRACTS_DIR / "alpha_latest.json", "w") as f:
+    alpha_path = CONTRACTS_DIR / "alpha_latest.json"
+    with open(alpha_path, "w") as f:
         json.dump(alpha, f, ensure_ascii=False, indent=2)
-    print(f"alpha_latest.json: {len(alpha.get('signals',[]))} signals")
+    alpha_count = len(alpha.get("signals", []))
+    print(f"alpha_latest.json: {alpha_count} signals")
+    _trace(_EVT.CONTRACT_WRITTEN,
+           input={"filename": "alpha_latest.json"},
+           output={"signal_count": alpha_count, "path": str(alpha_path)},
+           run_id=run_id)
+
     narrative = generate_narrative()
-    with open(CONTRACTS_DIR / "event_narrative_latest.json", "w") as f:
+    narr_path = CONTRACTS_DIR / "event_narrative_latest.json"
+    with open(narr_path, "w") as f:
         json.dump(narrative, f, ensure_ascii=False, indent=2)
-    print(f"event_narrative_latest.json: {len(narrative.get('events',[]))} events")
+    event_count = len(narrative.get("events", []))
+    print(f"event_narrative_latest.json: {event_count} events")
+    _trace(_EVT.CONTRACT_WRITTEN,
+           input={"filename": "event_narrative_latest.json"},
+           output={"signal_count": event_count, "path": str(narr_path)},
+           run_id=run_id)
+
+    _trace(_EVT.REPORT_AGENT_COMPLETED,
+           input={"date": datetime.now().strftime("%Y-%m-%d")},
+           output={"alpha_count": alpha_count, "event_count": event_count},
+           run_id=run_id,
+           latency_ms=int((time.time() - t0) * 1000))
 
 if __name__ == "__main__":
     main()

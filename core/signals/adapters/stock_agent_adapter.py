@@ -46,6 +46,7 @@ def stock_pick_to_signal(pick: dict) -> dict:
             "target_price": pick.get("target_price"),
             "stop_loss": pick.get("stop_loss"),
             "industry": pick.get("industry", ""),
+            "event_refs": pick.get("event_refs", []),  # V8.0: 关联事件 rank 列表
         },
     }
 

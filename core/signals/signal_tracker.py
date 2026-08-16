@@ -17,11 +17,31 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-RAW_DIR = Path("底稿/raw")
-HISTORY_DIR = Path("底稿/history")
+# tracer 可选导入
+try:
+    _base = Path(__file__).resolve().parent.parent.parent
+    if str(_base) not in sys.path:
+        sys.path.insert(0, str(_base))
+    from core.utils.tracer import trace as _trace, new_run_id as _new_run_id
+    from core.utils.events import EVT as _EVT
+    _TRACE_OK = True
+except ImportError:
+    _TRACE_OK = False
+    def _trace(*a, **kw): pass  # noqa: E731
+    def _new_run_id(): return "noop"  # noqa: E731
+    class _EVT:  # noqa: E302
+        SCANNER_RUN_STARTED = "ScannerRunStarted"
+        SCANNER_RUN_COMPLETED = "ScannerRunCompleted"
+        SIGNAL_WRITTEN = "SignalWrittenEvent"
+
+_SCRIPT_DIR = Path(__file__).resolve().parent  # core/signals/
+_CAOGAO_DIR = _SCRIPT_DIR.parent / "底稿"       # core/底稿/
+RAW_DIR = _CAOGAO_DIR / "raw"
+HISTORY_DIR = _CAOGAO_DIR / "history"
 THESIS_LEDGER = HISTORY_DIR / "thesis_ledger.json"
 TRACKING_LEDGER = HISTORY_DIR / "signal_tracking_ledger.json"
 
@@ -261,6 +281,14 @@ def save_tracking_ledger(ledger: dict) -> None:
 
 
 def run(dates: list[str] | None = None, rebuild: bool = False) -> None:
+    import time
+    t0 = time.time()
+    run_id = _new_run_id()
+    _trace(_EVT.SCANNER_RUN_STARTED,
+           input={"dates": dates or "all", "rebuild": rebuild},
+           output={},
+           run_id=run_id)
+
     ledger = {} if rebuild else load_tracking_ledger()
     if rebuild:
         ledger = {"updated_at": "", "processed_dates": [], "signals": []}
@@ -289,6 +317,13 @@ def run(dates: list[str] | None = None, rebuild: bool = False) -> None:
 
     ledger["processed_dates"] = sorted(processed)
     save_tracking_ledger(ledger)
+
+    latency_ms = int((time.time() - t0) * 1000)
+    _trace(_EVT.SCANNER_RUN_COMPLETED,
+           input={"dates": dates or "all", "rebuild": rebuild},
+           output={"total_signals": len(ledger["signals"]), "new_added": new_total},
+           run_id=run_id,
+           latency_ms=latency_ms)
 
     # 统计报告
     print(f"\n{'═'*50}")
