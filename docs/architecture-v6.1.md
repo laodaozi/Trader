@@ -1,8 +1,8 @@
-# CycleRadar Trader · 系统架构 V6.5
+# CycleRadar Trader · 系统架构 V7.8
 
-> 版本：V6.5
+> 版本：V7.8
 > 创建：2026-06-20
-> 最后更新：2026-06-28（V3.9.6 Plan C: Admin文章生成入口 + 信源→写作管线桥接）
+> 最后更新：2026-07-16（V7.8 LLM fallback全链修复 + RSS→source_articles.db迁移）
 > 状态：活跃（当前真源）
 > 配套文档：CONTEXT.md、ROADMAP.md、PROJECT_MEMORY.md
 > 前版本：docs/architecture-v6.1.md（已归档，含 V6.0→V6.1 合并历史）

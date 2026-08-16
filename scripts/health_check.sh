@@ -360,43 +360,40 @@ check_system() {
 }
 
 # ════════════════════════════════════════════════
-# Dimension 5: 信息管道（RSS + Enrich）
+# Dimension 5: 信息管道（MCP news + Enrich）V7.8
 # ════════════════════════════════════════════════
 check_pipeline() {
     local dim="pipeline"
 
-    # 5a. wewe-rss 进程
-    if pm2 list 2>/dev/null | grep -q "wewe-rss.*online"; then
-        record pass "$dim" "wewe-rss-process" "pm2 online"
-    else
-        record warn "$dim" "wewe-rss-process" "not running in pm2"
-    fi
-
-    # 5b. wewe-rss DB 文章新鲜度
-    local wewe_db="/opt/wewe-rss-deploy/data/wewe-rss.db"
-    if [ -f "$wewe_db" ]; then
+    # 5a. source_articles.db 新鲜度（MCP news + URL ingest 写入）
+    local sa_db="/opt/cycleradar-trader/data/source_articles.db"
+    if [ -f "$sa_db" ]; then
         local latest_ts
-        latest_ts=$(sqlite3 "$wewe_db" "SELECT MAX(publish_time) FROM articles;" 2>/dev/null || echo "0")
-        if [ -n "$latest_ts" ] && [ "$latest_ts" -gt 0 ]; then
-            local now_ts age_h
+        latest_ts=$(sqlite3 "$sa_db" "SELECT MAX(created_at) FROM source_articles WHERE fetch_status='success';" 2>/dev/null || echo "")
+        if [ -n "$latest_ts" ] && [ "$latest_ts" != "" ]; then
+            local latest_epoch now_ts age_h
+            latest_epoch=$(date -d "$latest_ts" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "$latest_ts" +%s 2>/dev/null || echo "0")
             now_ts=$(date +%s)
-            age_h=$(( (now_ts - latest_ts) / 3600 ))
-            if [ "$age_h" -le 6 ]; then
-                record pass "$dim" "wewe-rss-articles" "最新文章 ${age_h}h 前"
-            elif [ "$age_h" -le 24 ]; then
-                record warn "$dim" "wewe-rss-articles" "最新文章 ${age_h}h 前（>6h，可能漏更新）"
+            if [ "$latest_epoch" -gt 0 ]; then
+                age_h=$(( (now_ts - latest_epoch) / 3600 ))
+                if [ "$age_h" -le 12 ]; then
+                    record pass "$dim" "source-articles" "最新灌入 ${age_h}h 前"
+                elif [ "$age_h" -le 24 ]; then
+                    record warn "$dim" "source-articles" "最新灌入 ${age_h}h 前（>12h，检查 MCP cron）"
+                else
+                    record fail "$dim" "source-articles" "最新灌入 ${age_h}h 前（>24h，MCP 管道可能中断）"
+                fi
             else
-                record fail "$dim" "wewe-rss-articles" "最新文章 ${age_h}h 前（>24h，RSS 管道可能中断）"
+                record warn "$dim" "source-articles" "无法解析时间戳: $latest_ts"
             fi
-            local feed_count article_count
-            feed_count=$(sqlite3 "$wewe_db" "SELECT COUNT(*) FROM feeds WHERE status=1;" 2>/dev/null || echo "?")
-            article_count=$(sqlite3 "$wewe_db" "SELECT COUNT(*) FROM articles;" 2>/dev/null || echo "?")
-            record pass "$dim" "wewe-rss-feeds" "${feed_count} 个订阅源 · ${article_count} 篇文章"
+            local sa_count
+            sa_count=$(sqlite3 "$sa_db" "SELECT COUNT(*) FROM source_articles WHERE fetch_status='success';" 2>/dev/null || echo "?")
+            record pass "$dim" "source-articles-count" "${sa_count} 条已入库"
         else
-            record warn "$dim" "wewe-rss-articles" "DB 存在但无文章记录"
+            record warn "$dim" "source-articles" "DB 存在但无成功记录"
         fi
     else
-        record fail "$dim" "wewe-rss-db" "DB 不存在: ${wewe_db}"
+        record fail "$dim" "source-articles-db" "DB 不存在: ${sa_db}"
     fi
 
     # 5c. hot_enrichment.json 新鲜度
