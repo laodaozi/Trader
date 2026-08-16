@@ -39,7 +39,13 @@ async function add(stock) {
   if (stocks.some((s) => s.code === stock.code)) {
     return { added: false, reason: '代码已存在' };
   }
-  stocks.push({ code: stock.code, name: stock.name || '', notes: stock.notes || '', added_at: _now() });
+  const entry = { code: stock.code, name: stock.name || '', notes: stock.notes || '', added_at: _now() };
+  // 可选建仓价：仅当传入有效数字时写入（供 /m 端 P&L 计算）
+  if (stock.entry_price !== undefined && stock.entry_price !== null && stock.entry_price !== '') {
+    const ep = Number(stock.entry_price);
+    if (!Number.isNaN(ep)) entry.entry_price = ep;
+  }
+  stocks.push(entry);
   data.stocks = stocks;
   data.updated_at = _now();
   await _writeAll(data);
@@ -69,4 +75,20 @@ async function remove(code) {
   return { removed: true };
 }
 
-module.exports = { getAll, getByCode, add, update, remove };
+// 批量删除：一次读写，返回 removed/skipped 计数
+async function removeMany(codes) {
+  const set = new Set((codes || []).map((c) => String(c).trim()).filter(Boolean));
+  if (set.size === 0) return { removed: 0, skipped: 0, reason: '未选择任何股票' };
+  const data = await _readAll();
+  const stocks = data.stocks || [];
+  const before = stocks.length;
+  data.stocks = stocks.filter((s) => !set.has(s.code));
+  const removed = before - data.stocks.length;
+  if (removed > 0) {
+    data.updated_at = _now();
+    await _writeAll(data);
+  }
+  return { removed, skipped: set.size - removed };
+}
+
+module.exports = { getAll, getByCode, add, update, remove, removeMany };

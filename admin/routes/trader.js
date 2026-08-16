@@ -462,7 +462,7 @@ router.get('/trader/watchlist', async (req, res) => {
 
 router.post('/trader/watchlist', async (req, res) => {
   try {
-    const { code, name, notes } = req.body;
+    const { code, name, notes, entry_price } = req.body;
     if (!code || !name) {
       const stocks = await watchlistModel.getAll();
       return res.render('trader/watchlist', {
@@ -474,7 +474,7 @@ router.post('/trader/watchlist', async (req, res) => {
         success: null,
       });
     }
-    const result = await watchlistModel.add({ code: code.trim(), name: name.trim(), notes: (notes || '').trim() });
+    const result = await watchlistModel.add({ code: code.trim(), name: name.trim(), notes: (notes || '').trim(), entry_price: entry_price });
     if (!result.added) {
       const stocks = await watchlistModel.getAll();
       return res.render('trader/watchlist', {
@@ -525,6 +525,38 @@ router.post('/trader/watchlist/delete', async (req, res) => {
   }
 });
 
+// ── POST /admin/trader/watchlist/delete-batch ── 自选股批量删除 ──
+router.post('/trader/watchlist/delete-batch', async (req, res) => {
+  try {
+    // codes 可为数组（多个同名 checkbox）或逗号分隔串
+    let { codes } = req.body;
+    if (typeof codes === 'string') codes = codes.split(',');
+    if (!Array.isArray(codes)) codes = codes ? [codes] : [];
+    const result = await watchlistModel.removeMany(codes);
+    if (result.removed === 0) {
+      const stocks = await watchlistModel.getAll();
+      return res.render('trader/watchlist', {
+        title: '自选股管理',
+        active: 'trader',
+        subTab: 'watchlist',
+        stocks,
+        error: result.reason || '未选择有效股票',
+        success: null,
+      });
+    }
+    const msg = `批量删除完成：移除 ${result.removed} 只` + (result.skipped ? `，跳过 ${result.skipped} 只（不存在）` : '');
+    res.redirect('/admin/trader/watchlist?success=' + encodeURIComponent(msg));
+  } catch (error) {
+    res.status(500).render('admin/error', {
+      title: '500 服务器错误',
+      status: 500,
+      active: 'trader',
+      message: '批量删除自选股失败',
+      error,
+    });
+  }
+});
+
 // ── POST /admin/trader/watchlist/import ── 自选股批量导入（CSV/JSON） ──
 router.post('/trader/watchlist/import', async (req, res) => {
   try {
@@ -560,7 +592,7 @@ router.post('/trader/watchlist/import', async (req, res) => {
         });
       }
     } else {
-      // CSV: 代码,名称,备注（每行一个）
+      // CSV: 代码,名称,备注,建仓价（每行一个，建仓价可省）
       const lines = data.trim().split('\n');
       for (const line of lines) {
         const parts = line.split(',').map(s => s.trim());
@@ -569,6 +601,7 @@ router.post('/trader/watchlist/import', async (req, res) => {
             code: parts[0],
             name: parts[1] || '',
             notes: parts[2] || '',
+            entry_price: parts[3] || '',
           });
         }
       }
@@ -581,6 +614,7 @@ router.post('/trader/watchlist/import', async (req, res) => {
         code: item.code.trim(),
         name: (item.name || '').trim(),
         notes: (item.notes || '').trim(),
+        entry_price: item.entry_price,
       });
       if (result.added) added++; else skipped++;
     }
