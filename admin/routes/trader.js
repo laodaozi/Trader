@@ -592,17 +592,26 @@ router.post('/trader/watchlist/import', async (req, res) => {
         });
       }
     } else {
-      // CSV: 代码,名称,备注,建仓价（每行一个，建仓价可省）
-      const lines = data.trim().split('\n');
-      for (const line of lines) {
-        const parts = line.split(',').map(s => s.trim());
-        if (parts.length >= 1 && parts[0]) {
-          parsed.push({
-            code: parts[0],
-            name: parts[1] || '',
-            notes: parts[2] || '',
-            entry_price: parts[3] || '',
-          });
+      // CSV/TSV: 代码,名称,备注,建仓价（每行一个，逗号或 Tab 分隔均可，建仓价可省）
+      const rawLines = data.trim().split('\n').map((l) => l.replace(/\r$/, ''));
+      // 自动识别分隔符：任意非空行含 Tab 则按 Tab 切分，否则按逗号
+      const sample = rawLines.find((l) => l.trim() !== '') || '';
+      const delim = sample.includes('\t') ? '\t' : ',';
+      for (const line of rawLines) {
+        if (!line.trim()) continue;
+        const parts = line.split(delim).map((s) => s.trim().replace(/^['"“”]+/, ''));
+        const code = parts[0] || '';
+        // 跳过表头/无效行：首字段须形如代码（字母/数字/点/连字符）
+        if (!/^[A-Za-z0-9.\-]+$/.test(code)) continue;
+        const name = parts[1] || '';
+        const note = parts[2] || '';
+        const entry = parts[3] || '';
+        const isNum = (v) => v !== '' && !Number.isNaN(Number(v));
+        if (parts.length === 3 && isNum(note)) {
+          // "代码 名称 价格" → 价格映射为建仓价
+          parsed.push({ code, name, notes: '', entry_price: note });
+        } else {
+          parsed.push({ code, name, notes: note, entry_price: entry });
         }
       }
     }

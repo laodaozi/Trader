@@ -135,7 +135,7 @@
           <label style="margin:0;font-size:13px"><input type="radio" name="format" value="csv" checked onchange="document.getElementById('import-example').textContent=this.value==='json'?'[{\"code\":\"600519\",\"name\":\"贵州茅台\",\"notes\":\"\",\"entry_price\":1680}]':'代码,名称,备注,建仓价\n600519,贵州茅台,,1680' style="margin-right:4px"> CSV</label>
           <label style="margin:0;font-size:13px"><input type="radio" name="format" value="json" onchange="document.getElementById('import-example').textContent=this.value==='json'?'[{\"code\":\"600519\",\"name\":\"贵州茅台\",\"notes\":\"\",\"entry_price\":1680}]':'代码,名称,备注,建仓价\n600519,贵州茅台,,1680' style="margin-right:4px"> JSON</label>
         </div>
-        <label style="font-size:12px;color:var(--cr-text-secondary)">每行一只：<code id="import-example">代码,名称,备注,建仓价（后两列可省）</code></label>
+        <label style="font-size:12px;color:var(--cr-text-secondary)">每行一只：<code id="import-example">代码,名称,备注,建仓价（后两列可省）</code> <span style="color:var(--cr-text-secondary)">逗号/Tab 均可，自动跳过表头、去 Excel 前导单引号</span></label>
         <textarea name="data" class="calc-input" rows="5" placeholder="600519,贵州茅台,,1680&#10;000858,五粮液,白酒龙头,158.5" style="resize:vertical;min-height:80px;font-family:monospace;font-size:13px"></textarea>
         <div style="margin-top:4px">
           <button type="submit" class="btn">批量导入</button>
