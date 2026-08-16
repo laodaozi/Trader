@@ -38,7 +38,7 @@ router.get('/architecture', (req, res) => {
     const raw = fs.readFileSync(mdPath, 'utf-8');
 
     const sys  = require("../routes/system");
-    const version = sys.getVersion() || "V9";
+    const version = sys.getVersion() || "V10.1";
     const sysStatus = sys.getStatus();
 
     const html = marked.parse(raw);

@@ -1,11 +1,21 @@
-# CycleRadar Trader · 系统架构 V7.8
+# CycleRadar Trader · 系统架构 V10.1
 
-> 版本：V7.8
+> 版本：V10.1
 > 创建：2026-06-20
-> 最后更新：2026-07-16（V7.8 LLM fallback全链修复 + RSS→source_articles.db迁移）
+> 最后更新：2026-08-16（V10.1 数据源统一 + 单一胜率源 + 导航 6→4 收敛 + 视觉统一 + 版本号对齐）
 > 状态：活跃（当前真源）
-> 配套文档：CONTEXT.md、ROADMAP.md、PROJECT_MEMORY.md
+> 配套文档：CONTEXT.md、ROADMAP.md、PROJECT_MEMORY.md、docs/data-contract.md（v1.1）
 > 前版本：docs/architecture-v6.1.md（已归档，含 V6.0→V6.1 合并历史）
+
+---
+
+## V10.1 变更摘要（本轮）
+
+- **数据源统一**：`mobile.js`/`trader.js`/strategy-report/insights 曾误读僵尸文件 `tracker_log.jsonl`（WIN/LOSE，6月僵尸）→ 全部改读活文件 `trader_tracker.jsonl`（HIT/MISS）；全站命中率 0%→39%。
+- **单一胜率源**：`models/trader-tracker.js` `globalWinRateByStrategy()` 成为唯一计算源（口径 A：`win/(win+lose)`，EXPIRED/PENDING/NEUTRAL 不入分母）；strategy-report + insights 委托调用。
+- **导航 6→4 收敛**：今日行动 / 信号复盘 / 自选池 / 市场状态；删死页面 `comparison.ejs`（/compare→404）、`mobile/dashboard.ejs`。
+- **视觉统一**：`--cr-*` 语义色令牌，消除硬编码色 + 暗底悬空浅色变量。
+- **版本号对齐**：VERSION 文件 = nav badge = /m appVersion = app.js 缓存戳 = V10.1（单一源，`getVersion()` 驱动）。
 
 ---
 

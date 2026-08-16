@@ -1,16 +1,17 @@
-# CycleRadar Trader — 数据合同 v1.0
+# CycleRadar Trader — 数据合同 v1.1 (V10.1)
 
 > **目标**: 所有 /m 和 /admin/trader 页面上展示的每一个数字，都必须能追溯到唯一的源文件、唯一的聚合规则和唯一的新鲜度定义。这是后续所有修复的地基。
 
-## 0. 版本号
+## 0. 版本号 ✅ 已对齐 (V10.1)
 
 | 属性 | 值 |
 |---|---|
 | 源文件 | `/opt/cycleradar-trader/VERSION` |
-| 当前值 | `6.1.1` |
-| 可靠？ | ❌ **不可靠**——流水线已到 V9.0，VERSION 从未更新 |
-| 展示位置 | **无页面读取此文件**——nav 硬编码 V9.0，架构页 V8.7，交易员页 V7.8 |
-| 修复方向 | 三步：1) 更新 VERSION 为真实版本 2) 暴露 `/api/system` 端点 3) 所有页面从此端点读取 |
+| 当前值 | `V10.1` |
+| 可靠？ | ✅ **已对齐**——VERSION 文件 = nav badge = /m appVersion = app.js 缓存戳 |
+| 读取方式 | `admin/routes/system.js` `getVersion()` 读 VERSION 文件；`/m` appVersion 与 `admin` badge 均由此驱动 |
+| 兜底 | 读不到 VERSION 时 fallback = `V10.1`（mobile.js / admin.js / dashboard.ejs 三处已统一） |
+| 变更历史 | ~~6.1.1 不可靠，页面各自硬编码~~ → V10.1 单一源对齐（本轮修复）|
 
 ---
 
@@ -119,15 +120,19 @@
 
 | 展示数字 | 聚合方式 | 展示位置 | 可靠？ |
 |---|---|---|---|
-| 跟踪记录总数 | `records.length` = 2235 | `/admin/trader` KPI | ✅ |
-| EXPIRED 数量 | **仅 horizon=20 的 EXPIRED** ≈ 520 | `/admin/trader` KPI 副标题 | ⚠️ **误导性标签**——看起来像总数，实际只是 20日窗口子集 |
+| 跟踪记录总数 | `records.length` | `/admin/trader` KPI | ✅ |
 | 20日胜率 | `HIT / (HIT+MISS)` for horizon=20 | `/admin/trader` 结论行 | ✅ |
-| 全量胜率 | HIT=52 / (52+32) = **61.9%** | 无页面展示 ⚠️ | — |
+| 全站胜率（口径A）| `win/(win+lose)`，win=HIT, lose=MISS，EXPIRED/PENDING/NEUTRAL 不入分母 | `/m` 概览、strategy-report、insights、reflection 矩阵 | ✅ **单一源** |
 
-**🔴 关键问题:**
-- `tracker_log.jsonl`（177 条）是僵尸文件，36 天未更新，但仍存在于 data/ 目录中，容易混淆
-- EXPIRED 占 82.7%——绝大多数信号因 OHLC 回填失败无法裁决，**这直接损害回测可信度**
-- 前端标签只说"EXPIRED 520 条"但未注明"（20日窗口）"，严重误导
+**口径 A（全站统一，V10.1）:**
+- 唯一计算源：`admin/models/trader-tracker.js` `globalWinRateByStrategy()`
+- strategy-report + insights.buildStrategyStats **委托调用**此函数，不再各自实现
+- 活文件 = `data/trader_tracker.jsonl`（HIT/MISS 枚举）；废弃 `tracker_log.jsonl`（WIN/LOSE 枚举）不再被任何代码读取
+
+**关键问题:**
+- ✅ **已修 (V10.1)**：`mobile.js _readAllTracker`、`trader.js REFLECTION_PATH`、strategy-report、insights 曾误读僵尸文件 `tracker_log.jsonl` → 全部改读活文件 `trader_tracker.jsonl`（命中率 0%→39%，票数 20→140）
+- ✅ **已修 (V10.1)**：全站胜率收敛为单一源 `globalWinRateByStrategy()`，消除多处口径不一致
+- ⚠️ **遗留**：EXPIRED 占比高——绝大多数信号因 OHLC 回填失败无法裁决，损害回测可信度（上游数据问题，超本轮范围）
 
 ---
 
@@ -263,11 +268,12 @@
 
 ## 🔴 优先级行动项（关联后续步骤）
 
-| # | 行动 | 关联步骤 |
+| # | 行动 | 状态 |
 |---|---|---|
-| 1 | 删除或归档 `tracker_log.jsonl` | #2 |
-| 2 | EXPIRED 标签注明"（20日窗口）"或改为全量统计 | #5 |
-| 3 | timing_history.json 超过 N 天未更新时在前端标注 | #4, #5 |
-| 4 | 模型读取 JSONL 增加 mtime 检查 | #4 |
-| 5 | VERSION 文件更新 + 暴露 `/api/system` | #3, #4 |
-| 6 | 添加新鲜度字段到每个数据源 | #4 |
+| 1 | 废弃 `tracker_log.jsonl`，所有代码改读活文件 | ✅ 已完成 (V10.1) |
+| 2 | 全站胜率收敛为单一源（口径 A） | ✅ 已完成 (V10.1) |
+| 3 | VERSION 文件更新 + 页面统一读取 | ✅ 已完成 (V10.1) |
+| 4 | 导航 6→4 收敛，删除死页面（comparison / mobile/dashboard） | ✅ 已完成 (V10.1) |
+| 5 | EXPIRED 标签注明"（20日窗口）"或改为全量统计 | ⬜ 遗留 |
+| 6 | timing_history.json 超期未更新时前端标注 | ⬜ 遗留 |
+| 7 | 模型读取 JSONL 增加 mtime 检查 / 新鲜度字段 | ⬜ 遗留 |
