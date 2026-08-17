@@ -130,7 +130,7 @@
 <div style="max-width:1100px;margin:0 auto 20px;padding:14px 18px;background:#fff;border:1px solid var(--border,#D8DEE4);border-radius:8px;font-size:12px;line-height:1.6">
   <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
     <!-- 版本 -->
-    <span style="font-weight:700;color:var(--primary,#2D5D7C)">🔄 v<%= sysStatus.version || version %></span>
+    <span style="font-weight:700;color:var(--primary,#2D5D7C)">🔄 <%= sysStatus.version || version %></span>
     <!-- 健康状态 -->
     <% var hc = sysStatus.health||''; var hLabel = hc.includes('healthy') ? '正常' : hc.includes('degraded') ? '降级' : '异常';
        var hCls = hc.includes('healthy') ? 'pill-ok' : 'pill-warn'; %>
@@ -150,7 +150,7 @@
   <div style="margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--text-muted,#5A6B7C)">
     <% Object.entries(sysStatus.freshness).forEach(function(entry){ var k=entry[0], f=entry[1]; %>
     <span title="<%= f.mtime || 'N/A' %>">📦 <%= f.label %>
-      <span style="color:<%= f.age_hours > 24 ? '#92400e' : f.age_hours > 6 ? '#b45309' : '#16a34a' %>">
+      <span style="color:<%= f.age_hours > 24 ? '#92400e' : '#16a34a' %>">
         <%= f.exists ? Math.round(f.age_hours*10)/10 + 'h' : '缺失' %>
       </span>
     </span>
@@ -162,7 +162,7 @@
 <div class="diagram">
   <%- body %>
   <div class="page-footer">
-    📄 源文件：<code>docs/architecture-v6.1.md</code> &nbsp;|&nbsp;
+    📄 源文件：<code>docs/architecture.md</code> &nbsp;|&nbsp;
     版本：<%= version %> &nbsp;|&nbsp;
     此页由 Markdown 动态渲染，与源码自动同步
   </div>

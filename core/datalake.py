@@ -780,7 +780,7 @@ def _load_universe(cfg: DatalakeConfig) -> List[str]:
 
     # Tracker active symbols
     try:
-        tracker_path = Path("data") / "tracker_log.jsonl"
+        tracker_path = Path("data") / "trader_tracker.jsonl"
         if tracker_path.exists():
             with open(tracker_path) as f:
                 for line in f:

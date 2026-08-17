@@ -3,10 +3,10 @@
 tracker_closer.py — CycleRadar Tracker OHLC 闭环
 
 职责：
-  读取 tracker_log.jsonl 中 result=NODATA 的记录，
-  通过 AKShare 拉取对应股票的历史 K 线，
-  比价判断是否命中止盈/止损/超时，
-  原子写回 tracker_log.jsonl（atomic rewrite via .tmp + os.replace）。
+  读取 trader_tracker.jsonl 中未终局(PENDING/EXPIRED/NEUTRAL)的记录，
+  通过腾讯行情 API 拉取历史 K 线，
+  比价判断是否命中止盈(HIT)/止损(MISS)/超时(EXPIRED)，
+  原子写回 trader_tracker.jsonl（atomic rewrite via .tmp + os.replace）。
 
 运行方式：
   /usr/bin/python3.9 core/scripts/tracker_closer.py
@@ -29,16 +29,29 @@ from typing import Optional
 # ── 路径 ─────────────────────────────────────────────────────────────────────
 BASE_DIR    = Path(__file__).resolve().parent.parent.parent  # /opt/cycleradar-trader
 DATA_DIR    = BASE_DIR / "data"
-TRACKER_FILE = DATA_DIR / "tracker_log.jsonl"
+TRACKER_FILE = DATA_DIR / "trader_tracker.jsonl"
 OHLC_DIR    = DATA_DIR / "ohlc_cache"
 LOG_DIR     = DATA_DIR / "logs"
 
 # ── 结果常量 ──────────────────────────────────────────────────────────────────
-RESULT_WIN    = "WIN"
-RESULT_LOSE   = "LOSE"
-RESULT_HOLD   = "HOLD"    # 窗口内未触发，仍在观察期
-RESULT_EXPIRE = "EXPIRE"  # 观察期已过但未触发（无数据判断不到）
-RESULT_NODATA = "NODATA"
+RESULT_WIN    = "HIT"
+RESULT_LOSE   = "MISS"
+RESULT_HOLD   = "PENDING"  # 窗口内未触发，仍在观察期
+RESULT_EXPIRE = "EXPIRED"  # 观察期已过但未触发
+RESULT_NODATA = "PENDING"  # 无 OHLC 数据，退回待定
+RESULT_NO_LEVELS = "NODATA"  # 缺 entry/stop/targets，无法 OHLC 裁决 → 无数据（终态）
+
+
+# ── 代码归一化 ────────────────────────────────────────────────────────────────
+_EXCHANGE_PREFIXES = ("sh", "sz", "bj")
+
+
+def _normalize_code(code: str) -> str:
+    """去掉代码里的交易所前缀(sh/sz/bj)，统一为 6 位纯数字。"""
+    code = (code or "").strip()
+    if len(code) > 6 and code[:2].lower() in _EXCHANGE_PREFIXES:
+        return code[2:]
+    return code
 
 
 # ── OHLC 获取（优先 cache，次选腾讯直连）────────────────────────────────────
@@ -75,6 +88,7 @@ def _fetch_ohlc_tencent(code: str, start_date: str) -> Optional[list[dict]]:
         start_dt = datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=10)
         end_dt   = datetime.now()
 
+        code = _normalize_code(code)
         tx_code = ("sh" if code.startswith(("6", "9")) else "sz") + code
         url = (
             f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
@@ -138,6 +152,15 @@ def get_ohlc(code: str, start_date: str) -> Optional[list[dict]]:
 
 # ── 核心比价逻辑 ──────────────────────────────────────────────────────────────
 
+def _missing_levels(rec: dict) -> bool:
+    """判断记录是否缺 entry/stop/targets 或 signal_date，无法做 OHLC 比价。"""
+    track_date_str = rec.get("signal_date") or rec.get("track_date", "")
+    targets = rec.get("targets", [])
+    target1 = float(targets[0]) if targets else None
+    stop = float(rec.get("stop", 0) or 0)
+    return not track_date_str or not target1 or not stop
+
+
 def close_record(rec: dict, rows: list[dict]) -> dict:
     """
     对单条 tracker 记录做比价，返回更新后的 rec（不修改原对象）。
@@ -153,15 +176,17 @@ def close_record(rec: dict, rows: list[dict]) -> dict:
     """
     r = dict(rec)
 
-    track_date_str = r.get("track_date", "")
+    track_date_str = r.get("signal_date") or r.get("track_date", "")
     horizon        = int(r.get("horizon", 5))
     entry          = float(r.get("entry", 0) or 0)
     stop           = float(r.get("stop",  0) or 0)
     targets        = r.get("targets", [])
     target1        = float(targets[0]) if targets else None
 
-    if not track_date_str or not target1 or not stop:
-        return r  # 数据不完整，保留 NODATA
+    if _missing_levels(r):
+        # 缺 entry/stop/targets（上游信号无价位），无法做 OHLC 比价 → 标记 NODATA（终态）
+        r["result"] = RESULT_NO_LEVELS
+        return r
 
     # 按日期过滤：只取 >= track_date 的 K 线
     try:
@@ -270,7 +295,9 @@ def load_tracker() -> list[dict]:
             if not line:
                 continue
             try:
-                records.append(json.loads(line))
+                rec = json.loads(line)
+                rec["code"] = _normalize_code(rec.get("code", ""))
+                records.append(rec)
             except json.JSONDecodeError as e:
                 print(f"  [WARN] 第 {ln} 行解析失败，跳过: {e}", file=sys.stderr)
     return records
@@ -304,10 +331,11 @@ def run(dry_run: bool = False) -> None:
     records = load_tracker()
     print(f"  读取 {len(records)} 条 tracker 记录")
 
-    # 按 code 分组，只对 NODATA 和 HOLD 的记录处理
-    to_close = [r for r in records if r.get("result") in (RESULT_NODATA, RESULT_HOLD)]
-    already_done = [r for r in records if r.get("result") not in (RESULT_NODATA, RESULT_HOLD)]
-    print(f"  待处理: {len(to_close)} 条 (NODATA/HOLD) | 已完成: {len(already_done)} 条")
+    # 只处理未终局记录（PENDING/EXPIRED/NEUTRAL），HIT/MISS 为权威终态不再重算
+    re_eval = (RESULT_NODATA, RESULT_HOLD, RESULT_EXPIRE, "NEUTRAL")
+    to_close = [r for r in records if r.get("result") in re_eval]
+    already_done = [r for r in records if r.get("result") not in re_eval]
+    print(f"  待处理: {len(to_close)} 条 (PENDING/EXPIRED/NEUTRAL) | 已完成: {len(already_done)} 条 (HIT/MISS)")
 
     if not to_close:
         print("  无待处理记录，退出。")
@@ -328,47 +356,54 @@ def run(dry_run: bool = False) -> None:
             ohlc_map[code] = rows
             print(f"    {code}: {len(rows)} 条 K 线 (from {rows[0]['date']} to {rows[-1]['date']})")
         else:
-            print(f"    {code}: ❌ 无法获取 OHLC 数据，保留 NODATA")
+            print(f"    {code}: ❌ 无法获取 OHLC 数据，保留原值")
 
-    # 逐条比价
-    updated_records: dict[tuple, dict] = {}  # key=(code, signal_date, horizon)
-    stats = {"win": 0, "lose": 0, "hold": 0, "expire": 0, "nodata": 0, "skip": 0}
+    # 逐条比价（按索引，避免同 (code,signal_date,horizon) 多策略记录互相覆盖）
+    updated: list[dict] = [None] * len(to_close)
+    stats = {"hit": 0, "miss": 0, "pending": 0, "expired": 0, "nodata": 0, "skip": 0}
 
-    for rec in to_close:
-        key = (rec["code"], rec["signal_date"], rec["horizon"])
+    for i, rec in enumerate(to_close):
         rows = ohlc_map.get(rec["code"])
         if rows is None:
-            updated_records[key] = rec  # 保留 NODATA
-            stats["nodata"] += 1
+            if _missing_levels(rec):
+                # 缺价位本就无法裁决，即使 OHLC 拉取失败也标记 NODATA
+                rec = dict(rec)
+                rec["result"] = RESULT_NO_LEVELS
+                updated[i] = rec
+                stats["nodata"] += 1
+            else:
+                updated[i] = rec  # 无 OHLC，保留原值
+                stats["skip"] += 1
             continue
         closed = close_record(rec, rows)
-        updated_records[key] = closed
+        updated[i] = closed
         result = closed.get("result", "?")
-        stats[result.lower() if result.lower() in stats else "skip"] += 1
+        if result == RESULT_NO_LEVELS:
+            stats["nodata"] += 1
+        else:
+            stats[result.lower() if result.lower() in stats else "skip"] += 1
 
     # 合并：已完成的 + 本次更新的
-    final_records = list(already_done)
-    for rec in to_close:
-        key = (rec["code"], rec["signal_date"], rec["horizon"])
-        final_records.append(updated_records.get(key, rec))
+    final_records = list(already_done) + list(updated)
 
     # 按 signal_date + code + horizon 排序，保持文件整洁
     final_records.sort(key=lambda r: (r.get("signal_date", ""), r.get("code", ""), r.get("horizon", 0)))
 
     # 打印统计
     print(f"\n  比价结果：")
-    print(f"    WIN   : {stats['win']}")
-    print(f"    LOSE  : {stats['lose']}")
-    print(f"    HOLD  : {stats['hold']}  (窗口未满，继续观察)")
-    print(f"    EXPIRE: {stats['expire']}  (窗口已过，未触发)")
-    print(f"    NODATA: {stats['nodata']}  (无 OHLC 数据)")
+    print(f"    HIT     : {stats['hit']}")
+    print(f"    MISS    : {stats['miss']}")
+    print(f"    PENDING : {stats['pending']}  (窗口未满，继续观察)")
+    print(f"    EXPIRED : {stats['expired']}  (窗口已过，未触发)")
+    print(f"    NODATA  : {stats['nodata']}  (缺 entry/stop/targets，无法裁决)")
+    print(f"    SKIP    : {stats['skip']}  (OHLC 拉取失败，保留原值)")
 
     if dry_run:
         print("\n  [DRY-RUN] 不写入文件。")
         # dry-run 时打印几条样本
         sample_changed = [
-            updated_records[k] for k in updated_records
-            if updated_records[k].get("result") != RESULT_NODATA
+            u for u in updated
+            if u.get("result") != RESULT_NODATA
         ][:5]
         for r in sample_changed:
             print(f"    {r['code']} {r['name']} {r['signal_date']} h{r['horizon']} → {r['result']}"

@@ -8,6 +8,14 @@ import requests
 TRACKER_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "trader_tracker.jsonl")
 TODAY = date.today()
 
+
+def _normalize_code(code):
+    """去掉代码里的交易所前缀(sh/sz/bj)，统一为 6 位纯数字。"""
+    code = (code or "").strip()
+    if len(code) > 6 and code[:2].lower() in ("sh", "sz", "bj"):
+        return code[2:]
+    return code
+
 def fetch_sina_prices(codes):
     """Fetch latest prices for given stock codes via Sina API."""
     sina_codes = []
@@ -69,9 +77,9 @@ def compute_verdict(rec, price_data):
 
     expiry_date = signal_date + timedelta(days=horizon)
 
-    # Check expiry first
+    # 过窗记录交由 OHLC 闭环(tracker_closer)裁决，快照无法判断窗口内是否触发
     if TODAY > expiry_date:
-        return "EXPIRED", None
+        return "PENDING", None
 
     # Get current price
     cur = price_data.get(code, {})
@@ -96,13 +104,7 @@ def compute_verdict(rec, price_data):
     if stop and price <= stop:
         return "MISS", price
 
-    # Check if expired today (last day, no HIT/MISS)
-    if TODAY >= expiry_date:
-        if entry and price:
-            pct = (price - entry) / entry * 100
-            return "NEUTRAL", round(pct, 1)
-        return "EXPIRED", None
-
+    # 其余情况(含最后一天)交由 OHLC 闭环裁决
     return "PENDING", None
 
 
@@ -112,7 +114,9 @@ def main():
         for line in f:
             line = line.strip()
             if line:
-                records.append(json.loads(line))
+                rec = json.loads(line)
+                rec["code"] = _normalize_code(rec.get("code", ""))
+                records.append(rec)
 
     print("Loaded {} tracker records".format(len(records)))
 
@@ -126,11 +130,14 @@ def main():
         sample_dates = set(p.get("data_date") for p in prices.values() if p.get("data_date"))
         print("Data date(s): {}".format(sample_dates))
 
-    stats = {"HIT": 0, "MISS": 0, "EXPIRED": 0, "NEUTRAL": 0, "PENDING": 0}
+    stats = {"HIT": 0, "MISS": 0, "EXPIRED": 0, "NEUTRAL": 0, "PENDING": 0, "NODATA": 0}
     changed = 0
 
     for rec in records:
         old = rec.get("result")
+        if old in ("HIT", "MISS", "EXPIRED", "NODATA"):
+            stats[old] = stats.get(old, 0) + 1
+            continue
         verdict, detail = compute_verdict(rec, prices)
 
         if verdict != old:

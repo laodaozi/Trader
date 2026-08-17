@@ -21,6 +21,8 @@ admin_backup/
 *.bak.*
 *.bak2
 *.bak-*
+*.bak_*
+*.archived
 .orphan_backup/
 admin/health/
 
