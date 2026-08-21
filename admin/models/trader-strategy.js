@@ -38,28 +38,12 @@ async function getStrategyByDate(date) {
   }
   const dayRecords = Array.from(seenCodes.values()).sort((a, b) => (b.score || 0) - (a.score || 0));
 
-  // P1-2: 按 score 分档（上游 signal_type 无区分度：43-63 分全标"买入"）
-  //   >=60 进攻 | 50-59 买入 | 40-49 观察 | <40 回避
-  function _tierByScore(sc) {
-    sc = sc || 0;
-    if (sc >= 60) return { key: 'attack', label: '🔥 进攻' };
-    if (sc >= 50) return { key: 'buy', label: '✅ 买入' };
-    if (sc >= 40) return { key: 'watch', label: '👀 观察' };
-    return { key: 'avoid', label: '— 回避' };
-  }
-  for (const r of dayRecords) {
-    const t = _tierByScore(r.score);
-    r.tier = t.key;
-    r.tier_label = t.label;
-  }
-
-  // 统计（基于 score 分档）
-  const attack = dayRecords.filter((r) => r.tier === 'attack').length;
-  const buy = dayRecords.filter((r) => r.tier === 'buy').length;
-  const ambush = 0;
+  // 统计
+  const attack = dayRecords.filter((r) => (r.signal_type || '').includes('🔥')).length;
+  const buy = dayRecords.filter((r) => (r.signal_type || '').includes('✅')).length;
+  const ambush = dayRecords.filter((r) => (r.signal_type || '').includes('🕐')).length;
   const errors = dayRecords.filter((r) => r.error).length;
-  const watch = dayRecords.filter((r) => r.tier === 'watch').length;
-  const avoid = dayRecords.filter((r) => r.tier === 'avoid').length;
+  const watch = dayRecords.length - attack - buy - ambush;
 
   // 五维打分平均值
   const avgScore = dayRecords.reduce((s, r) => s + (r.score || 0), 0) / dayRecords.length;
@@ -87,7 +71,6 @@ async function getStrategyByDate(date) {
     buy,
     ambush,
     watch,
-    avoid,
     errors,
     avgScore: Math.round(avgScore * 10) / 10,
     nxDist,

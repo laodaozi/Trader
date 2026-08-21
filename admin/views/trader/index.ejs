@@ -1,68 +1,75 @@
 <%- include('../partials/layout-top') %>
 <style>
-/* ── Admin Dashboard V9.6 · 统一 --cr-* 令牌（对齐全站 TradingView 暗色板）── */
-.adm-top { display:flex; align-items:center; gap:12px; margin:16px 0 20px; padding:14px 18px; background:var(--cr-surface); border-radius:var(--cr-radius); border-left:4px solid var(--cr-positive); }
-.adm-top.warn { border-left-color:var(--cr-warn); }
-.adm-top.danger { border-left-color:var(--cr-negative); }
-.adm-top-label { font-size:11px; font-weight:700; text-transform:uppercase; color:var(--cr-text-secondary); letter-spacing:.8px; flex-shrink:0; }
-.adm-top-text { font-size:14px; font-weight:600; color:var(--cr-text); flex:1; }
-.adm-top-time { font-size:11px; color:var(--cr-text-secondary); flex-shrink:0; }
+/* ── Admin Dashboard V7.9 ── */
+.adm-top { display:flex; align-items:center; gap:12px; margin:16px 0 20px; padding:14px 18px; background:var(--surface-2,#1e293b); border-radius:8px; border-left:4px solid var(--success,#22c55e); }
+.adm-top.warn { border-left-color:var(--warn,#f59e0b); }
+.adm-top.danger { border-left-color:var(--danger,#ef4444); }
+.adm-top-label { font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-muted); letter-spacing:.8px; flex-shrink:0; }
+.adm-top-text { font-size:14px; font-weight:600; color:var(--text-primary,#f1f5f9); flex:1; }
+.adm-top-time { font-size:11px; color:var(--text-muted); flex-shrink:0; }
 
 /* 管线状态行 */
 .pipe-row { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
 .pipe-item { display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:6px; font-size:12px; font-weight:600; }
-.pipe-item.ok   { background:rgba(38,166,154,.10); color:var(--cr-positive); border:1px solid rgba(38,166,154,.28); }
-.pipe-item.warn { background:rgba(245,158,11,.10); color:var(--cr-warn);     border:1px solid rgba(245,158,11,.28); }
-.pipe-item.dead { background:rgba(239,83,80,.10);  color:var(--cr-negative); border:1px solid rgba(239,83,80,.28); }
+.pipe-item.ok   { background:rgba(34,197,94,.1);  color:#4ade80; border:1px solid rgba(34,197,94,.25); }
+.pipe-item.warn { background:rgba(245,158,11,.1); color:#fbbf24; border:1px solid rgba(245,158,11,.25); }
+.pipe-item.dead { background:rgba(239,68,68,.1);  color:#f87171; border:1px solid rgba(239,68,68,.25); }
 .pipe-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-.pipe-item.ok .pipe-dot   { background:var(--cr-positive); }
-.pipe-item.warn .pipe-dot { background:var(--cr-warn); }
-.pipe-item.dead .pipe-dot { background:var(--cr-negative); }
+.pipe-item.ok .pipe-dot   { background:#4ade80; }
+.pipe-item.warn .pipe-dot { background:#fbbf24; }
+.pipe-item.dead .pipe-dot { background:#f87171; }
 .pipe-time { font-size:10px; font-weight:400; opacity:.7; margin-left:2px; }
 
 /* 指标卡片 */
 .kpi-row { display:flex; gap:12px; flex-wrap:wrap; margin:14px 0; }
-.kpi-card { flex:1; min-width:120px; max-width:200px; background:var(--cr-surface); border:1px solid var(--cr-border); border-radius:var(--cr-radius); padding:14px 16px; }
-.kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; color:var(--cr-text-secondary); letter-spacing:.7px; margin-bottom:6px; }
-.kpi-val { font-size:26px; font-weight:800; color:var(--cr-text); line-height:1; }
-.kpi-val.ok   { color:var(--cr-positive); }
-.kpi-val.warn { color:var(--cr-warn); }
-.kpi-val.bad  { color:var(--cr-negative); }
-.kpi-sub { font-size:11px; color:var(--cr-text-secondary); margin-top:5px; line-height:1.4; }
+.kpi-card { flex:1; min-width:120px; max-width:200px; background:var(--surface-2,#1e293b); border:1px solid var(--border,#334155); border-radius:8px; padding:14px 16px; }
+.kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text-muted); letter-spacing:.7px; margin-bottom:6px; }
+.kpi-val { font-size:26px; font-weight:800; color:var(--text-primary,#f1f5f9); line-height:1; }
+.kpi-val.ok   { color:#4ade80; }
+.kpi-val.warn { color:#fbbf24; }
+.kpi-val.bad  { color:#f87171; }
+.kpi-sub { font-size:11px; color:var(--text-muted); margin-top:5px; line-height:1.4; }
 
 /* 结论块 */
 .concl { margin:14px 0; padding:10px 14px; border-radius:6px; font-size:12px; line-height:1.65; }
-.concl.ok   { background:rgba(38,166,154,.07); border-left:3px solid var(--cr-positive); color:var(--cr-positive); }
-.concl.warn { background:rgba(245,158,11,.07); border-left:3px solid var(--cr-warn);     color:var(--cr-warn); }
-.concl.bad  { background:rgba(239,83,80,.07);  border-left:3px solid var(--cr-negative); color:var(--cr-negative); }
+.concl.ok   { background:rgba(34,197,94,.06);  border-left:3px solid #22c55e; color:#86efac; }
+.concl.warn { background:rgba(245,158,11,.06); border-left:3px solid #f59e0b; color:#fde68a; }
+.concl.bad  { background:rgba(239,68,68,.06);  border-left:3px solid #ef4444; color:#fca5a5; }
 .concl strong { font-weight:700; }
 
 /* 信号分布条 */
 .dist-row { display:flex; height:8px; border-radius:4px; overflow:hidden; margin:8px 0 4px; gap:1px; }
 .dist-seg { height:100%; transition:width .3s; }
-.dist-legend { display:flex; gap:14px; font-size:10px; color:var(--cr-text-secondary); }
+.dist-legend { display:flex; gap:14px; font-size:10px; color:var(--text-muted); }
 .dist-dot { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:3px; vertical-align:middle; }
 
 /* section 标题带结论 */
 .sec-head { display:flex; align-items:baseline; gap:10px; margin:20px 0 10px; }
-.sec-title { font-size:13px; font-weight:700; color:var(--cr-text); }
-.sec-concl { font-size:11px; color:var(--cr-text-secondary); }
-.sec-concl.ok   { color:var(--cr-positive); }
-.sec-concl.warn { color:var(--cr-warn); }
-.sec-concl.bad  { color:var(--cr-negative); }
+.sec-title { font-size:13px; font-weight:700; color:var(--text-primary,#f1f5f9); }
+.sec-concl { font-size:11px; color:var(--text-muted); }
+.sec-concl.ok   { color:#4ade80; }
+.sec-concl.warn { color:#fbbf24; }
+.sec-concl.bad  { color:#f87171; }
 
 /* 反思摘要 */
-.refl-item { padding:8px 0; border-bottom:1px solid var(--cr-border); }
+.refl-item { padding:8px 0; border-bottom:1px solid var(--border,#334155); }
 .refl-item:last-child { border-bottom:none; }
-.refl-section { font-size:10px; font-weight:700; color:var(--cr-primary); text-transform:uppercase; margin-bottom:3px; }
-.refl-content { font-size:12px; color:var(--cr-text-secondary); line-height:1.55; }
+.refl-section { font-size:10px; font-weight:700; color:var(--primary,#3b82f6); text-transform:uppercase; margin-bottom:3px; }
+.refl-content { font-size:12px; color:var(--text-secondary,#94a3b8); line-height:1.55; }
 </style>
 </head>
 <body>
 <%- include('../partials/nav', { active: 'trader' }) %>
 
 <div class="dash-container">  <!-- 子导航 -->
-  <%- include('../partials/trader-subnav') %>
+  <div class="subnav">
+    <a href="/admin/trader"              class="subnav-tab active">今日行动</a>
+    <a href="/admin/trader/rotation"     class="subnav-tab">市场状态</a>
+    <a href="/admin/trader/watchlist"    class="subnav-tab">自选池</a>
+    <a href="/admin/trader/event-feed"   class="subnav-tab">事件录入</a>
+    <a href="/admin/trader/reflection"   class="subnav-tab">策略反思</a>
+    <a href="/admin/trader/tracker"      class="subnav-tab">信号归档</a>
+  </div>
 
   <%
     // ── 系统状态判断 ──
@@ -87,15 +94,13 @@
     var trackerConcl = '', trackerConclCls = 'warn';
     if (trackerSummary) {
       var h20 = trackerSummary.allByHorizon && trackerSummary.allByHorizon[20];
-      var ov  = trackerSummary.overall;
-      if (h20 && ov) {
-        var resolved20 = (h20.verdicts.HIT||0) + (h20.verdicts.MISS||0);
-        var wr20 = resolved20 > 0 ? Math.round((h20.verdicts.HIT||0)/resolved20*100) : null;
-        trackerConclCls = wr20 >= 50 ? 'ok' : wr20 >= 40 ? 'warn' : 'bad';
-        trackerConcl = '裁决率 ' + (ov.adjudicationRate != null ? ov.adjudicationRate.toFixed(1) : '—') + '% （HIT=' + (ov.HIT||0) + ' MISS=' + (ov.MISS||0) + '）';
-        if (ov.PENDING) trackerConcl += ' · PENDING ' + (ov.PENDING||0) + ' 条';
-        trackerConcl += ' · 20日窗口胜率 ' + (wr20 != null ? wr20 + '%' : '—');
-        trackerConcl += ' · 总计 ' + (ov.total||0) + ' 条（全 horizon 汇总）';
+      if (h20) {
+        var resolved = (h20.verdicts.HIT||0) + (h20.verdicts.MISS||0);
+        var wr = resolved > 0 ? Math.round((h20.verdicts.HIT||0)/resolved*100) : null;
+        if (wr !== null) {
+          trackerConclCls = wr >= 50 ? 'ok' : wr >= 40 ? 'warn' : 'bad';
+          trackerConcl = '20日窗口裁决胜率 ' + wr + '%（WIN=' + (h20.verdicts.HIT||0) + ' LOSE=' + (h20.verdicts.MISS||0) + '）· EXPIRED ' + (h20.verdicts.EXPIRED||0) + ' 条（占比 ' + (h20.total>0?Math.round((h20.verdicts.EXPIRED||0)/h20.total*100):0) + '%，需关注 OHLC 回填）';
+        }
       }
     }
 
@@ -138,20 +143,20 @@
     <div class="kpi-card">
       <div class="kpi-label">跟踪记录</div>
       <div class="kpi-val"><%= trackerSummary ? trackerSummary.totalRecords : '—' %></div>
-      <div class="kpi-sub">EXPIRED <%= trackerSummary && trackerSummary.overall ? (trackerSummary.overall.EXPIRED||0) : '—' %> · <a href="/admin/trader/drawdown" style="color:var(--cr-primary);font-size:11px">回撤分析 →</a></div>
+      <div class="kpi-sub">EXPIRED <%= trackerSummary && trackerSummary.allByHorizon && trackerSummary.allByHorizon[20] ? (trackerSummary.allByHorizon[20].verdicts.EXPIRED||0) : '—' %> 条</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">市场温度</div>
       <% var temp = timing && timing.history && timing.history.length ? timing.history[timing.history.length-1] : null; %>
       <div class="kpi-val <%= temp && temp.phase==='进攻' ? 'ok' : temp && temp.phase==='防守' ? 'bad' : 'warn' %>">
-        <%= temp ? Math.round(temp.temperature || 0) + '°' : '—' %>
+        <%= temp ? Math.round((temp.temp||0)*100) + '°' : '—' %>
       </div>
       <div class="kpi-sub"><%= temp ? temp.phase_desc || temp.phase || '—' : '无数据' %></div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">回测模型</div>
       <div class="kpi-val"><%= backtestReports ? backtestReports.length : '—' %></div>
-      <div class="kpi-sub"><a href="/admin/trader/backtest" style="color:var(--cr-primary);font-size:11px">查看 →</a> · <a href="/admin/trader/model-library" style="color:var(--cr-primary);font-size:11px">模型库 →</a></div>
+      <div class="kpi-sub"><a href="/admin/trader/backtest" style="color:var(--primary,#3b82f6);font-size:11px">查看 →</a></div>
     </div>
   </div>
 
@@ -164,16 +169,16 @@
     </span>
   </div>
   <div class="dist-row">
-    <div class="dist-seg" style="width:<%= pct(sigAttack) %>%;background:var(--cr-negative)" title="进攻 <%= sigAttack %>"></div>
-    <div class="dist-seg" style="width:<%= pct(sigBuy)    %>%;background:var(--cr-positive)" title="买入 <%= sigBuy %>"></div>
-    <div class="dist-seg" style="width:<%= pct(sigAmbush) %>%;background:var(--cr-primary)" title="埋伏 <%= sigAmbush %>"></div>
-    <div class="dist-seg" style="width:<%= pct(sigWatch)  %>%;background:var(--cr-text-secondary)" title="观望 <%= sigWatch %>"></div>
+    <div class="dist-seg" style="width:<%= pct(sigAttack) %>%;background:#ef4444" title="进攻 <%= sigAttack %>"></div>
+    <div class="dist-seg" style="width:<%= pct(sigBuy)    %>%;background:#22c55e" title="买入 <%= sigBuy %>"></div>
+    <div class="dist-seg" style="width:<%= pct(sigAmbush) %>%;background:#3b82f6" title="埋伏 <%= sigAmbush %>"></div>
+    <div class="dist-seg" style="width:<%= pct(sigWatch)  %>%;background:#475569" title="观望 <%= sigWatch %>"></div>
   </div>
   <div class="dist-legend">
-    <span><span class="dist-dot" style="background:var(--cr-negative)"></span>进攻 <b><%= sigAttack %></b></span>
-    <span><span class="dist-dot" style="background:var(--cr-positive)"></span>买入 <b><%= sigBuy %></b></span>
-    <span><span class="dist-dot" style="background:var(--cr-primary)"></span>埋伏 <b><%= sigAmbush %></b></span>
-    <span><span class="dist-dot" style="background:var(--cr-text-secondary)"></span>观望 <b><%= sigWatch %></b></span>
+    <span><span class="dist-dot" style="background:#ef4444"></span>进攻 <b><%= sigAttack %></b></span>
+    <span><span class="dist-dot" style="background:#22c55e"></span>买入 <b><%= sigBuy %></b></span>
+    <span><span class="dist-dot" style="background:#3b82f6"></span>埋伏 <b><%= sigAmbush %></b></span>
+    <span><span class="dist-dot" style="background:#475569"></span>观望 <b><%= sigWatch %></b></span>
   </div>
   <p style="margin-top:10px"><a href="/admin/trader/strategy?date=<%= latestStrategy.date %>" class="btn">查看完整诊断 →</a></p>
   <% } %>

@@ -29,3 +29,8 @@ admin/health/
 # 运行时数据（历史误跟踪，V10.1 停止跟踪）
 core/底稿/history/score_ledger.json
 core/底稿/raw/stock_names_cache.json
+
+# 运行时数据 & 操作残留 (2026-08-21 对齐时补充忽略)
+core/底稿/
+_rollback/
+core/tracker_reflection.py

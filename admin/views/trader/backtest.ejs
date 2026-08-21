@@ -5,7 +5,14 @@
 
 <div class="dash-container">
   <h2><%= title %></h2>  <!-- 子导航 -->
-  <%- include('../partials/trader-subnav') %>
+  <div class="subnav">
+    <a href="/admin/trader"              class="subnav-tab active">今日行动</a>
+    <a href="/admin/trader/rotation"     class="subnav-tab">市场状态</a>
+    <a href="/admin/trader/watchlist"    class="subnav-tab">自选池</a>
+    <a href="/admin/trader/event-feed"   class="subnav-tab">事件录入</a>
+    <a href="/admin/trader/reflection"   class="subnav-tab">策略反思</a>
+    <a href="/admin/trader/tracker"      class="subnav-tab">信号归档</a>
+  </div>
 
   <% if (reports && reports.length > 0) { %>
     <div class="dash-section" style="margin-top:20px">
@@ -19,7 +26,7 @@
             <tr>
               <td style="font-family:monospace;font-size:13px"><%= r.filename %></td>
               <td><%= r.date %></td>
-              <td><%- r.isLatest ? '<span class="track-pending track-bold">最新</span>' : '归档' %></td>
+              <td><%= r.isLatest ? '<span class="track-pending track-bold">最新</span>' : '归档' %></td>
               <td>
                 <a href="/admin/trader/backtest/view/<%= r.filename %>" target="_blank" class="btn btn-sm">查看报告</a>
               </td>

@@ -4,13 +4,10 @@ const express = require("express");
 const fs = require("fs/promises");
 const path = require("path");
 const { spawn } = require("child_process");
-const { marked } = require("marked");
 
 const router = express.Router();
 const PROJECT_ROOT = path.join(__dirname, "..", "..");
-// V9.2: 文章真实来源为 data/articles/article_YYYYMMDD.md（generate_article_cron.sh 每日 22:50 生成）
-// 旧 output/article 已废弃（仅剩 2 个 7 月僵尸文件）
-const articleDir = path.join(PROJECT_ROOT, "data", "articles");
+const articleDir = path.join(PROJECT_ROOT, "output", "article");
 
 router.get("/articles", async (req, res) => {
   try {
@@ -18,28 +15,15 @@ router.get("/articles", async (req, res) => {
 
     try {
       const entries = await fs.readdir(articleDir, { withFileTypes: true });
-      const mdEntries = entries.filter((entry) => entry.isFile() && path.extname(entry.name) === ".md");
+      const htmlEntries = entries.filter((entry) => entry.isFile() && path.extname(entry.name) === ".html");
 
       articles = await Promise.all(
-        mdEntries.map(async (entry) => {
+        htmlEntries.map(async (entry) => {
           const filePath = path.join(articleDir, entry.name);
           const stats = await fs.stat(filePath);
-          const slug = path.basename(entry.name, ".md");
-
-          // 从 md 首行 # 标题 提取真实标题；提取 YYYYMMDD 作为日期
-          let title = slug;
-          try {
-            const raw = await fs.readFile(filePath, "utf8");
-            const m = raw.match(/^#\s+(.+)$/m);
-            if (m) title = m[1].trim();
-          } catch (_) {}
-          const dm = slug.match(/(\d{4})(\d{2})(\d{2})/);
-          const dateLabel = dm ? `${dm[1]}-${dm[2]}-${dm[3]}` : "";
 
           return {
-            name: slug,
-            title,
-            dateLabel,
+            name: path.basename(entry.name, ".html"),
             path: filePath,
             mtime: stats.mtime,
           };
@@ -168,7 +152,7 @@ router.post("/articles/generate", async (req, res) => {
     const date = req.body.date || new Date().toISOString().slice(0, 10);
     const scriptPath = path.join(PROJECT_ROOT, "core", "scripts", "run_article_pipeline.py");
 
-    const proc = spawn("python3.9", [scriptPath, "--date", date], {
+    const proc = spawn("python3", [scriptPath, "--date", date], {
       cwd: PROJECT_ROOT,
       stdio: "pipe",
     });
@@ -354,58 +338,12 @@ async function _readEnrichmentStatus() {
 
 async function _readPipelineStatus() {
   const statusPath = path.join(PROJECT_ROOT, "data", "pipeline_status.json");
-  let status = { date: "", generated: 0, enriched: 0 };
   try {
     const raw = await fs.readFile(statusPath, "utf8");
-    status = JSON.parse(raw);
-  } catch (_) {}
-
-  // V9.2: generated 以 data/articles/ 实际文件为准（pipeline_status.json 的 generated 字段已废弃/失准）
-  const today = new Date().toISOString().slice(0, 10);
-  const todaySlug = `article_${today.replace(/-/g, "")}.md`;
-  try {
-    await fs.access(path.join(articleDir, todaySlug));
-    status.generatedToday = 1;
+    return JSON.parse(raw);
   } catch (_) {
-    status.generatedToday = 0;
+    return { date: "", generated: 0, enriched: 0 };
   }
-  // 总篇数（真实）
-  try {
-    const files = await fs.readdir(articleDir);
-    status.totalArticles = files.filter((f) => f.endsWith(".md")).length;
-  } catch (_) {
-    status.totalArticles = 0;
-  }
-  return status;
 }
-
-// ── V9.2: GET /articles/view/:name ── 用 marked 渲染 md 预览（替代废弃的 /article 静态服务）──
-router.get("/articles/view/:name", async (req, res) => {
-  try {
-    // 防目录穿越：仅允许 article_YYYYMMDD 形式的 slug
-    const name = req.params.name;
-    if (!/^[A-Za-z0-9_\-]+$/.test(name)) {
-      return res.status(400).send("非法文件名");
-    }
-    const filePath = path.join(articleDir, `${name}.md`);
-    const raw = await fs.readFile(filePath, "utf8");
-    const html = marked.parse(raw);
-    res.render("articles/view", {
-      title: name,
-      active: "articles",
-      subTab: "index",
-      contentHtml: html,
-      slug: name,
-    });
-  } catch (error) {
-    res.status(404).render("admin/error", {
-      title: "404 文章不存在",
-      status: 404,
-      active: "articles",
-      message: "文章不存在或读取失败",
-      error,
-    });
-  }
-});
 
 module.exports = router;

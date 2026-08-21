@@ -165,9 +165,9 @@ def _build_context(weekly: bool = False) -> dict:
         except Exception:
             pass
 
-    # 4) V7.10: trader_tracker.jsonl — 信号验证历史摘要（Loop Learning 真实数据）
+    # 4) V7.10: tracker_log.jsonl — 信号验证历史摘要（Loop Learning 真实数据）
     ctx["tracker_summary"] = {}
-    tracker_log = DATA_DIR / "trader_tracker.jsonl"
+    tracker_log = DATA_DIR / "tracker_log.jsonl"
     if tracker_log.exists():
         try:
             from datetime import datetime, timedelta
@@ -179,7 +179,7 @@ def _build_context(weekly: bool = False) -> dict:
                     if not line:
                         continue
                     r = json.loads(line)
-                    if r.get("signal_date", "") >= cutoff_30d and r.get("result") not in ("NODATA", "PENDING", "EXPIRED"):
+                    if r.get("signal_date", "") >= cutoff_30d and r.get("result") not in ("NODATA", "PENDING"):
                         records.append(r)
             if records:
                 # 5日窗口为主

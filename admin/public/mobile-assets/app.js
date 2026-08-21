@@ -208,7 +208,6 @@ async function loadOverview() {
     const crEn = cr && cr.event_narrative ? cr.event_narrative : (d.event_narrative || null);
     el.innerHTML =
       buildTodayActionCard(crEn, d.timing) +
-      buildPulseCard(d.pulse) +
       buildTimingCard(d.timing, d.event_narrative) +
       buildTop5Card(d.rotation_snapshot, cr) +
       buildWatchlistAlertCard(d) +
@@ -225,68 +224,7 @@ async function loadOverview() {
   }
 }
 
-function buildPulseCard(p) {
-  if (!p) return "";
-  var verdict = p.verdict || "";
-  var phase = (p.timing && p.timing.phase) || "";
-  var temp = (p.timing && p.timing.temperature) || 0;
-  var dir = (p.timing && p.timing.index_direction) || "";
-  var scan = p.scanner || {};
-  var bullish = scan.bullish || 0;
-  var bearish = scan.bearish || 0;
-  var neutral = scan.neutral || 0;
-  var alpha = p.alpha || {};
-  var picks = (alpha.top_picks || []).slice(0, 3);
-
-  // Phase color
-  var phaseColor = phase.includes("冲刺") ? "#4ade80" : phase.includes("防御") ? "#f87171" : phase.includes("进攻") ? "#22c55e" : "#f59e0b";
-
-  // Temperature color
-  var tempColor = temp >= 70 ? "#4ade80" : temp >= 50 ? "#f59e0b" : temp <= 30 ? "#ef4444" : "#94a3b8";
-
-  // Scanner dots
-  var scanDots = "";
-  if (scan.models > 0) {
-    var d2 = scan.models;
-    scanDots = '<div class="pulse-scanner">' +
-      '<span style="color:#4ade80">🟢 ' + bullish + '</span> ' +
-      '<span style="color:#ef4444">🔴 ' + bearish + '</span> ' +
-      '<span style="color:#94a3b8">⚪ ' + neutral + '</span> ' +
-      '<span style="font-size:9px;color:#64748b">/' + d2 + ' 模型</span>' +
-      '</div>';
-  }
-
-  // Alpha picks
-  var pickRows = picks.map(function(pk) {
-    var tierCls = pk.tier === "核心" ? "#22c55e" : pk.tier === "关注" ? "#f59e0b" : "#94a3b8";
-    return '<span class="pulse-pick" style="display:inline-block;margin:2px 4px 2px 0;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,0.04);font-size:9px">' +
-      '<span style="color:' + tierCls + '">' + _h(pk.stock||"") + '</span>' +
-      (pk.confidence ? ' <span style="color:#64748b">' + Math.round(pk.confidence*100) + '%</span>' : "") +
-      '</span>';
-  }).join("");
-
-  // Freshness
-  var freshStr = "";
-  if (p.generated_at) {
-    var diffM = Math.round((Date.now() - new Date(p.generated_at).getTime()) / 60000);
-    freshStr = '<span class="tac-fresh">' + (diffM < 60 ? diffM + "m前" : Math.round(diffM/60) + "h前") + '</span>';
-  }
-
-  return '<div class="card pulse-card">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
-      '<div class="card-title" style="margin-bottom:0">📡 市场脉搏 ' + freshStr + '</div>' +
-      '<span style="font-size:10px;color:' + phaseColor + ';font-weight:700">' + _h(phase) + '</span>' +
-    '</div>' +
-    '<div style="font-size:18px;font-weight:800;color:#e2e8f0;margin-bottom:4px">' + _h(verdict) + '</div>' +
-    '<div class="thermo-bar" style="margin-bottom:4px"><div class="thermo-fill" style="width:' + temp + '%;background:' + tempColor + '"></div></div>' +
-    '<div style="font-size:10px;color:#64748b;margin-bottom:4px">🌡 ' + temp.toFixed(0) + '° · ' + _h(dir) + '</div>' +
-    (scanDots || "") +
-    (pickRows ? '<div style="margin-top:4px">' + pickRows + '</div>' : "") +
-    '</div>';
-}
-
 function buildThermoCard(t) {
-
   if (!t) return '';
   const pct = t.positionRatio ? (t.positionRatio*100).toFixed(0) : 0;
   const phaseCls = t.phase === '进攻' ? 'bull' : t.phase === '防守' ? 'bear' : 'neutral';
@@ -617,25 +555,14 @@ function buildStrategyReportCard(sr) {
 
 function buildTrackerHitCard(t) {
   if (!t) return '';
-  var decided = (t.hits||0) + (t.misses||0);
-  // P1-3: 无已裁决信号时显"暂无裁决"，避免 0% 被误读为命中率极低
-  // P2: 命中率语义色彩 —— >=55 绿 / 45-55 黄 / <45 红
-  var rateHtml;
-  if (decided === 0) {
-    rateHtml = '<div style="font-size:11px;color:#94a3b8;text-align:center">暂无已裁决信号 · Pending ' + (t.pending||0) + '</div>';
-  } else {
-    var hr = t.hitRate||0;
-    var hrColor = hr >= 55 ? '#26a69a' : hr >= 45 ? '#f59e0b' : '#ef5350';
-    rateHtml = '<div style="font-size:11px;text-align:center;color:#94a3b8">命中率 <b style="color:' + hrColor + ';font-size:13px">' + hr + '%</b> · 基于 ' + decided + ' 个已裁决 · Pending ' + (t.pending||0) + '</div>';
-  }
   return '<div class="card">' +
     '<div class="card-title">🎯 跟踪命中率</div>' +
     '<div class="hit-grid">' +
     '<div class="hit-cell"><div class="hit-h">总跟踪</div><div class="hit-v">' + (t.totalDecisions||0) + '</div></div>' +
-    '<div class="hit-cell"><div class="hit-h">命中</div><div class="hit-v" style="color:#26a69a">' + (t.hits||0) + '</div></div>' +
-    '<div class="hit-cell"><div class="hit-h">未命中</div><div class="hit-v" style="color:#ef5350">' + (t.misses||0) + '</div></div>' +
+    '<div class="hit-cell"><div class="hit-h">命中</div><div class="hit-v" style="color:#16a34a">' + (t.hits||0) + '</div></div>' +
+    '<div class="hit-cell"><div class="hit-h">未命中</div><div class="hit-v" style="color:#dc2626">' + (t.misses||0) + '</div></div>' +
     '</div>' +
-    rateHtml +
+    '<div style="font-size:11px;color:#b8a06a;text-align:center">命中率 ' + (t.hitRate||0) + '% · Pending ' + (t.pending||0) + '</div>' +
     '</div>';
 }
 
@@ -680,21 +607,8 @@ async function askInsight(qid, btnEl) {
       resultEl.innerHTML = '<div class="ins-answer" style="color:var(--m-negative)">⚠️ ' + escHtml(data.error) + '</div>';
       return;
     }
-    // V10: render headline + analysis + action_items
-    var html = '';
-    if (data.headline) html += '<div style="font-weight:700;margin-bottom:6px;font-size:13px">' + escHtml(data.headline) + '</div>';
-    if (data.analysis) html += '<div style="font-size:11px;color:var(--m-text-2);line-height:1.6;margin-bottom:4px">' + escHtml(data.analysis) + '</div>';
-    if (data.action_items && data.action_items.length) {
-      html += '<div style="margin-top:4px">';
-      data.action_items.forEach(function(item) {
-        var conf = item.confidence ? ' <span style="font-size:10px;color:var(--m-accent)">[' + escHtml(String(item.confidence)) + ']</span>' : '';
-        html += '<div style="font-size:11px;color:var(--m-text-2);padding:3px 0;border-top:1px solid var(--m-border)">' + escHtml(item.action||'') + conf + '</div>';
-      });
-      html += '</div>';
-    }
-    if (!html) html = '暂无数据';
-    if (data.data_quality) html += '<div style="margin-top:6px;font-size:9px;color:var(--m-text-3)">质量: ' + escHtml(data.data_quality) + '</div>';
-    resultEl.innerHTML = '<div class="ins-answer">' + html + '</div>';
+    var answer = data.answer || '暂无数据';
+    resultEl.innerHTML = '<div class="ins-answer">' + escHtml(answer) + '</div>';
   } catch(e) {
     resultEl.innerHTML = '<div class="ins-answer" style="color:var(--m-negative)">⚠️ 请求失败</div>';
   }
@@ -852,16 +766,10 @@ async function openStockModal(code) {
         '<td><span class="verdict v-' + (h.verdict||'nodata').toLowerCase() + '">' + (h.verdict||'NODATA') + '</span></td>' +
         '</tr>';
     }).join('');
-    var sdec = (d.decided != null) ? d.decided : ((d.hits||0)+(d.misses||0));
-    var shr = d.hitRate||0;
-    var shrColor = shr >= 55 ? '#26a69a' : shr >= 45 ? '#f59e0b' : '#ef5350';
-    var hrCell = sdec === 0
-      ? '<div class="hit-v" style="font-size:13px;color:#94a3b8">暂无裁决</div>'
-      : '<div class="hit-v" style="color:' + shrColor + '">' + shr + '%</div>';
     body.innerHTML = '<div class="card-title">📊 ' + code + ' ' + (d.name||'') + ' · 跟踪历史</div>' +
       '<div class="hit-grid">' +
       '<div class="hit-cell"><div class="hit-h">总决策</div><div class="hit-v">' + (d.totalDecisions||0) + '</div></div>' +
-      '<div class="hit-cell"><div class="hit-h">命中率</div>' + hrCell + '</div>' +
+      '<div class="hit-cell"><div class="hit-h">命中率</div><div class="hit-v">' + (d.hitRate||0) + '%</div></div>' +
       '<div class="hit-cell"><div class="hit-h">平均偏差</div><div class="hit-v">' + (d.avgDeviation||'—') + '</div></div>' +
       '</div>' +
       '<table class="trk-table"><thead><tr><th>日期</th><th>信号</th><th>方向</th><th>目标</th><th>实际</th><th>偏差</th><th>判定</th></tr></thead><tbody>' + rows + '</tbody></table>';

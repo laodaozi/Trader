@@ -6,7 +6,14 @@
 <div class="dash-container">
   <h2><%= title %></h2>
   <!-- 子导航 -->
-  <%- include('../partials/trader-subnav') %>
+  <div class="subnav">
+    <a href="/admin/trader"              class="subnav-tab active">今日行动</a>
+    <a href="/admin/trader/rotation"     class="subnav-tab">市场状态</a>
+    <a href="/admin/trader/watchlist"    class="subnav-tab">自选池</a>
+    <a href="/admin/trader/event-feed"   class="subnav-tab">今日早报</a>
+    <a href="/admin/trader/reflection"   class="subnav-tab">策略反思</a>
+    <a href="/admin/trader/tracker"      class="subnav-tab">信号归档</a>
+  </div>
 
   <!-- 日期选择 -->
   <div class="toolbar" style="margin-top:16px">
@@ -25,7 +32,7 @@
         <h3 style="margin:0;font-size:15px">📊 模型胜率排名</h3>
         <span style="font-size:12px;color:#888">回测更新: <%= winrateRanking.generated_at || '—' %></span>
       </div>
-      <table class="data-table" style="width:100%">
+      <table class="dash-table" style="width:100%">
         <thead>
           <tr>
             <th style="text-align:left">模型</th>
@@ -37,12 +44,10 @@
         <tbody>
           <% winrateRanking.models.forEach(m => { %>
             <tr>
-              <td style="text-align:left"><%= m.name %> <span style="color:var(--cr-text-secondary);font-size:11px">(<%= m.key %>)</span></td>
-              <% var _wr = m.win_rate; var _wrColor = _wr == null ? 'var(--cr-text-secondary)' : (_wr >= 55 ? 'var(--cr-positive)' : _wr >= 45 ? 'var(--cr-warn)' : 'var(--cr-negative)'); %>
-              <td style="text-align:right;font-weight:600;color:<%= _wrColor %>"><%= _wr != null ? _wr.toFixed(1) + '%' : '—' %></td>
-              <% var _ar = m.avg_return; var _arColor = _ar == null ? 'var(--cr-text-secondary)' : (_ar >= 0 ? 'var(--cr-positive)' : 'var(--cr-negative)'); %>
-              <td style="text-align:right;color:<%= _arColor %>"><%= _ar != null ? (_ar >= 0 ? '+' : '') + _ar.toFixed(2) + '%' : '—' %></td>
-              <td style="text-align:right;color:var(--cr-text-secondary)"><%= m.sample_size %></td>
+              <td style="text-align:left"><%= m.name %> <span style="color:#999;font-size:11px">(<%= m.key %>)</span></td>
+              <td style="text-align:right;font-weight:600"><%= m.win_rate != null ? m.win_rate.toFixed(1) + '%' : '—' %></td>
+              <td style="text-align:right"><%= m.avg_return != null ? (m.avg_return >= 0 ? '+' : '') + m.avg_return.toFixed(2) + '%' : '—' %></td>
+              <td style="text-align:right;color:#888"><%= m.sample_size %></td>
             </tr>
           <% }) %>
         </tbody>
@@ -190,7 +195,7 @@
 
           <!-- 入场/止损/目标 -->
           <% if (s.entry_low || s.stop_loss || (s.take_profit && s.take_profit.length)) { %>
-          <div style="font-size:11px;color:var(--cr-text-secondary);border-top:1px solid var(--cr-border);padding-top:8px;margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap">
+          <div style="font-size:11px;color:#374151;border-top:1px solid var(--border,#e5e7eb);padding-top:8px;margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap">
             <% if (s.entry_low) { %><span><span style="color:#9ca3af">入场</span> <%= s.entry_low %>-<%= s.entry_high || '?' %></span><% } %>
             <% if (s.stop_loss) { %><span><span style="color:#9ca3af">止损</span> <span style="color:#dc2626"><%= s.stop_loss %></span></span><% } %>
             <% if (s.take_profit && s.take_profit.length) { %><span><span style="color:#9ca3af">目标</span> <span style="color:#16a34a"><%= s.take_profit[0] %></span></span><% } %>
@@ -236,9 +241,9 @@
   transition: opacity .15s;
 }
 .fb-btn:hover { opacity: .75; }
-.fb-follow { background: rgba(38,166,154,.12); color: var(--cr-positive); border-color: rgba(38,166,154,.35); }
-.fb-watch  { background: rgba(41,98,255,.14);  color: #5b8bff;            border-color: rgba(41,98,255,.35); }
-.fb-skip   { background: rgba(239,83,80,.12);  color: var(--cr-negative); border-color: rgba(239,83,80,.35); }
+.fb-follow { background: rgba(34,197,94,.1);  color: #15803d; border-color: rgba(34,197,94,.3); }
+.fb-watch  { background: rgba(59,130,246,.1); color: #1d4ed8; border-color: rgba(59,130,246,.3); }
+.fb-skip   { background: rgba(239,68,68,.1);  color: #b91c1c; border-color: rgba(239,68,68,.3); }
 .stock-card { transition: box-shadow .15s; }
 .stock-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
 </style>

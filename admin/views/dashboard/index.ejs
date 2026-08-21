@@ -19,57 +19,6 @@
       <div class="dash-card"><span class="dash-card-value"><%= Number(dashboardData.summary.avgConfidence || 0).toFixed(2) %></span><span class="dash-card-label">均信度</span></div>
     </div>
 
-  <% if (pulse) { %>
-    <div class="dash-cards" style="margin-top:16px">
-      <div class="dash-card" style="grid-column:span 2">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <span class="dash-card-value" style="font-size:22px"><%= pulse.verdict %></span>
-          <span style="
-            background:<%= pulse.timing && pulse.timing.phase === '冲刺' ? '#4ade80' : pulse.timing && pulse.timing.phase === '进攻' ? '#22c55e' : pulse.timing && pulse.timing.phase === '防御' ? '#ef4444' : '#f59e0b' %>;
-            color:#000;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700
-          "><%= pulse.timing && pulse.timing.phase || '—' %></span>
-          <span style="font-size:12px;color:#94a3b8">🌡 <%= (pulse.timing && pulse.timing.temperature) ? pulse.timing.temperature.toFixed(0) + '°' : '—' %> · <%= pulse.timing && pulse.timing.index_direction || '—' %></span>
-        </div>
-        <% if (pulse.scanner && pulse.scanner.models > 0) { %>
-          <div style="margin-top:6px;font-size:11px;color:#94a3b8">
-            Scanner: <span style="color:#4ade80">🟢<%= pulse.scanner.bullish %></span>
-            <span style="color:#ef4444">🔴<%= pulse.scanner.bearish %></span>
-            <span style="color:#94a3b8">⚪<%= pulse.scanner.neutral %></span>
-            /<%= pulse.scanner.models %> 模型
-          </div>
-        <% } %>
-        <% if (pulse.alpha && pulse.alpha.top_picks) { %>
-          <div style="margin-top:4px;font-size:10px;color:#64748b">
-            Alpha pick: <% pulse.alpha.top_picks.slice(0,4).forEach(function(pk){ %>
-              <span style="margin-right:8px"><%= pk.stock %> <span style="color:<%= pk.tier==='核心'?'#22c55e':'#f59e0b' %>"><%= Math.round(pk.confidence*100) %>%</span></span>
-            <% }) %>
-          </div>
-        <% } %>
-        <% if (pulse.generated_at) { %>
-          <div style="margin-top:2px;font-size:9px;color:#475569"><%= new Date(pulse.generated_at).toLocaleString('zh-CN') %></div>
-        <% } %>
-      </div>
-    </div>
-  <% } %>
-
-  <% if (health) { %>
-    <div class="dash-cards" style="margin-top:16px">
-      <div class="dash-card">
-        <span class="dash-card-value" style="color:<%= health.overall==='OK'?'#22c55e':'#ef4444' %>"><%= health.overall %></span>
-        <span class="dash-card-label">Pipeline 健康</span>
-      </div>
-      <div class="dash-card">
-        <span class="dash-card-value"><%= health.artifacts && health.artifacts.total || 0 %></span>
-        <span class="dash-card-label"><%= health.artifacts && health.artifacts.by_status ? Object.keys(health.artifacts.by_status).join('·') : '—' %></span>
-      </div>
-      <% if (health.checked_at) { %>
-        <div style="grid-column:span 2;font-size:10px;color:#64748b;padding:4px 12px">
-          检查时间: <%= new Date(health.checked_at).toLocaleString('zh-CN') %>
-        </div>
-      <% } %>
-    </div>
-  <% } %>
-
     <div class="dash-grid">
       <div class="dash-section">
         <h3 class="dash-section-title">最新信号</h3>

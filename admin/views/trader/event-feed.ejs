@@ -7,7 +7,14 @@
   <h2>今日早报</h2>
 
   <!-- 子导航 -->
-  <%- include('../partials/trader-subnav') %>
+  <div class="subnav">
+    <a href="/admin/trader"              class="subnav-tab">今日行动</a>
+    <a href="/admin/trader/rotation"     class="subnav-tab">市场状态</a>
+    <a href="/admin/trader/watchlist"    class="subnav-tab">自选池</a>
+    <a href="/admin/trader/event-feed"   class="subnav-tab active">今日早报</a>
+    <a href="/admin/trader/reflection"   class="subnav-tab">策略反思</a>
+    <a href="/admin/trader/tracker"      class="subnav-tab">信号归档</a>
+  </div>
 
   <% if (success) { %>
   <div style="margin:12px 0;padding:10px 16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:6px;font-size:13px;color:#4ade80"><%= success %></div>
@@ -63,7 +70,7 @@
             <% sm.slice(0,5).forEach(function(s) { %>
             <span style="font-size:10px;padding:2px 7px;border-radius:4px;
               background:<%= s.type==='long'?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)' %>;
-              color:<%= s.type==='long'?'var(--cr-positive)':'var(--cr-negative)' %>;
+              color:<%= s.type==='long'?'#15803d':'#b91c1c' %>;
               font-family:monospace;cursor:default"
               title="<%= (s.logic||'').slice(0,80) %>"><%= s.name || s.code %> <%= s.type==='long'?'↑':'↓' %></span>
             <% }); %>

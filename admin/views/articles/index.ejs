@@ -63,8 +63,8 @@
     </div>
     <div class="status-card gen">
       <div class="label">📄 今日生成</div>
-      <div class="value"><%= (locals.pipelineStatus && locals.pipelineStatus.generatedToday) || 0 %></div>
-      <div class="hint">累计 <%= (locals.pipelineStatus && locals.pipelineStatus.totalArticles) || 0 %> 篇</div>
+      <div class="value"><%= (locals.pipelineStatus && locals.pipelineStatus.generated) || 0 %></div>
+      <div class="hint"><%= (locals.pipelineStatus && locals.pipelineStatus.run_at) ? '最近: ' + locals.pipelineStatus.run_at.slice(0,16) : '尚未生成' %></div>
     </div>
   </div>
 
@@ -89,16 +89,16 @@
       <div class="article-list">
         <% articles.forEach(a => { %>
           <div class="article-item">
-            <span class="article-name"><%= a.title || a.name %></span>
-            <span class="article-mtime"><%= a.dateLabel || new Date(a.mtime).toLocaleString('zh-CN') %></span>
-            <a href="/admin/articles/view/<%= a.name %>" target="_blank" class="article-link">预览</a>
+            <span class="article-name"><%= a.name %></span>
+            <span class="article-mtime"><%= new Date(a.mtime).toLocaleString('zh-CN') %></span>
+            <a href="/article/<%= a.name %>.html" target="_blank" class="article-link">预览</a>
           </div>
         <% }) %>
       </div>
     <% } else { %>
       <div class="article-empty">
         <p>📝 暂无生成文章</p>
-        <p>每日 22:50 自动生成，文章保存于 data/articles/</p>
+        <p>运行「生成今日日报」后文章将在此列出 (output/article/)</p>
       </div>
     <% } %>
   </div>

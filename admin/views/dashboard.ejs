@@ -32,12 +32,15 @@
       background: var(--m-bg);
       color: var(--m-text);
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .app-layout {
       max-width: 480px;
       margin: 0 auto;
-      -webkit-font-smoothing: antialiased;
       /* iOS safe area */
       padding-bottom: env(safe-area-inset-bottom, 16px);
     }
+    .app-sidebar { display: contents; }
     .app-header {
       padding: 16px 16px 12px;
       display: flex; align-items: center; justify-content: space-between;
@@ -46,6 +49,7 @@
     }
     .app-title { font-size: 18px; font-weight: 700; color: var(--m-text); letter-spacing: 0.5px; }
     .app-version { font-size: 11px; color: var(--m-text-2); background: rgba(var(--m-primary-rgb), 0.12); padding: 3px 10px; border-radius: 10px; }
+    .app-style { font-size: 11px; color: var(--m-warn); background: rgba(var(--m-warn-rgb), 0.12); padding: 3px 10px; border-radius: 10px; margin-left: 6px; }
     .m-tabs {
       display: flex; gap: 0;
       padding: 0 8px;
@@ -406,12 +410,66 @@
     .ins-result { padding:10px 12px; border-radius:8px; background:var(--m-surface-2); margin-top:4px; }
     .ins-loading { font-size:12px; color:var(--m-text-3); text-align:center; padding:6px 0; }
     .ins-answer { font-size:13px; color:var(--m-text); line-height:1.5; }
+    /* ── 桌面响应式：左侧 sidebar + 右侧内容 ── */
+    @media (min-width: 768px) {
+      .app-layout {
+        max-width: none;
+        margin: 0;
+        display: flex;
+        align-items: stretch;
+        min-height: 100vh;
+      }
+      .app-sidebar {
+        width: 240px;
+        flex-shrink: 0;
+        background: var(--m-surface);
+        border-right: 1px solid var(--m-border);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      .app-sidebar .app-header { border-bottom: 1px solid var(--m-border); }
+      .m-tabs {
+        flex-direction: column;
+        padding: 8px;
+        gap: 2px;
+        position: static;
+        background: transparent;
+        border-bottom: none;
+      }
+      .m-tab {
+        flex: none;
+        text-align: left;
+        padding: 12px 14px;
+        border-bottom: none;
+        border-left: 2px solid transparent;
+        border-radius: 8px;
+        font-size: 13px;
+      }
+      .m-tab.active {
+        color: var(--m-primary);
+        border-left-color: var(--m-primary);
+        background: rgba(var(--m-primary-rgb), 0.08);
+      }
+      .app-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .app-main .m-content { padding: 20px 24px; }
+      .refresh-bar { padding: 16px 0 32px; }
+    }
     </style>
 </head>
 <body>
+<div class="app-layout">
+<aside class="app-sidebar">
 <div class="app-header">
   <span class="app-title">☀️ <%= title %></span>
-  <span class="app-version"><%= appVersion || 'V10.1' %></span>
+  <span class="app-version"><%= appVersion || 'V10.2' %></span>
+  <% if (styleLabel) { %><span class="app-style">风格·<%= styleLabel %></span><% } %>
 </div>
 <div class="m-tabs">
   <div class="m-tab active" data-tab="overview">📊 概览</div>
@@ -420,6 +478,8 @@
   <div class="m-tab" data-tab="world">🌍 世界</div>
   <div class="m-tab" data-tab="graph">🧬 传导</div>
 </div>
+</aside>
+<div class="app-main">
 <div class="m-content">
   <div class="m-panel active" id="p-overview">
     <div id="overview-loading" class="loading"><div class="spin"></div></div>
@@ -443,6 +503,8 @@
   </div>
 </div>
 <div class="refresh-bar">数据更新 <span onclick="refreshAll()">🔄 刷新</span></div>
+</div>
+</div>
 <div class="modal-overlay" id="stock-modal" onclick="closeModal()">
   <div class="modal-card" onclick="event.stopPropagation()">
     <span class="modal-close" onclick="closeModal()">✕</span>

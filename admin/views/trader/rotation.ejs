@@ -7,7 +7,14 @@
   <h2>市场状态</h2>
 
   <!-- 子导航 -->
-  <%- include('../partials/trader-subnav') %>
+  <div class="subnav">
+    <a href="/admin/trader"              class="subnav-tab">今日行动</a>
+    <a href="/admin/trader/rotation"     class="subnav-tab active">市场状态</a>
+    <a href="/admin/trader/watchlist"    class="subnav-tab">自选池</a>
+    <a href="/admin/trader/event-feed"   class="subnav-tab">事件录入</a>
+    <a href="/admin/trader/reflection"   class="subnav-tab">策略反思</a>
+    <a href="/admin/trader/tracker"      class="subnav-tab">信号归档</a>
+  </div>
 
   <% if (error) { %>
     <div class="dash-empty" style="margin-top:20px"><p>⚠️ <%= error %></p></div>

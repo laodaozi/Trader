@@ -12,6 +12,7 @@ const haoyunge = require('../models/haoyunge');  // V5.3: 好运哥策略模块
 const strategyModel = require('../models/trader-strategy');
 const trackerModel = require('../models/trader-tracker');
 const signalsModel = require('../models/signals');
+const envConfig = require('../models/env-config');
 
 const TIMING_PATH = path.join(__dirname, '..', '..', 'data', 'timing_history.json');
 // V4.0.1: 对齐 core/daily.py XDG 标准，告别越级相对路径
@@ -333,9 +334,22 @@ async function _getRssHealth() {
   return _getSourceArticlesHealth();
 }
 
+// ── /compare ── 三图对比页 ──
+router.get('/compare', (req, res) => {
+  res.render('comparison');
+});
+
 // ── /m ── V6 三 tab 仪表盘（2026-06-19 切换，原 /m/v6）
 router.get('/m', (req, res) => {
-  res.render('dashboard', { title: 'CycleRadar Trader', appVersion: require('../routes/system').getVersion() || 'V10.1' });
+  const cfg = envConfig.getConfig();
+  const styleLabel = cfg.style_preference && envConfig.STYLE_GROUPS[cfg.style_preference]
+    ? envConfig.STYLE_GROUPS[cfg.style_preference].label : '';
+  res.render('dashboard', {
+    title: 'CycleRadar Trader',
+    appVersion: require('../routes/system').getVersion() || 'V10.2',
+    stylePreference: cfg.style_preference || '',
+    styleLabel,
+  });
 });
 
 // ── /m/v6 ── 保留30天兼容重定向，之后删除
@@ -537,6 +551,19 @@ router.get('/m/api/strategy/all', async (req, res) => {
       filteredDates = dates.filter(d => d >= cutoffStr);
     }
     const byDate = {};
+    const stylePref = envConfig.getConfig().style_preference;
+    const preferredNames = new Set(stylePref && envConfig.STYLE_GROUPS[stylePref] ? envConfig.STYLE_GROUPS[stylePref].models : []);
+    const styleSort = (stocks) => {
+      if (!stylePref || preferredNames.size === 0 || !Array.isArray(stocks)) return stocks;
+      const hit = [];
+      const miss = [];
+      for (const s of stocks) {
+        const hits = Array.isArray(s.model_hits) ? s.model_hits : [];
+        if (hits.some(n => preferredNames.has(n))) hit.push(s);
+        else miss.push(s);
+      }
+      return hit.concat(miss);
+    };
     for (const d of filteredDates) {
       const data = await strategyModel.getStrategyByDate(d);
       if (data) {
@@ -548,7 +575,7 @@ router.get('/m/api/strategy/all', async (req, res) => {
           ambush: data.ambush,
           watch: data.watch,
           avgScore: data.avgScore,
-          stocks: (data.stocks || []).map(s => ({
+          stocks: styleSort(data.stocks || []).map(s => ({
             code: s.code,
             name: s.name,
             signal: s.signal_type || '',
@@ -559,6 +586,7 @@ router.get('/m/api/strategy/all', async (req, res) => {
             theme: _scoreDim(s, 'weekly_dir'),
             score: s.score || 0,
             nx: s.nx || '',
+            model_hits: Array.isArray(s.model_hits) ? s.model_hits : [],
             entry_low: s.entry_low,
             entry_high: s.entry_high,
             stop_loss: s.stop_loss,
@@ -566,7 +594,7 @@ router.get('/m/api/strategy/all', async (req, res) => {
         };
       }
     }
-    res.json({ dates, byDate });
+    res.json({ dates, byDate, stylePreference: stylePref });
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }
@@ -744,6 +772,19 @@ router.get('/m/api/tracker/stock/:code', async (req, res) => {
   }
 });
 
+// V10: 按偏好交易风格对信号排序（偏好命中优先，其余保持原顺序，不隐藏）
+function sortSignalsByStyle(signals, pref) {
+  if (!pref || !Array.isArray(signals) || signals.length === 0) return signals;
+  const hit = [];
+  const miss = [];
+  for (const s of signals) {
+    const names = (s.metadata && s.metadata.model_names) || [];
+    if (envConfig.stylesOfModelNames(names).includes(pref)) hit.push(s);
+    else miss.push(s);
+  }
+  return hit.concat(miss);
+}
+
 // ── /m/api/cycleradar ── 周期雷达：V4.2.0 四分类输出
 router.get('/m/api/cycleradar', async (req, res) => {
   try {
@@ -810,11 +851,17 @@ router.get('/m/api/cycleradar', async (req, res) => {
       summary,
       byStrategy,
       byAssetType,
+      // V10: 偏好交易风格（供前端顶部标签显示）
+      stylePreference: envConfig.getConfig().style_preference || '',
+      styleLabel: (() => {
+        const pref = envConfig.getConfig().style_preference;
+        return pref && envConfig.STYLE_GROUPS[pref] ? envConfig.STYLE_GROUPS[pref].label : '';
+      })(),
       // V4.1.0 四分类 + V4.1.2 LLM 增强
       hotEvents: enrichedEvents || [],
       dataFreshness: dataHealth,  // V7.7: source_articles 数据管路健康度
       signalFreshness,           // V4.3: 信号新鲜度（alpha/ETF/commodity 用）
-      alpha: (categories.alpha || []).map(formatSignal),
+      alpha: sortSignalsByStyle(categories.alpha || [], envConfig.getConfig().style_preference).map(formatSignal),
       etf: (categories.etf || []).map(s => {
         const sig = formatSignal(s);
         const name = ETF_NAME_MAP[sig.asset];

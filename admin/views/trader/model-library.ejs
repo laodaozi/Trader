@@ -9,10 +9,10 @@
   .model-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px }
   .model-card-header h3 { margin:0; font-size:15px; font-weight:600 }
   .model-badge { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--cr-bg-tertiary); color:var(--cr-text-secondary); text-transform:uppercase }
-  .model-badge.alpha { background:rgba(38,166,154,.15); color:var(--cr-positive) }
-  .model-badge.etf { background:rgba(41,98,255,.15); color:#5b8bff }
-  .model-badge.commodity { background:rgba(245,158,11,.15); color:var(--cr-warn) }
-  .model-badge.concept { background:rgba(167,139,250,.15); color:var(--cr-info) }
+  .model-badge.alpha { background:#dcfce7; color:#166534 }
+  .model-badge.etf { background:#dbeafe; color:#1e40af }
+  .model-badge.commodity { background:#fef3c7; color:#92400e }
+  .model-badge.concept { background:#fce7f3; color:#9d174d }
   .model-desc { font-size:13px; color:var(--cr-text-secondary); margin-bottom:12px; line-height:1.5 }
   .model-stats { display:flex; gap:16px; font-size:13px }
   .model-stat { display:flex; flex-direction:column; align-items:center }
@@ -27,7 +27,14 @@
 
 <div class="dash-container">
   <h2><%= title %></h2>  <!-- 子导航 -->
-  <%- include('../partials/trader-subnav') %>
+  <div class="subnav">
+    <a href="/admin/trader"              class="subnav-tab">今日行动</a>
+    <a href="/admin/trader/rotation"     class="subnav-tab">市场状态</a>
+    <a href="/admin/trader/watchlist"    class="subnav-tab">自选池</a>
+    <a href="/admin/trader/event-feed"   class="subnav-tab">事件录入</a>
+    <a href="/admin/trader/reflection"   class="subnav-tab">策略反思</a>
+    <a href="/admin/trader/tracker"      class="subnav-tab">信号归档</a>
+  </div>
 
   <div class="model-cards">
     <% models.forEach(m => { %>

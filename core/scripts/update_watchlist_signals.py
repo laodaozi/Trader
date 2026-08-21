@@ -35,17 +35,6 @@ SCORE_WEIGHTS = {
 }
 
 
-def _norm_added_date(v) -> str:
-    """watchlist.json 用 added_at (ISO: 2026-06-24T09:38:03.809Z)，统一截取为 YYYY-MM-DD。"""
-    if not v:
-        return ""
-    v = str(v)
-    # ISO 时间戳或日期串，取前 10 位日期部分
-    if len(v) >= 10 and v[4] == "-" and v[7] == "-":
-        return v[:10]
-    return v
-
-
 def compute_pnl(close: float, entry_price: Optional[float]) -> Optional[float]:
     if entry_price and entry_price > 0:
         return round((close - entry_price) / entry_price * 100, 2)
@@ -194,7 +183,7 @@ def main():
         results.append({
             "code": code,
             "name": name,
-            "added_date": _norm_added_date(s.get("added_date") or s.get("added_at")),
+            "added_date": s.get("added_date", ""),
             "close": close,
             "entry_price": entry_price,
             "pnl_pct": pnl,

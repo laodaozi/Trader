@@ -1,12 +1,19 @@
 <%- include('../partials/layout-top') %>
 </head>
 <body>
-<%- include('../partials/nav', { active: 'trader' }) %>
+<%- include('../partials/nav', { active: 'reflection' }) %>
 
 <div class="dash-container">
   <h2>🔁 策略反思</h2>
   <p style="font-size:0.85em;color:var(--text-muted);margin:-8px 0 16px">AI策略 × 信号命中 × 执行偏差</p>
-  <%- include('../partials/trader-subnav') %>
+  <div class="subnav">
+    <a href="/admin/trader"              class="subnav-tab">今日行动</a>
+    <a href="/admin/trader/rotation"     class="subnav-tab">市场状态</a>
+    <a href="/admin/trader/watchlist"    class="subnav-tab">自选池</a>
+    <a href="/admin/trader/event-feed"   class="subnav-tab">事件录入</a>
+    <a href="/admin/trader/reflection"   class="subnav-tab active">策略反思</a>
+    <a href="/admin/trader/tracker"      class="subnav-tab">信号归档</a>
+  </div>
 
   <% if (error) { %>
     <div class="dash-empty" style="margin-top:20px"><p>⚠️ <%= error %></p></div>

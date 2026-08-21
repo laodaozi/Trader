@@ -5,14 +5,21 @@
 
 <div class="dash-container">
   <h2><%= title %></h2>  <!-- 子导航 -->
-  <%- include('../partials/trader-subnav') %>
+  <div class="subnav">
+    <a href="/admin/trader"              class="subnav-tab">今日行动</a>
+    <a href="/admin/trader/rotation"     class="subnav-tab">市场状态</a>
+    <a href="/admin/trader/watchlist"    class="subnav-tab active">自选池</a>
+    <a href="/admin/trader/event-feed"   class="subnav-tab">事件录入</a>
+    <a href="/admin/trader/reflection"   class="subnav-tab">策略反思</a>
+    <a href="/admin/trader/tracker"      class="subnav-tab">信号归档</a>
+  </div>
 
   <% if (error) { %>
     <div class="dash-empty" style="margin-top:20px"><p><%= error %></p></div>
   <% } %>
 
   <% if (success) { %>
-    <div style="margin-top:16px;padding:10px 16px;background:rgba(38,166,154,.12);color:var(--cr-positive);border:1px solid rgba(38,166,154,.3);border-radius:6px;font-size:13px">
+    <div style="margin-top:16px;padding:10px 16px;background:#dcfce7;color:var(--cr-positive);border-radius:6px;font-size:13px">
       <%= success %>
     </div>
   <% } %>
@@ -121,7 +128,6 @@
         <label>股票代码 <input type="text" name="code" class="calc-input" placeholder="如 600519" required></label>
         <label>名称 <input type="text" name="name" class="calc-input" placeholder="如 贵州茅台" required></label>
         <label>备注 <input type="text" name="notes" class="calc-input" placeholder="关注理由（可选）"></label>
-        <label>建仓价 <input type="number" step="0.01" name="entry_price" class="calc-input" placeholder="如 26.80（可选，供 P&amp;L 计算）"></label>
         <div style="margin-top:4px">
           <button type="submit" class="btn">添加到自选股</button>
         </div>
@@ -132,11 +138,11 @@
       <h3 class="dash-section-title">批量导入 <span style="font-weight:400;font-size:12px;color:var(--cr-text-secondary)">支持 CSV/JSON</span></h3>
       <form method="POST" action="/admin/trader/watchlist/import" class="calc-form" style="gap:10px">
         <div style="display:flex;gap:8px;align-items:center">
-          <label style="margin:0;font-size:13px"><input type="radio" name="format" value="csv" checked onchange="document.getElementById('import-example').textContent=this.value==='json'?'[{\"code\":\"600519\",\"name\":\"贵州茅台\",\"notes\":\"\",\"entry_price\":1680}]':'代码,名称,备注,建仓价\n600519,贵州茅台,,1680' style="margin-right:4px"> CSV</label>
-          <label style="margin:0;font-size:13px"><input type="radio" name="format" value="json" onchange="document.getElementById('import-example').textContent=this.value==='json'?'[{\"code\":\"600519\",\"name\":\"贵州茅台\",\"notes\":\"\",\"entry_price\":1680}]':'代码,名称,备注,建仓价\n600519,贵州茅台,,1680' style="margin-right:4px"> JSON</label>
+          <label style="margin:0;font-size:13px"><input type="radio" name="format" value="csv" checked onchange="document.getElementById('import-example').textContent=this.value==='json'?'[{\"code\":\"600519\",\"name\":\"贵州茅台\",\"notes\":\"\"}]':'代码,名称,备注\n600519,贵州茅台,' style="margin-right:4px"> CSV</label>
+          <label style="margin:0;font-size:13px"><input type="radio" name="format" value="json" onchange="document.getElementById('import-example').textContent=this.value==='json'?'[{\"code\":\"600519\",\"name\":\"贵州茅台\",\"notes\":\"\"}]':'代码,名称,备注\n600519,贵州茅台,' style="margin-right:4px"> JSON</label>
         </div>
-        <label style="font-size:12px;color:var(--cr-text-secondary)">每行一只：<code id="import-example">代码,名称,备注,建仓价（后两列可省）</code> <span style="color:var(--cr-text-secondary)">逗号/Tab 均可，自动跳过表头、去 Excel 前导单引号</span></label>
-        <textarea name="data" class="calc-input" rows="5" placeholder="600519,贵州茅台,,1680&#10;000858,五粮液,白酒龙头,158.5" style="resize:vertical;min-height:80px;font-family:monospace;font-size:13px"></textarea>
+        <label style="font-size:12px;color:var(--cr-text-secondary)">每行一只：<code id="import-example">代码,名称,备注</code></label>
+        <textarea name="data" class="calc-input" rows="5" placeholder="600519,贵州茅台,&#10;000858,五粮液,白酒龙头" style="resize:vertical;min-height:80px;font-family:monospace;font-size:13px"></textarea>
         <div style="margin-top:4px">
           <button type="submit" class="btn">批量导入</button>
           <span style="margin-left:12px;font-size:12px;color:var(--cr-text-secondary)">重复代码自动跳过</span>
@@ -149,24 +155,13 @@
       <% if (stocks.length === 0) { %>
         <p class="track-dim">暂无自选股，请在左侧添加</p>
       <% } else { %>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-          <form method="POST" action="/admin/trader/watchlist/delete-batch" id="batch-del-form" style="display:inline"
-                onsubmit="return wlConfirmBatch(this)">
-            <button type="submit" class="btn" style="background:var(--cr-negative);border-color:var(--cr-negative);font-size:12px;padding:5px 12px">批量删除选中</button>
-          </form>
-          <span id="wl-check-count" style="font-size:12px;color:var(--cr-text-secondary)">已选 0 只</span>
-        </div>
         <table class="data-table" style="width:100%">
           <thead>
-            <tr>
-              <th style="width:32px;text-align:center"><input type="checkbox" id="wl-check-all" title="全选"></th>
-              <th>代码</th><th>名称</th><th>备注</th><th>添加时间</th><th></th>
-            </tr>
+            <tr><th>代码</th><th>名称</th><th>备注</th><th>添加时间</th><th></th></tr>
           </thead>
           <tbody>
             <% stocks.forEach(s => { %>
               <tr>
-                <td style="text-align:center"><input type="checkbox" class="wl-row-check" name="codes" value="<%= s.code %>" form="batch-del-form"></td>
                 <td class="mono"><%= s.code %></td>
                 <td class="name"><%= s.name %></td>
                 <td class="track-dim"><%= s.notes || '—' %></td>
@@ -187,29 +182,4 @@
   </div>
 </div>
 
-<script>
-(function () {
-  var all = document.getElementById('wl-check-all');
-  var boxes = function () { return Array.prototype.slice.call(document.querySelectorAll('.wl-row-check')); };
-  var countEl = document.getElementById('wl-check-count');
-  function refresh() {
-    var bs = boxes();
-    var n = bs.filter(function (b) { return b.checked; }).length;
-    if (countEl) countEl.textContent = '已选 ' + n + ' 只';
-    if (all) all.checked = n > 0 && n === bs.length;
-    if (all) all.indeterminate = n > 0 && n < bs.length;
-  }
-  if (all) all.addEventListener('change', function () {
-    boxes().forEach(function (b) { b.checked = all.checked; });
-    refresh();
-  });
-  boxes().forEach(function (b) { b.addEventListener('change', refresh); });
-  window.wlConfirmBatch = function () {
-    var n = boxes().filter(function (b) { return b.checked; }).length;
-    if (n === 0) { alert('请先勾选要删除的股票'); return false; }
-    return confirm('确认批量移除选中的 ' + n + ' 只自选股？');
-  };
-  refresh();
-})();
-</script>
 <%- include('../partials/layout-bottom') %>

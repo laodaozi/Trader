@@ -51,6 +51,35 @@ DATA_DIR = os.environ.get("CYCLERADAR_DATA_DIR", os.path.join(_BASE_DIR, "data")
 LOG_DIR = os.path.join(DATA_DIR, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 
+# V10: 环境配置（模型开关 + 交易风格偏好）落盘文件
+ENV_CONFIG_FILE = os.path.join(DATA_DIR, "env-config.json")
+
+
+def load_enabled_models() -> list:
+    """读取 env-config.json 的 models 开关，返回启用的模型 key 列表。
+
+    规则：
+      - 配置缺失/不可读 → 返回 []（表示"全开"，scan() 用默认全部模型）
+      - 全部开启 → 返回 []（等价全开，避免与未来新增模型脱节）
+      - 部分关闭 → 返回仅启用的 key 列表（与 MODEL_FUNCS 交集）
+    """
+    if not os.path.exists(ENV_CONFIG_FILE):
+        return []
+    try:
+        import json as _json
+        with open(ENV_CONFIG_FILE, encoding="utf-8") as _f:
+            cfg = _json.load(_f)
+        models = cfg.get("models") or {}
+        if not isinstance(models, dict) or not models:
+            return []
+        from scanner import MODEL_FUNCS
+        enabled = [k for k, v in models.items() if v and k in MODEL_FUNCS]
+        if len(enabled) == len(MODEL_FUNCS):
+            return []
+        return enabled
+    except Exception:
+        return []
+
 
 def setup_logging(date_str: str) -> str:
     """配置日志文件路径，返回 log 文件路径"""
@@ -122,11 +151,16 @@ def main():
 
     try:
         # ── 1. 执行全量扫描 ──
-        logger.info("▶ Step 1: 启动 scanner.scan()（14 模型全量扫描）")
+        enabled_models = load_enabled_models()
+        if enabled_models:
+            logger.info(f"▶ Step 1: 启动 scanner.scan()（启用模型 {len(enabled_models)} 个: {', '.join(enabled_models)}）")
+        else:
+            logger.info("▶ Step 1: 启动 scanner.scan()（14 模型全量扫描）")
         from scanner import scan as scan_stocks
 
         result = scan_stocks(
             date=scan_date,
+            models=enabled_models or None,
             verbose=True,
         )
 
