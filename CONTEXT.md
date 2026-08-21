@@ -88,7 +88,7 @@ tracker_closer 闭环 (ECS, cron 16:00 Mon-Fri)
 |------|--------|------|----------|------|
 | `simensuji-backend` | 0 | 3000 | fork | online |
 | `trader-admin` | 3 | 3100 | fork | online |
-| `wewe-rss` | 4 | 4000 | fork → **ecosystem.config.js** | online |
+| `wewe-rss` | 4 | 4000 | fork → **ecosystem.config.js** | ⛔ 已退役 (2026-08-21) |
 
 **wewe-rss 核心配置**：`/opt/wewe-rss-deploy/ecosystem.config.js`（V4.2 新增，单一事实来源）
 - `CRON_EXPRESSION=35 5,8,17,22 * * *`（每日 4 次 feeds 同步）
@@ -292,7 +292,7 @@ Mac ~/交易员/cron_daily.sh (launchd 08:07 Mon-Fri)
 | ✅ P2 | hotEvents CSV 子进程 → sql.js WASM 直连 | better-sqlite3 因 ECS GLIBC 2.28 缺失不可用，改用零原生依赖 WASM 方案 | **V4.2 — 已修复** (sql.js) |
 | ✅ P2 | upstream_signals.jsonl 写入端无去重 | 可能重复写入 | **V4.2 — 已修复** (_SEEN_IDS + skip_dup) |
 | 🟡 P3 | daily.py 日报管道 ECS 不可运行 | 日报依赖 Mac MCP，通过 JSONL bridge 间接馈送 /m | V4.3+（MCP server 迁移至 ECS 或 Mac cron + rsync） |
-| 🟡 P3 | wewe-rss "暂无可用读书账号" 间歇阻塞 | feeds 同步中断 | V4.2 监控（非代码级） |
+| ✅ P3 | wewe-rss "暂无可用读书账号" 账号全部失效 | feeds 同步中断 | **V10.2 — 已退役** (pm2 stop，V7.7 起已非主数据源) |
 | 🟢 P3 | `event_narrative_latest.json` consumer 端无字段校验 | ~~V5.1 手动修复已知字段~~ V5.1 已加 `_validateEventNarrativeFields()`：producer 缺失/新增字段时 `console.warn` 告警 | ✅ V5.1 |
 | 🟡 P2 | `mobile.js` 第2个调用点（信号Tab）冗余读文件（同请求 `narrative` 已读过） | 一次请求 2 次 `readFileSync` 同一个文件 | V5.2（缓存或传给变量） |
 | 🟡 P3 | 30 日胜率 placeholder `—` | `global_conclusion` 暂无胜率统计字段，`buildCrStatsBar` 硬编码 `—` | V5.2（daily.py `_write_trader_contract()` 产出胜率统计） |
@@ -307,7 +307,7 @@ Mac ~/交易员/cron_daily.sh (launchd 08:07 Mon-Fri)
 ## 7. 开发约定
 
 - **每次改动后必须 `scp` 同步到 ECS + `pm2 restart trader-admin`**
-- **wewe-rss 重启必须用 `pm2 start /opt/wewe-rss-deploy/ecosystem.config.js`**
+- ~~wewe-rss 重启必须用 `pm2 start /opt/wewe-rss-deploy/ecosystem.config.js`~~（2026-08-21 退役：账号失效 + V7.7 起非主数据源，如需复活才用此命令）
 - **每个功能版本提交前必须更新 CHANGELOG**
 - **新策略上线前必须在 `STRATEGY_CATEGORY_MAP` 注册**
 - ECS：`root@139.196.115.64`，项目路径 `/opt/cycleradar-trader`
@@ -412,15 +412,16 @@ print(\"\\n\" + (\"🎯 全部通过\" if all_ok else \"⚠️  有项目未通�
 
 ---
 
-## 9. AFTER_SESSION (会前注入，最后更新 2026-06-20)
+## 9. AFTER_SESSION (会前注入，最后更新 2026-08-21)
 
 > 每次对话结束时 AI 自动更新。下次对话开始时 AI 读取此区块，3 秒恢复上下文。
 
-### 本次会话（2026-06-20 — V6.1.1 产品文档三件套对齐）
+### 本次会话（2026-08-21 — git 三方对齐 + wewe-rss 退役）
 
-- **上下文恢复**：上次对话完成 V6.1.1 全部代码部署，但 CONTEXT.md / ROADMAP.md 仍标记 V6.0，CHANGELOG.md 缺 Items D-J
-- **完成操作**：三文档本地编辑完成（ECS SSH 密钥未通，待上传），CHANGELOG 补全 [6.1.0] + [6.1.1]，CONTEXT 升至 V6.1.1，ROADMAP 新增 V6.1 section
-- **当前阻塞**：ECS SSH 连接（id_ed25519 不在 authorized_keys），文件暂存本地，需另寻上传方式
+- **git 三方对齐（方案 A）**：本地/生产/github 首次完全对齐到 master `654df2c`（固化生产真身 32 M + 4 代码文件），本地废 v7.0 线（8 文件备份 tag `backup/v7.0-local-wip-20260821` + patch）
+- **wewe-rss 退役**：账号全部失效（日志每 30 秒报"暂无可用读书账号"），V7.7 起已非主数据源 → `pm2 stop` + `pm2 save` 固化
+- **分支清理**：删除本地 v7.0（tag 保护）、main（tag v6.8-stable 保护），本地只剩 master 唯一分支
+- **push 到 github**：`c196b19..654df2c master -> master`（fast-forward，安全无覆盖）
 
 ### 文件变更清单（本次会话）
 
@@ -430,9 +431,9 @@ print(\"\\n\" + (\"🎯 全部通过\" if all_ok else \"⚠️  有项目未通�
 | `CONTEXT.md` | 修改 | 头部 V6.0→V6.1.1；§2.1 加 wanjun/tracker；§2.2 cron 加 wanjun 15:35/tracker 16:00；§3.2 策略表加 wanjun_models/tracker_closer；§4 加 8 项关键决策；§5 加 V6.0/V6.1.0/V6.1.1 成功标准；§6 技术债加 wanjun 缺失模型+SSH；§8 architecture-v6.0→v6.1；§9 全部重写 |
 | `ROADMAP.md` | 修改 | V6.0→V6.1.1；新增 V6.1.0/V6.1.1 章节；milestone 表补两行；本地快速启动路径更新 |
 
-### 当前状态（V6.1.1 全部完工，2026-06-20）
-- 版本：**V6.1.1 — 代码层 100% 部署，文档层本地就绪待上传**
-- ECS：PM2 3 进程在线（trader-admin/wewe-rss/simensuji），cron wanjun 15:35 + tracker 16:00 正常
+### 当前状态（git 三方对齐 + wewe-rss 退役，2026-08-21）
+- 版本：**V10.2**（生产 VERSION），git 三方（本地/生产/github）对齐到 master `654df2c`
+- ECS：PM2 2 进程在线（trader-admin/simensuji-backend），wewe-rss 已退役（2026-08-21），cron wanjun 15:35 + tracker 16:00 正常
 - ✅ V6.1.0 完工：wanjun screener / tracker_closer OHLC / RSS 9 源 / arch V6.1
 - ✅ V6.1.1 完工：批量导入 / 策略排序 / 文章统计 / signalSourceStats / CHANGELOG
 - ⚠️ 三文档本地已编辑，待上传 ECS `/opt/cycleradar-trader/`
@@ -462,3 +463,5 @@ wanjun 模型 1/3-7/9/11 (V6.2)
 ### 根因教训（持续积累）
 12. **🔴 文档漂移**：代码部署完但文档没更新 = 下次会话 AI 从文档读到过期信息，必然误判当前状态。修复纪律：代码 deploy 后必须同步 CONTEXT/ROADMAP/CHANGELOG 三件套，缺一不可
 13. **🔴 SSH 用户名记错（ops→root 浪费数小时）**：全项目文档都写 `root@139.196.115.64`，但凭记忆用了 `ops`，整个会话被阻塞在假问题上。教训：查 SSH 用户第一步 grep 项目文档，不要凭记忆
+14. **🔴 僵尸进程空转**：wewe-rss 账号失效后空转 10 天（每 30 秒报错）无人察觉。教训：PM2 进程 restarts 数持续增长 + 日志重复报错 = 僵尸信号，应主动侦察退役
+15. **🔴 git 本地/生产历史分叉**：本地与生产无共同祖先（no common commits），长期各自演化导致合并困难。教训：确立"生产为唯一真源"原则，本地废线用 tag 备份后删除，三方对齐到同一 commit
